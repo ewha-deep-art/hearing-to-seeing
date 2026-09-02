@@ -1,0 +1,27 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version-file: ".python-version"
+
+      # torch/whisperx are top-level deps (needed by the `run` CLI path, not by
+      # these tests), so this install is the slow part — enable-cache above is
+      # what keeps repeat runs fast rather than re-downloading every time.
+      - run: uv sync --locked
+
+      - run: uv run pytest -q

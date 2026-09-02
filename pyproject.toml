@@ -1,0 +1,23 @@
+[project]
+name = "hearing-to-seeing"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "4rldur0", email = "ngim24863@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.5.2",
+    "pytest>=9.1.1",
+    "python-dotenv>=1.2.3",
+    "torch>=2.0",
+    "whisperx",
+]
+
+[project.scripts]
+hearing-to-seeing = "hearing_to_seeing.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
