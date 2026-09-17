@@ -13,6 +13,12 @@ uv sync
 # 자막 생성 (기본 경로: WhisperX STT + 화자 분리 실행, GPU 필요)
 uv run hearing-to-seeing run data/input/sample.mp4 --json
 
+# 유튜브 링크로 바로 생성 (yt-dlp로 내려받아 data/input/downloads/에 캐싱)
+uv run hearing-to-seeing run "https://youtu.be/VIDEO_ID" --title "기생충" --json
+
+# 작품 제목 기록 (화자 색상 단계에서 인물 정보를 찾는 데 사용됨)
+uv run hearing-to-seeing run data/input/sample.mp4 --title "기생충"
+
 # 기존 transcript로부터 생성 (GPU 없는 환경을 위한 임시 대안)
 uv run hearing-to-seeing from-json data/input/sample.mp4 transcript.json
 

@@ -1,7 +1,7 @@
 import json
 
 from hearing_to_seeing.media import decode_audio
-from hearing_to_seeing.schema import Transcript
+from hearing_to_seeing.schema import MediaInfo, Transcript
 from hearing_to_seeing.design.volume import annotate_volumes
 from hearing_to_seeing.converter.ass import write_ass
 
@@ -11,8 +11,14 @@ def _finish(
     media_path: str,
     output_ass: str,
     output_json: str | None,
+    media_info: MediaInfo | None = None,
 ) -> Transcript:
     """Annotates volume and writes the outputs — the tail both entry points share."""
+    if media_info is not None:
+        # Field by field, so an explicit --title does not discard a URL and
+        # channel that a stored transcript already carried.
+        transcript.media = media_info.merge(transcript.media)
+
     sample_rate, audio_data = decode_audio(media_path)
     annotate_volumes(transcript, sample_rate, audio_data)
 
@@ -32,6 +38,7 @@ def run_from_json(
     transcript_json: str,
     output_ass: str,
     output_json: str | None = None,
+    media_info: MediaInfo | None = None,
 ) -> Transcript:
     """Builds subtitles from an existing transcript instead of re-running STT.
 
@@ -55,7 +62,7 @@ def run_from_json(
     else:
         transcript = Transcript.from_dict(data)
 
-    return _finish(transcript, media_path, output_ass, output_json)
+    return _finish(transcript, media_path, output_ass, output_json, media_info)
 
 
 def run(
@@ -63,6 +70,7 @@ def run(
     output_ass: str,
     language: str | None = None,
     output_json: str | None = None,
+    media_info: MediaInfo | None = None,
 ) -> Transcript:
     # Imported here rather than at module scope so run_from_json() — which
     # needs no STT — does not pay for loading torch and whisperx.
@@ -73,4 +81,4 @@ def run(
 
     # TODO: 화자 분리 이후 라벨 수동 보정 기능 없음 — 기획서 §10에서 화자 오분류에 대한
     #       수동 보정 옵션을 리스크 대응방안으로 제시했으나 미구현.
-    return _finish(transcript, media_path, output_ass, output_json)
+    return _finish(transcript, media_path, output_ass, output_json, media_info)
