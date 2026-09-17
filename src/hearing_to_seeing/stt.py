@@ -1,8 +1,10 @@
 import gc
+import os
 from dataclasses import dataclass
 
 import torch
 import whisperx
+from whisperx.diarize import DiarizationPipeline
 
 from hearing_to_seeing.schema import Transcript, WordEntry
 
@@ -31,15 +33,12 @@ def load_models(language: str = "ko") -> WhisperXModels:
     device = _device()
     compute_type = "float16" if device == "cuda" else "int8"
 
-    # TODO: 모델 크기가 "large-v3"로 고정되어 있음 — 속도·정확도 트레이드오프를 위해
-    #       호출자가 모델 크기를 선택할 수 있도록 파라미터화 필요.
     asr = whisperx.load_model("large-v3", device, compute_type=compute_type)
     align, align_metadata = whisperx.load_align_model(language_code=language, device=device)
-    # TODO: DiarizationPipeline은 pyannote 모델 사용을 위해 HuggingFace 토큰이 필요함 —
-    #       use_auth_token 파라미터 추가 또는 환경 변수 HF_TOKEN에서 읽도록 처리 필요.
-    # TODO: 화자 수 상한이 없음 — 기획서 §10에서 max_speakers 상한 설정으로
-    #       유사한 목소리의 오분류를 줄이도록 권고함.
-    diarize = whisperx.DiarizationPipeline(device=device)
+    diarize = DiarizationPipeline(
+        token=os.environ.get("HF_TOKEN"),
+        device=device,
+    )
 
     return WhisperXModels(
         asr=asr,
@@ -48,7 +47,6 @@ def load_models(language: str = "ko") -> WhisperXModels:
         diarize=diarize,
         device=device,
     )
-
 
 def transcribe(audio_path: str, models: WhisperXModels, language: str | None = None) -> Transcript:
     audio = whisperx.load_audio(audio_path)

@@ -1,4 +1,6 @@
+# pipeline.py
 import io
+import json
 import subprocess
 
 import numpy as np
@@ -12,8 +14,6 @@ from hearing_to_seeing.converter.ass import write_ass
 def _extract_audio(media_path: str) -> tuple[int, np.ndarray]:
     from scipy.io import wavfile
 
-    # TODO: 오디오가 44100 Hz로 리샘플링되지만 WhisperX load_audio는 16000 Hz를 기대함 —
-    #       올바른 샘플레이트 확인 후 ffmpeg -ar 값 수정 필요.
     cmd = [
         "ffmpeg", "-i", media_path,
         "-f", "wav", "-ac", "1", "-ar", "44100",
@@ -27,14 +27,31 @@ def _extract_audio(media_path: str) -> tuple[int, np.ndarray]:
     return sample_rate, audio_data
 
 
-def run(media_path: str, output_ass: str, language: str | None = None) -> Transcript:
+def transcribe_to_json(media_path: str, json_path: str, language: str | None = None) -> Transcript:
+    """무거운 STT+화자분리+음량분석을 한 번 실행하고 결과를 JSON으로 저장."""
     models = load_models(language=language or "ko")
     transcript = transcribe(media_path, models=models, language=language)
 
     sample_rate, audio_data = _extract_audio(media_path)
     annotate_volumes(transcript, sample_rate, audio_data)
 
-    # TODO: 화자 분리 이후 라벨 수동 보정 기능 없음 — 기획서 §10에서 화자 오분류에 대한
-    #       수동 보정 옵션을 리스크 대응방안으로 제시했으나 미구현.
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(transcript.to_dict(), f, ensure_ascii=False, indent=2)
+
+    return transcript
+
+
+def render_from_json(json_path: str, output_ass: str) -> Transcript:
+    """저장된 JSON에서 ASS만 빠르게 재생성 (STT 재실행 없음)."""
+    with open(json_path, encoding="utf-8") as f:
+        data = json.load(f)
+    transcript = Transcript.from_dict(data)
     write_ass(transcript, output_ass)
     return transcript
+
+
+def run(media_path: str, output_ass: str, language: str | None = None) -> Transcript:
+    """기존처럼 한 번에 다 돌리고 싶을 때 쓰는 편의 함수."""
+    json_path = output_ass.rsplit(".", 1)[0] + ".json"
+    transcribe_to_json(media_path, json_path, language=language)
+    return render_from_json(json_path, output_ass)
