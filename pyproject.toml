@@ -13,7 +13,6 @@ dependencies = [
     "python-dotenv>=1.2.3",
     "torch>=2.0",
     "whisperx",
-    "yt-dlp",
 ]
 
 [project.scripts]

@@ -1,66 +1,46 @@
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field, fields, replace
 
 # Character-level exports sometimes omit the space at an utterance boundary,
 # leaving two separate utterances joined into a single token that spans the
 # silence between them. A gap this long between characters is a word break.
 MAX_CHAR_GAP = 0.5
 
-# A YouTube description can run to thousands of characters of links and
-# boilerplate. The part worth keeping is the top, where a cast or guest list
-# usually sits, so the field is capped rather than stored whole.
-MAX_DESCRIPTION_CHARS = 2000
-
 
 @dataclass
 class MediaInfo:
-    """Where the media came from, and what is known about it.
+    """Which work the media holds, as told to us by the user.
 
-    None of these fields affect the current three effects — they exist for the
+    Neither field affects the current three effects — they exist for the
     speaker-colour step, which cannot look up who appears in a video without
     first knowing which video it is. Keeping them on the transcript puts them
-    in the intermediate JSON too, so a later step can use them without having
-    to fetch the source again.
+    in the intermediate JSON too, so that step can read them later without the
+    user having to supply them a second time.
     """
 
     title: str | None = None
     source_url: str | None = None
-    uploader: str | None = None
-    description: str | None = None
 
     def merge(self, other: "MediaInfo") -> "MediaInfo":
         """Returns a copy with `other`'s values filling in whatever is unset here.
 
         Used when both an explicit option and a stored transcript carry media
-        info: the caller's value wins field by field, rather than a half-filled
-        `--title` wiping out a URL and channel that were already known.
+        info: the caller's value wins field by field, rather than a lone
+        `--title` wiping out a URL that was already known.
         """
         filled = {
-            name: getattr(other, name)
-            for name in ("title", "source_url", "uploader", "description")
-            if getattr(self, name) is None
+            f.name: getattr(other, f.name)
+            for f in fields(self)
+            if getattr(self, f.name) is None
         }
         return replace(self, **filled)
 
     def to_dict(self) -> dict:
-        return {
-            "title": self.title,
-            "source_url": self.source_url,
-            "uploader": self.uploader,
-            "description": self.description,
-        }
+        return {f.name: getattr(self, f.name) for f in fields(self)}
 
     @classmethod
     def from_dict(cls, data: dict | None) -> "MediaInfo":
         data = data or {}
-        description = data.get("description")
-        if description:
-            description = description[:MAX_DESCRIPTION_CHARS]
-        return cls(
-            title=data.get("title"),
-            source_url=data.get("source_url"),
-            uploader=data.get("uploader"),
-            description=description,
-        )
+        return cls(**{f.name: data.get(f.name) for f in fields(cls)})
 
 
 @dataclass

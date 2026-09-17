@@ -8,7 +8,8 @@ Two subcommands, matching the two entry points in `pipeline`:
              from a transcript produced elsewhere and only the rest of the
              pipeline runs locally. See `pipeline.run_from_json`.
 
-Both accept a local file or a URL as their media argument; see `source`.
+Both also take `--title` and `--url`, which say which work the media holds;
+see `source`.
 """
 
 import argparse
@@ -16,7 +17,7 @@ import os
 import sys
 
 from hearing_to_seeing.media import MediaToolError
-from hearing_to_seeing.source import DEFAULT_CACHE_DIR, SourceError, resolve
+from hearing_to_seeing.source import SourceError, resolve
 
 
 def _default_output(media_path: str, suffix: str) -> str:
@@ -25,10 +26,7 @@ def _default_output(media_path: str, suffix: str) -> str:
 
 
 def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "media",
-        help="source audio/video file, or a URL to download (YouTube etc.)",
-    )
+    parser.add_argument("media", help="source audio or video file")
     parser.add_argument(
         "-o", "--output", default=None,
         help="destination .ass file (default: alongside the input media)",
@@ -38,19 +36,16 @@ def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
         help="also write the intermediate transcript schema "
              "(bare flag: alongside the input media)",
     )
+    # Recorded in the transcript, not used by the current effects: the
+    # speaker-colour step needs to know which work this is, and only the user
+    # can say. Neither option causes anything to be fetched.
     parser.add_argument(
-        "--title", default=None,
-        help="title of the work being subtitled. Recorded in the transcript for "
-             "the speaker-colour step; overrides the title a URL reports",
+        "--title", default=None, metavar="TITLE",
+        help="title of the work being subtitled, e.g. --title \"기생충\"",
     )
     parser.add_argument(
-        "--cache-dir", default=DEFAULT_CACHE_DIR, metavar="DIR",
-        help=f"where downloaded media is kept (default: {DEFAULT_CACHE_DIR})",
-    )
-    parser.add_argument(
-        "--audio-only", action="store_true",
-        help="download audio only — faster, but leaves nothing for the preview "
-             "renderer or any later step that looks at the picture (URL input only)",
+        "--url", default=None, metavar="URL",
+        help="URL the media came from (YouTube etc.), recorded as a reference",
     )
 
 
@@ -88,22 +83,13 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
-    # Resolving first: a URL has no local path to derive the default output
-    # names from until it has been fetched.
     try:
-        source = resolve(
-            args.media,
-            title=args.title,
-            cache_dir=args.cache_dir,
-            audio_only=args.audio_only,
-        )
+        source = resolve(args.media, title=args.title, url=args.url)
     except SourceError as exc:
         print(exc, file=sys.stderr)
         return 2
 
     media_path = source.media_path
-    if media_path != args.media:
-        print(f"media: {media_path}")
 
     output_ass = args.output or _default_output(media_path, ".ass")
     # `--json` doubles as a flag and an option: True means "yes, at the default path".

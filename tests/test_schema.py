@@ -1,4 +1,4 @@
-from hearing_to_seeing.schema import MAX_DESCRIPTION_CHARS, MediaInfo, Transcript, WordEntry
+from hearing_to_seeing.schema import MediaInfo, Transcript, WordEntry
 
 
 def test_word_entry_duration_rounds_to_milliseconds():
@@ -75,12 +75,7 @@ def test_from_char_timestamps_empty_input():
 def test_to_dict_from_dict_round_trip_keeps_media_info():
     original = Transcript(
         words=[WordEntry(text="hi", start=0.0, end=0.4)],
-        media=MediaInfo(
-            title="기생충",
-            source_url="https://youtu.be/abc123",
-            uploader="채널명",
-            description="등장인물: 기택, 충숙, 기우, 기정",
-        ),
+        media=MediaInfo(title="기생충", source_url="https://youtu.be/abc123"),
     )
     restored = Transcript.from_dict(original.to_dict())
     assert restored == original
@@ -92,11 +87,3 @@ def test_from_dict_defaults_missing_media_info():
     })
     assert transcript.media == MediaInfo()
     assert transcript.media.title is None
-
-
-def test_from_dict_truncates_overlong_description():
-    transcript = Transcript.from_dict({
-        "words": [],
-        "media": {"description": "가" * (MAX_DESCRIPTION_CHARS + 500)},
-    })
-    assert len(transcript.media.description) == MAX_DESCRIPTION_CHARS

@@ -15,8 +15,8 @@ See [README.md](README.md) for installation, running the pipeline, and test comm
 The pipeline flows in this order:
 
 ```
-Local file or URL
-  → Source resolution + media metadata       [src/hearing_to_seeing/source.py]
+Audio/Video input + work metadata
+  → Input validation + media metadata        [src/hearing_to_seeing/source.py]
   → STT + Speaker Diarization (WhisperX)     [src/hearing_to_seeing/stt.py]
   → Schema / intermediate JSON               [src/hearing_to_seeing/schema.py]
   → Speaker color mapping                    [src/hearing_to_seeing/design/speaker.py]
@@ -26,7 +26,7 @@ Local file or URL
   → Pipeline orchestration                   [src/hearing_to_seeing/pipeline.py]
 ```
 
-The **intermediate JSON schema** (`schema.py`) is the central data contract: it carries per-word entries with `speaker`, `text`, `start`/`end` timestamps, and `amplitude`, plus a `MediaInfo` block (title, source URL, channel, description) captured at input time for the speaker-colour step. All downstream modules (speaker color, sync, volume) consume this schema and annotate it before the ASS converter renders the final file.
+The **intermediate JSON schema** (`schema.py`) is the central data contract: it carries per-word entries with `speaker`, `text`, `start`/`end` timestamps, and `amplitude`, plus a `MediaInfo` block (title, source URL) taken as CLI input for the speaker-colour step. All downstream modules (speaker color, sync, volume) consume this schema and annotate it before the ASS converter renders the final file.
 
 ### Key design decisions
 - **WhisperX** is used for STT + forced alignment (word-level timestamps) + speaker diarization in a single pass.
@@ -34,7 +34,7 @@ The **intermediate JSON schema** (`schema.py`) is the central data contract: it 
 - The three visual effects map directly to audio signals: speaker identity → color, word timestamp → fill animation, amplitude → font size.
 
 ### Directory layout
-- `src/hearing_to_seeing/` — core pipeline package + CLI entry point (`cli.py`); `source.py` turns a path or URL into a local file plus its metadata
+- `src/hearing_to_seeing/` — core pipeline package + CLI entry point (`cli.py`); `source.py` validates the input file and carries the work metadata (`--title`, `--url`)
 - `src/hearing_to_seeing/design/` — speaker color, sync timing, and volume→font-size modules
 - `src/hearing_to_seeing/converter/` — output format converters (ASS, future VTT)
 - `src/web/` — preview renderer (`render.py`) that burns the generated ASS onto the source media
