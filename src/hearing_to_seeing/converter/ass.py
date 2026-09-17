@@ -1,7 +1,7 @@
 import unicodedata
 
 from hearing_to_seeing.schema import Transcript, WordEntry
-from hearing_to_seeing.design.speaker import BASE_COLOUR, assign_speaker_colors
+from hearing_to_seeing.design.speaker import BASE_COLOUR, resolve_speakers
 from hearing_to_seeing.design.sync import karaoke_durations, lift_tags
 from hearing_to_seeing.design.volume import compute_font_size
 
@@ -127,7 +127,13 @@ def _render_line(words: list[WordEntry], color: str, durations: list[int]) -> st
 
 
 def generate_ass(transcript: Transcript) -> str:
-    color_map = assign_speaker_colors(transcript.speakers())
+    # Colours are decided by the speaker step and read here, so this module
+    # stays a renderer. Resolving on the spot covers a transcript that never
+    # went through the pipeline — a hand-built one, or an older JSON file.
+    profiles = transcript.speaker_profiles or resolve_speakers(transcript)
+    color_map = {
+        label: profile.color or BASE_COLOUR for label, profile in profiles.items()
+    }
     lines = [_HEADER]
 
     groups = [g for g in _split_into_lines(transcript.words) if g]

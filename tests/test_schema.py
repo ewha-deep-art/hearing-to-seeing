@@ -1,4 +1,4 @@
-from hearing_to_seeing.schema import MediaInfo, Transcript, WordEntry
+from hearing_to_seeing.schema import MediaInfo, SpeakerProfile, Transcript, WordEntry
 
 
 def test_word_entry_duration_rounds_to_milliseconds():
@@ -87,3 +87,33 @@ def test_from_dict_defaults_missing_media_info():
     })
     assert transcript.media == MediaInfo()
     assert transcript.media.title is None
+
+
+def test_speaker_profile_round_trip_keyed_by_label():
+    original = Transcript(
+        words=[WordEntry(text="hi", start=0.0, end=0.4, speaker="SPEAKER_00")],
+        speaker_profiles={
+            "SPEAKER_00": SpeakerProfile(
+                label="SPEAKER_00", color="&H00009FE6", name="기택",
+                confidence=0.91, source="llm", note="갈색 점퍼",
+            ),
+        },
+    )
+    restored = Transcript.from_dict(original.to_dict())
+    assert restored == original
+
+
+def test_from_dict_rebuilds_a_profile_label_from_its_key():
+    transcript = Transcript.from_dict({
+        "words": [],
+        "speaker_profiles": {"SPEAKER_02": {"color": "&H00E9B456"}},
+    })
+    profile = transcript.speaker_profiles["SPEAKER_02"]
+    assert profile.label == "SPEAKER_02"
+    assert profile.source == "palette"
+    assert profile.confidence == 0.0
+
+
+def test_from_dict_defaults_missing_speaker_profiles():
+    transcript = Transcript.from_dict({"words": []})
+    assert transcript.speaker_profiles == {}

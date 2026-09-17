@@ -2,6 +2,7 @@ import json
 
 from hearing_to_seeing.media import decode_audio
 from hearing_to_seeing.schema import MediaInfo, Transcript
+from hearing_to_seeing.design.speaker import SpeakerStrategy, resolve_speakers
 from hearing_to_seeing.design.volume import annotate_volumes
 from hearing_to_seeing.converter.ass import write_ass
 
@@ -12,6 +13,7 @@ def _finish(
     output_ass: str,
     output_json: str | None,
     media_info: MediaInfo | None = None,
+    speaker_strategy: SpeakerStrategy | None = None,
 ) -> Transcript:
     """Annotates volume and writes the outputs — the tail both entry points share."""
     if media_info is not None:
@@ -21,6 +23,11 @@ def _finish(
 
     sample_rate, audio_data = decode_audio(media_path)
     annotate_volumes(transcript, sample_rate, audio_data)
+
+    # Before the JSON is written, so the reasoning behind each colour is in the
+    # file rather than recomputed from scratch by whatever reads it next.
+    candidates = speaker_strategy(transcript, media_path) if speaker_strategy else None
+    transcript.speaker_profiles = resolve_speakers(transcript, candidates)
 
     # Persist the intermediate schema (schema.py) — the central data contract —
     # right before handing it to the ASS converter, so it can be inspected
@@ -39,6 +46,7 @@ def run_from_json(
     output_ass: str,
     output_json: str | None = None,
     media_info: MediaInfo | None = None,
+    speaker_strategy: SpeakerStrategy | None = None,
 ) -> Transcript:
     """Builds subtitles from an existing transcript instead of re-running STT.
 
@@ -62,7 +70,9 @@ def run_from_json(
     else:
         transcript = Transcript.from_dict(data)
 
-    return _finish(transcript, media_path, output_ass, output_json, media_info)
+    return _finish(
+        transcript, media_path, output_ass, output_json, media_info, speaker_strategy,
+    )
 
 
 def run(
@@ -71,6 +81,7 @@ def run(
     language: str | None = None,
     output_json: str | None = None,
     media_info: MediaInfo | None = None,
+    speaker_strategy: SpeakerStrategy | None = None,
 ) -> Transcript:
     # Imported here rather than at module scope so run_from_json() — which
     # needs no STT — does not pay for loading torch and whisperx.
@@ -81,4 +92,6 @@ def run(
 
     # TODO: 화자 분리 이후 라벨 수동 보정 기능 없음 — 기획서 §10에서 화자 오분류에 대한
     #       수동 보정 옵션을 리스크 대응방안으로 제시했으나 미구현.
-    return _finish(transcript, media_path, output_ass, output_json, media_info)
+    return _finish(
+        transcript, media_path, output_ass, output_json, media_info, speaker_strategy,
+    )

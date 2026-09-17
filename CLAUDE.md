@@ -26,10 +26,11 @@ Audio/Video input + work metadata
   → Pipeline orchestration                   [src/hearing_to_seeing/pipeline.py]
 ```
 
-The **intermediate JSON schema** (`schema.py`) is the central data contract: it carries per-word entries with `speaker`, `text`, `start`/`end` timestamps, and `amplitude`, plus a `MediaInfo` block (title, source URL) taken as CLI input for the speaker-colour step. All downstream modules (speaker color, sync, volume) consume this schema and annotate it before the ASS converter renders the final file.
+The **intermediate JSON schema** (`schema.py`) is the central data contract: it carries per-word entries with `speaker`, `text`, `start`/`end` timestamps, and `amplitude`, plus a `MediaInfo` block (title, source URL) taken as CLI input, and a `SpeakerProfile` per speaker (colour, resolved name, confidence, source) written by the speaker step. All downstream modules (speaker color, sync, volume) consume this schema and annotate it before the ASS converter renders the final file.
 
 ### Key design decisions
 - **WhisperX** is used for STT + forced alignment (word-level timestamps) + speaker diarization in a single pass.
+- **Speaker colour is decided behind a strategy seam.** A strategy (`SpeakerStrategy`) returns a `SpeakerCandidate` per speaker — a name, a confidence, and colour *preferences* — and never a colour. `design/speaker.resolve_speakers()` assigns the actual colours, so no strategy can give two speakers the same colour or one that cannot be read on video. Candidates below `MIN_CONFIDENCE` are dropped and fall back to palette order; with no strategy at all the result is exactly that fallback.
 - **ASS format** is the primary output (over VTT/SRT) because it natively supports per-dialogue color, font size, and `\k` karaoke-style fill animations needed for the sync effect.
 - The three visual effects map directly to audio signals: speaker identity → color, word timestamp → fill animation, amplitude → font size.
 

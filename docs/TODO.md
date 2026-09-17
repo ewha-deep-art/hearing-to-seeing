@@ -9,8 +9,9 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 1 | [speaker.py:1](../src/hearing_to_seeing/design/speaker.py#L1) | **색상 배정 방식 미확정.** 현재는 단순 팔레트 순서 배정 방식 사용 중. 기획서에서 RAG 기반(인물 정보 → LLM 색상 결정) 방식이 대안으로 제시되었으나 최종 결정이 없음. | 기획서 §다음 논의 필요 사항 |
-| 2 | [speaker.py:20](../src/hearing_to_seeing/design/speaker.py#L20) | **색상이 라벨 정렬 순서 기준으로 배정됨.** 화자가 알파벳순(`SPEAKER_00`, `SPEAKER_01`, …)으로 정렬되어 대화 등장 순서와 색상이 자연스럽게 대응되지 않을 수 있음. 첫 등장 순서 기반 배정 방식 검토 필요. | — |
+| 1 | [speaker.py:23](../src/hearing_to_seeing/design/speaker.py#L23) | **색상 배정 방식 미확정.** 현재는 단순 팔레트 순서 배정 방식 사용 중. 기획서에서 RAG 기반(인물 정보 → LLM 색상 결정) 방식이 대안으로 제시되었으나 최종 결정이 없음. | 기획서 §다음 논의 필요 사항 |
+| 2 | [speaker.py:123](../src/hearing_to_seeing/design/speaker.py#L123) | **팔레트 폴백이 라벨 정렬 순서 기준으로 배정됨.** 화자가 알파벳순(`SPEAKER_00`, `SPEAKER_01`, …)으로 정렬되어 대화 등장 순서와 색상이 자연스럽게 대응되지 않을 수 있음. 첫 등장 순서 기반 배정 방식 검토 필요. (전략이 신뢰도 임계값을 넘긴 화자는 `assign_from_preferences()`가 배정하므로 이 정렬을 타지 않음.) | — |
+| 2-1 | [speaker.py:44](../src/hearing_to_seeing/design/speaker.py#L44) | **`MIN_CONFIDENCE` 임계값 0.7은 경험값.** 전략이 내놓은 답을 채택할 최소 신뢰도. 실제 전략(RAG/VLM/음성 특징)을 붙인 뒤 신뢰도별 실제 정확도를 측정해 재조정 필요. | — |
 
 ---
 
@@ -52,7 +53,7 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 9 | [pipeline.py:74](../src/hearing_to_seeing/pipeline.py#L74) | **화자 라벨 수동 보정 기능 도입 여부 미확정.** 기획서 §10에서 화자 오분류 리스크 대응방안으로 제시되었으나, 색상 배정 방식(TODO #1)과 마찬가지로 넣을지 말지 자체가 아직 결정되지 않음. | 기획서 §10 (화자 분리 정확도) |
+| 9 | [pipeline.py:93](../src/hearing_to_seeing/pipeline.py#L93) | **화자 라벨 수동 보정 기능 도입 여부 미확정.** 기획서 §10에서 화자 오분류 리스크 대응방안으로 제시되었으나, 색상 배정 방식(TODO #1)과 마찬가지로 넣을지 말지 자체가 아직 결정되지 않음. | 기획서 §10 (화자 분리 정확도) |
 
 ---
 
@@ -60,7 +61,7 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 10 | [pipeline.py:30](../src/hearing_to_seeing/pipeline.py#L30), [cli.py:52](../src/hearing_to_seeing/cli.py#L52) | **`from-json`(`run_from_json`)은 GPU 없는 환경을 위한 임시 우회 경로.** STT·정렬·화자 분리(WhisperX, GPU 필요)를 건너뛰고 외부에서 만든 transcript JSON을 읽어 나머지 파이프라인만 로컬에서 돌린다. GPU 환경 구성(WhisperX 의존성, CUDA 등)을 마치고 `run` 경로가 로컬에서 정상 동작하는 것을 확인하면, `from-json` 서브커맨드와 `run_from_json` 관련 코드를 제거해야 한다. | — |
+| 10 | [pipeline.py:43](../src/hearing_to_seeing/pipeline.py#L43), [cli.py:68](../src/hearing_to_seeing/cli.py#L68) | **`from-json`(`run_from_json`)은 GPU 없는 환경을 위한 임시 우회 경로.** STT·정렬·화자 분리(WhisperX, GPU 필요)를 건너뛰고 외부에서 만든 transcript JSON을 읽어 나머지 파이프라인만 로컬에서 돌린다. GPU 환경 구성(WhisperX 의존성, CUDA 등)을 마치고 `run` 경로가 로컬에서 정상 동작하는 것을 확인하면, `from-json` 서브커맨드와 `run_from_json` 관련 코드를 제거해야 한다. | — |
 
 ---
 

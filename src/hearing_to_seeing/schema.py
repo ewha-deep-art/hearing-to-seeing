@@ -44,6 +44,41 @@ class MediaInfo:
 
 
 @dataclass
+class SpeakerProfile:
+    """One speaker's resolved identity and subtitle colour.
+
+    Written by the speaker-colour step and read by the ASS converter, which
+    does no colour reasoning of its own. `confidence`, `source` and `note`
+    record where the answer came from: a colour that turns out to be wrong is
+    otherwise indistinguishable from one that was merely arbitrary, and the
+    two call for different fixes.
+    """
+
+    label: str
+    color: str | None = None
+    name: str | None = None
+    confidence: float = 0.0
+    source: str = "palette"
+    note: str | None = None
+
+    def to_dict(self) -> dict:
+        return {f.name: getattr(self, f.name) for f in fields(self)}
+
+    @classmethod
+    def from_dict(cls, label: str, data: dict) -> "SpeakerProfile":
+        # `label` comes from the key it was stored under, which cannot
+        # disagree with itself the way a duplicated field could.
+        return cls(
+            label=label,
+            color=data.get("color"),
+            name=data.get("name"),
+            confidence=data.get("confidence") or 0.0,
+            source=data.get("source") or "palette",
+            note=data.get("note"),
+        )
+
+
+@dataclass
 class WordEntry:
     text: str
     start: float
@@ -61,6 +96,9 @@ class Transcript:
     words: list[WordEntry] = field(default_factory=list)
     language: str = "ko"
     media: MediaInfo = field(default_factory=MediaInfo)
+    # Keyed by speaker label. Per-speaker facts belong here rather than copied
+    # onto every word that speaker says.
+    speaker_profiles: dict[str, SpeakerProfile] = field(default_factory=dict)
 
     def speakers(self) -> list[str]:
         return sorted({w.speaker for w in self.words})
@@ -69,6 +107,10 @@ class Transcript:
         return {
             "language": self.language,
             "media": self.media.to_dict(),
+            "speaker_profiles": {
+                label: profile.to_dict()
+                for label, profile in self.speaker_profiles.items()
+            },
             "words": [
                 {
                     "text": w.text,
@@ -97,6 +139,10 @@ class Transcript:
             words=words,
             language=data.get("language", "ko"),
             media=MediaInfo.from_dict(data.get("media")),
+            speaker_profiles={
+                label: SpeakerProfile.from_dict(label, profile)
+                for label, profile in (data.get("speaker_profiles") or {}).items()
+            },
         )
 
     @classmethod
