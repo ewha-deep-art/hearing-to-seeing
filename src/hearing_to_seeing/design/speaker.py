@@ -154,12 +154,14 @@ def resolve_speakers(
     labels = transcript.speakers()
     candidates = candidates or {}
 
+    # Identity and colour arrive from different steps: a manual mapping knows
+    # exactly who a speaker is and has no opinion on colour, so confidence
+    # alone decides whether a candidate is believed. A candidate with no
+    # preference keeps its name and takes its colour from the palette.
     accepted = {
         label: candidate
         for label, candidate in candidates.items()
-        if label in labels
-        and candidate.confidence >= min_confidence
-        and candidate.preference
+        if label in labels and candidate.confidence >= min_confidence
     }
 
     colours = assign_from_preferences(

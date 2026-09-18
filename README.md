@@ -16,6 +16,9 @@ uv run hearing-to-seeing run data/input/sample.mp4 --json
 # 작품 정보 함께 기록 (화자 색상 단계에서 인물 정보를 찾는 데 사용됨)
 uv run hearing-to-seeing run data/input/sample.mp4 --title "기생충" --url "https://youtu.be/VIDEO_ID"
 
+# 화자에 인물 이름 직접 지정
+uv run hearing-to-seeing run data/input/sample.mp4 --speaker-map "SPEAKER_00=기택,SPEAKER_01=충숙"
+
 # 기존 transcript로부터 생성 (GPU 없는 환경을 위한 임시 대안)
 uv run hearing-to-seeing from-json data/input/sample.mp4 transcript.json
 
@@ -32,4 +35,4 @@ uv run pytest tests/path/to/test_file.py
 uv add <package>
 ```
 
-아키텍처와 저장소 구조는 [CLAUDE.md](CLAUDE.md)를, 브랜치 전략과 커밋 컨벤션은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
+전체 파이프라인 설계는 [docs/PIPELINE.md](docs/PIPELINE.md)를, 아키텍처와 저장소 구조는 [CLAUDE.md](CLAUDE.md)를, 브랜치 전략과 커밋 컨벤션은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.

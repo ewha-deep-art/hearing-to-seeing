@@ -19,6 +19,7 @@ Audio/Video input + work metadata
   → Input validation + media metadata        [src/hearing_to_seeing/source.py]
   → STT + Speaker Diarization (WhisperX)     [src/hearing_to_seeing/stt.py]
   → Schema / intermediate JSON               [src/hearing_to_seeing/schema.py]
+  → Speaker → character mapping              [src/hearing_to_seeing/design/identity.py]
   → Speaker color mapping                    [src/hearing_to_seeing/design/speaker.py]
   → Word-level sync timing                   [src/hearing_to_seeing/design/sync.py]
   → Volume → font size scaling               [src/hearing_to_seeing/design/volume.py]
@@ -36,12 +37,12 @@ The **intermediate JSON schema** (`schema.py`) is the central data contract: it 
 
 ### Directory layout
 - `src/hearing_to_seeing/` — core pipeline package + CLI entry point (`cli.py`); `source.py` validates the input file and carries the work metadata (`--title`, `--url`)
-- `src/hearing_to_seeing/design/` — speaker color, sync timing, and volume→font-size modules
+- `src/hearing_to_seeing/design/` — speaker identity (`identity.py`), speaker color, sync timing, and volume→font-size modules
 - `src/hearing_to_seeing/converter/` — output format converters (ASS, future VTT)
 - `src/web/` — preview renderer (`render.py`) that burns the generated ASS onto the source media
 - `data/input/` / `data/output/` — local test media files (not committed)
 - `tests/` — test suite
-- `docs/` — product spec (Korean) + `TODO.md` (unresolved decisions)
+- `docs/` — product spec (Korean) + `PIPELINE.md` (end-to-end design, per-step status) + `TODO.md` (unresolved decisions)
 
 ## Git Workflow
 

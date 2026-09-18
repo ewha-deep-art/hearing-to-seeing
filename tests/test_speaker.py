@@ -177,3 +177,21 @@ def test_resolve_speakers_covers_every_speaker():
     profiles = resolve_speakers(_transcript(*labels))
     assert set(profiles) == set(labels)
     assert all(p.color for p in profiles.values())
+
+
+def test_resolve_speakers_keeps_a_named_candidate_with_no_colour_preference():
+    # Identity and colour come from different steps: a manual mapping is
+    # certain about the name and has no opinion on the colour.
+    profiles = resolve_speakers(
+        _transcript("SPEAKER_00", "SPEAKER_01"),
+        {
+            "SPEAKER_00": SpeakerCandidate(
+                label="SPEAKER_00", name="기택", confidence=1.0, source="manual",
+            )
+        },
+    )
+    named = profiles["SPEAKER_00"]
+    assert named.name == "기택"
+    assert named.source == "manual"
+    assert named.color == _PALETTE[0]        # colour still comes from the palette
+    assert profiles["SPEAKER_01"].name is None
