@@ -9,9 +9,11 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 1 | [speaker.py:23](../src/hearing_to_seeing/design/speaker.py#L23) | **색상 배정 방식 미확정.** 현재는 단순 팔레트 순서 배정 방식 사용 중. 기획서에서 RAG 기반(인물 정보 → LLM 색상 결정) 방식이 대안으로 제시되었으나 최종 결정이 없음. | 기획서 §다음 논의 필요 사항 |
-| 2 | [speaker.py:123](../src/hearing_to_seeing/design/speaker.py#L123) | **팔레트 폴백이 라벨 정렬 순서 기준으로 배정됨.** 화자가 알파벳순(`SPEAKER_00`, `SPEAKER_01`, …)으로 정렬되어 대화 등장 순서와 색상이 자연스럽게 대응되지 않을 수 있음. 첫 등장 순서 기반 배정 방식 검토 필요. (전략이 신뢰도 임계값을 넘긴 화자는 `assign_from_preferences()`가 배정하므로 이 정렬을 타지 않음.) | — |
-| 2-1 | [speaker.py:44](../src/hearing_to_seeing/design/speaker.py#L44) | **`MIN_CONFIDENCE` 임계값 0.7은 경험값.** 전략이 내놓은 답을 채택할 최소 신뢰도. 실제 전략(RAG/VLM/음성 특징)을 붙인 뒤 신뢰도별 실제 정확도를 측정해 재조정 필요. | — |
+| 1 | [speaker.py:131](../src/hearing_to_seeing/design/speaker.py#L131) | **색상 선호의 출처 미확정.** 색상환 배정(`assign_hues()`)은 구현됐으나, 각 인물이 어느 hue를 선호하는지 정하는 단계가 비어 있음. 파이프라인 [6]b는 1단계 의상 대표색([4]e), 2단계 RAG 성격·역할을 제시하나 둘 다 미구현. | 기획서 §다음 논의 필요 사항 |
+| 2 | [speaker.py:131](../src/hearing_to_seeing/design/speaker.py#L131) | **선호가 없을 때의 배정이 라벨 정렬 순서에 의존.** 화자가 알파벳순(`SPEAKER_00`, `SPEAKER_01`, …)으로 정렬되어 색상환에 배치되므로, 대화 등장 순서와 색상이 자연스럽게 대응되지 않을 수 있음. 첫 등장 순서 기반 배정 검토 필요. | — |
+| 2-1 | [speaker.py:28](../src/hearing_to_seeing/design/speaker.py#L28) | **`LIGHTNESS` 0.75와 채도 비율(0.95 / 0.32)이 미검증.** 기존 Wong 팔레트의 밝기 대역에 맞춰 정한 값이며, 실제 영상 위 — 특히 밝은 장면 — 에서의 가독성은 확인되지 않음. | 기획서 §10 (자막 서식의 가독성) |
+| 2-2 | [speaker.py:51](../src/hearing_to_seeing/design/speaker.py#L51) | **`MIN_CONFIDENCE` 임계값 0.7은 경험값.** 전략이 내놓은 답을 채택할 최소 신뢰도. 실제 전략(RAG/VLM)을 붙인 뒤 신뢰도별 실제 정확도를 측정해 재조정 필요. | — |
+| 2-3 | [speaker.py:40](../src/hearing_to_seeing/design/speaker.py#L40) | **색맹 안전성 미고려.** 표현력을 위해 팔레트 제한을 없애면서 색맹 안전 보장도 함께 사라짐. 필요 시 색상환 결과를 검증된 팔레트로 스냅하는 별도 옵션으로 분리 검토. | — |
 
 ---
 

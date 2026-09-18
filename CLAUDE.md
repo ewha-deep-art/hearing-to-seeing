@@ -31,7 +31,8 @@ The **intermediate JSON schema** (`schema.py`) is the central data contract: it 
 
 ### Key design decisions
 - **WhisperX** is used for STT + forced alignment (word-level timestamps) + speaker diarization in a single pass.
-- **Speaker colour is decided behind a strategy seam.** A strategy (`SpeakerStrategy`) returns a `SpeakerCandidate` per speaker — a name, a confidence, and colour *preferences* — and never a colour. `design/speaker.resolve_speakers()` assigns the actual colours, so no strategy can give two speakers the same colour or one that cannot be read on video. Candidates below `MIN_CONFIDENCE` are dropped and fall back to palette order; with no strategy at all the result is exactly that fallback.
+- **Speaker colour is one fixed OKLCH lightness with hue left free** (`design/oklch.py`). Fixing lightness settles legibility once for every colour, which is what allows hue to be a whole circle rather than a short palette; chroma is a ratio of the per-hue gamut maximum, and its two tiers mark identified characters apart from unidentified ones.
+- **Colour is decided behind a strategy seam.** A strategy (`SpeakerStrategy`) returns a `SpeakerCandidate` per speaker — a name, a confidence, and a *preferred hue* — and never a colour. `design/speaker.resolve_speakers()` places the hues, keeping every speaker a minimum arc apart, so no strategy can give two speakers the same colour or one that cannot be read on video. Candidates below `MIN_CONFIDENCE` are dropped; with no strategy at all the speakers are simply spread evenly around the circle.
 - **ASS format** is the primary output (over VTT/SRT) because it natively supports per-dialogue color, font size, and `\k` karaoke-style fill animations needed for the sync effect.
 - The three visual effects map directly to audio signals: speaker identity → color, word timestamp → fill animation, amplitude → font size.
 

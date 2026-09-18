@@ -1,31 +1,15 @@
+import pytest
+
+from hearing_to_seeing.design.oklch import from_ass, rgb_to_oklch
 from hearing_to_seeing.design.speaker import (
-    _PALETTE,
+    BASE_COLOUR,
+    MIN_HUE_GAP,
     SpeakerCandidate,
-    assign_from_preferences,
-    assign_speaker_colors,
-    fill_from_palette,
+    assign_hues,
+    hue_distance,
     resolve_speakers,
 )
 from hearing_to_seeing.schema import Transcript, WordEntry
-
-
-def test_assign_speaker_colors_is_stable_by_sorted_label():
-    colors = assign_speaker_colors(["SPEAKER_01", "SPEAKER_00"])
-    assert colors == {
-        "SPEAKER_00": _PALETTE[0],
-        "SPEAKER_01": _PALETTE[1],
-    }
-
-
-def test_assign_speaker_colors_wraps_around_palette():
-    speakers = [f"SPEAKER_{i:02d}" for i in range(len(_PALETTE) + 1)]
-    colors = assign_speaker_colors(speakers)
-    # One more speaker than colours in the palette — the extra one wraps to the start.
-    assert colors[speakers[0]] == colors[speakers[-1]] == _PALETTE[0]
-
-
-def test_assign_speaker_colors_empty_input():
-    assert assign_speaker_colors([]) == {}
 
 
 def _transcript(*labels: str) -> Transcript:
@@ -37,149 +21,134 @@ def _transcript(*labels: str) -> Transcript:
     )
 
 
-# --- assign_from_preferences -------------------------------------------------
-
-def test_assign_from_preferences_gives_each_speaker_its_best_colour():
-    assigned = assign_from_preferences({
-        "SPEAKER_00": {_PALETTE[0]: 0.9, _PALETTE[4]: 0.2},
-        "SPEAKER_01": {_PALETTE[4]: 0.8, _PALETTE[1]: 0.1},
-    })
-    assert assigned == {"SPEAKER_00": _PALETTE[0], "SPEAKER_01": _PALETTE[4]}
+def _chroma(color: str) -> float:
+    return rgb_to_oklch(*from_ass(color))[1]
 
 
-def test_assign_from_preferences_breaks_a_collision_by_score():
-    # Both want orange; the stronger preference takes it and the other drops
-    # to its own next best rather than sharing.
-    assigned = assign_from_preferences({
-        "SPEAKER_00": {_PALETTE[0]: 0.9, _PALETTE[4]: 0.2},
-        "SPEAKER_01": {_PALETTE[0]: 0.8, _PALETTE[3]: 0.6},
-    })
-    assert assigned == {"SPEAKER_00": _PALETTE[0], "SPEAKER_01": _PALETTE[3]}
+def _hue(color: str) -> float:
+    return rgb_to_oklch(*from_ass(color))[2]
 
 
-def test_assign_from_preferences_never_repeats_a_colour():
-    preferences = {f"SPEAKER_{i:02d}": {_PALETTE[0]: 0.9} for i in range(3)}
-    assigned = assign_from_preferences(preferences)
-    # Only the winner is placed; the others expressed no other preference.
-    assert assigned == {"SPEAKER_00": _PALETTE[0]}
+# --- hue_distance ------------------------------------------------------------
+
+def test_hue_distance_takes_the_shorter_way_round():
+    assert hue_distance(10, 350) == pytest.approx(20)
+    assert hue_distance(0, 180) == pytest.approx(180)
 
 
-def test_assign_from_preferences_ignores_non_positive_scores():
-    assert assign_from_preferences({"SPEAKER_00": {_PALETTE[0]: 0.0}}) == {}
+# --- assign_hues -------------------------------------------------------------
+
+def test_assign_hues_without_preferences_spreads_evenly():
+    hues = assign_hues(["SPEAKER_00", "SPEAKER_01", "SPEAKER_02", "SPEAKER_03"])
+    assert sorted(hues.values()) == pytest.approx([0, 90, 180, 270])
 
 
-def test_assign_from_preferences_ignores_colours_outside_the_palette():
-    assigned = assign_from_preferences({
-        "SPEAKER_00": {"&H00123456": 0.9, _PALETTE[2]: 0.5},
-    })
-    assert assigned == {"SPEAKER_00": _PALETTE[2]}
+def test_assign_hues_honours_a_preference_exactly():
+    hues = assign_hues(["SPEAKER_00"], preferences={"SPEAKER_00": 137.0})
+    assert hues["SPEAKER_00"] == pytest.approx(137.0)
 
 
-def test_assign_from_preferences_is_deterministic_on_ties():
-    preferences = {
-        "SPEAKER_01": {_PALETTE[0]: 0.5},
-        "SPEAKER_00": {_PALETTE[0]: 0.5},
-    }
-    # Equal scores: the label decides, so the result does not depend on dict order.
-    assert assign_from_preferences(preferences) == {"SPEAKER_00": _PALETTE[0]}
+def test_assign_hues_moves_the_loser_of_a_collision_aside():
+    # Both want the same hue; the first keeps it and the second is pushed to
+    # the nearest spot that clears the minimum gap.
+    hues = assign_hues(
+        ["SPEAKER_00", "SPEAKER_01"],
+        preferences={"SPEAKER_00": 100.0, "SPEAKER_01": 100.0},
+    )
+    assert hues["SPEAKER_00"] == pytest.approx(100.0)
+    assert hue_distance(hues["SPEAKER_01"], 100.0) == pytest.approx(MIN_HUE_GAP)
 
 
-# --- fill_from_palette -------------------------------------------------------
+def test_assign_hues_lets_the_heavier_weight_win():
+    hues = assign_hues(
+        ["SPEAKER_00", "SPEAKER_01"],
+        preferences={"SPEAKER_00": 100.0, "SPEAKER_01": 100.0},
+        weights={"SPEAKER_00": 0.2, "SPEAKER_01": 0.9},
+    )
+    assert hues["SPEAKER_01"] == pytest.approx(100.0)
+    assert hue_distance(hues["SPEAKER_00"], 100.0) == pytest.approx(MIN_HUE_GAP)
 
-def test_fill_from_palette_skips_colours_already_taken():
-    assigned = fill_from_palette(["SPEAKER_00"], taken=[_PALETTE[0]])
-    assert assigned == {"SPEAKER_00": _PALETTE[1]}
+
+def test_assign_hues_puts_an_unpreferred_speaker_in_the_widest_gap():
+    hues = assign_hues(
+        ["SPEAKER_00", "SPEAKER_01"], preferences={"SPEAKER_00": 0.0},
+    )
+    assert hues["SPEAKER_01"] == pytest.approx(180.0)
 
 
-def test_fill_from_palette_cycles_once_every_colour_is_used():
-    labels = [f"SPEAKER_{i:02d}" for i in range(len(_PALETTE) + 2)]
-    assigned = fill_from_palette(labels)
-    assert assigned[labels[0]] == assigned[labels[len(_PALETTE)]] == _PALETTE[0]
-    assert assigned[labels[1]] == assigned[labels[len(_PALETTE) + 1]] == _PALETTE[1]
+def test_assign_hues_keeps_everyone_apart():
+    labels = [f"SPEAKER_{i:02d}" for i in range(6)]
+    hues = assign_hues(labels, preferences={label: 200.0 for label in labels})
+
+    values = list(hues.values())
+    assert len(hues) == len(labels)
+    for i, a in enumerate(values):
+        for b in values[i + 1:]:
+            assert hue_distance(a, b) > 1.0
+
+
+def test_assign_hues_tightens_the_gap_for_a_large_cast():
+    # Twenty speakers cannot all sit MIN_HUE_GAP apart, so the gap shrinks
+    # rather than leaving anyone unplaced.
+    labels = [f"SPEAKER_{i:02d}" for i in range(20)]
+    hues = assign_hues(labels, preferences={labels[0]: 0.0})
+    assert len(hues) == 20
+    assert len({round(hue, 6) for hue in hues.values()}) == 20
+
+
+def test_assign_hues_of_no_labels():
+    assert assign_hues([]) == {}
 
 
 # --- resolve_speakers --------------------------------------------------------
 
-def test_resolve_speakers_without_candidates_matches_palette_order():
-    profiles = resolve_speakers(_transcript("SPEAKER_01", "SPEAKER_00"))
-    assert profiles["SPEAKER_00"].color == _PALETTE[0]
-    assert profiles["SPEAKER_01"].color == _PALETTE[1]
-    assert profiles["SPEAKER_00"].name is None
-    assert profiles["SPEAKER_00"].source == "palette"
+def test_resolve_speakers_without_candidates_gives_distinct_colours():
+    profiles = resolve_speakers(_transcript("SPEAKER_00", "SPEAKER_01"))
+
+    assert len({p.color for p in profiles.values()}) == 2
+    assert all(p.name is None for p in profiles.values())
+    assert all(p.source == "unidentified" for p in profiles.values())
 
 
-def test_resolve_speakers_keeps_a_confident_candidate():
+def test_resolve_speakers_keeps_full_chroma_when_nobody_was_identified():
+    # Muted means "not one of the named characters" — with no named character
+    # it would say nothing, and only make the whole film paler.
+    alone = resolve_speakers(_transcript("SPEAKER_00", "SPEAKER_01"))
+    mixed = resolve_speakers(
+        _transcript("SPEAKER_00", "SPEAKER_01"),
+        {"SPEAKER_00": SpeakerCandidate(label="SPEAKER_00", name="기택", confidence=0.9)},
+    )
+    assert _chroma(alone["SPEAKER_01"].color) > _chroma(mixed["SPEAKER_01"].color)
+
+
+def test_resolve_speakers_makes_an_identified_speaker_more_vivid():
     profiles = resolve_speakers(
         _transcript("SPEAKER_00", "SPEAKER_01"),
         {
             "SPEAKER_00": SpeakerCandidate(
-                label="SPEAKER_00", name="기택", confidence=0.9,
-                source="llm", note="갈색 점퍼",
-                preference={_PALETTE[5]: 0.9},
+                label="SPEAKER_00", name="기택", confidence=0.9, source="llm",
             )
         },
     )
-    kept = profiles["SPEAKER_00"]
-    assert kept.color == _PALETTE[5]
-    assert (kept.name, kept.source, kept.note) == ("기택", "llm", "갈색 점퍼")
-    assert kept.confidence == 0.9
-    # The speaker that fell back must not be handed the colour just taken.
-    assert profiles["SPEAKER_01"].color != _PALETTE[5]
+    # Vivid means "we know who this is"; the unidentified one stays muted.
+    assert _chroma(profiles["SPEAKER_00"].color) > _chroma(profiles["SPEAKER_01"].color)
+    assert profiles["SPEAKER_00"].name == "기택"
+    assert profiles["SPEAKER_01"].name is None
 
 
-def test_resolve_speakers_drops_a_candidate_below_the_threshold():
+def test_resolve_speakers_honours_a_preferred_hue():
     profiles = resolve_speakers(
         _transcript("SPEAKER_00"),
         {
             "SPEAKER_00": SpeakerCandidate(
-                label="SPEAKER_00", name="기택", confidence=0.3,
-                preference={_PALETTE[5]: 0.9},
+                label="SPEAKER_00", name="기택", confidence=0.9, preferred_hue=40.0,
             )
         },
     )
-    fallen_back = profiles["SPEAKER_00"]
-    assert fallen_back.color == _PALETTE[0]      # palette order, not the preference
-    assert fallen_back.name is None              # an unsure name is a claim, not a label
-    assert fallen_back.source == "palette"
-    assert "기택" in fallen_back.note            # but the rejection is recorded
+    assert _hue(profiles["SPEAKER_00"].color) == pytest.approx(40.0, abs=1.0)
 
 
-def test_resolve_speakers_honours_a_custom_threshold():
-    candidates = {
-        "SPEAKER_00": SpeakerCandidate(
-            label="SPEAKER_00", name="기택", confidence=0.4,
-            preference={_PALETTE[5]: 0.9},
-        )
-    }
-    profiles = resolve_speakers(
-        _transcript("SPEAKER_00"), candidates, min_confidence=0.3,
-    )
-    assert profiles["SPEAKER_00"].color == _PALETTE[5]
-    assert profiles["SPEAKER_00"].name == "기택"
-
-
-def test_resolve_speakers_ignores_candidates_for_absent_speakers():
-    profiles = resolve_speakers(
-        _transcript("SPEAKER_00"),
-        {
-            "SPEAKER_99": SpeakerCandidate(
-                label="SPEAKER_99", name="없는사람", confidence=1.0,
-                preference={_PALETTE[3]: 1.0},
-            )
-        },
-    )
-    assert set(profiles) == {"SPEAKER_00"}
-    assert profiles["SPEAKER_00"].color == _PALETTE[0]
-
-
-def test_resolve_speakers_covers_every_speaker():
-    labels = [f"SPEAKER_{i:02d}" for i in range(4)]
-    profiles = resolve_speakers(_transcript(*labels))
-    assert set(profiles) == set(labels)
-    assert all(p.color for p in profiles.values())
-
-
-def test_resolve_speakers_keeps_a_named_candidate_with_no_colour_preference():
+def test_resolve_speakers_keeps_a_named_candidate_with_no_hue_preference():
     # Identity and colour come from different steps: a manual mapping is
     # certain about the name and has no opinion on the colour.
     profiles = resolve_speakers(
@@ -190,8 +159,62 @@ def test_resolve_speakers_keeps_a_named_candidate_with_no_colour_preference():
             )
         },
     )
-    named = profiles["SPEAKER_00"]
-    assert named.name == "기택"
-    assert named.source == "manual"
-    assert named.color == _PALETTE[0]        # colour still comes from the palette
-    assert profiles["SPEAKER_01"].name is None
+    assert profiles["SPEAKER_00"].name == "기택"
+    assert profiles["SPEAKER_00"].source == "manual"
+    assert profiles["SPEAKER_00"].color
+
+
+def test_resolve_speakers_drops_a_candidate_below_the_threshold():
+    profiles = resolve_speakers(
+        _transcript("SPEAKER_00"),
+        {
+            "SPEAKER_00": SpeakerCandidate(
+                label="SPEAKER_00", name="기택", confidence=0.3, preferred_hue=40.0,
+            )
+        },
+    )
+    fallen_back = profiles["SPEAKER_00"]
+    assert fallen_back.name is None          # an unsure name is a claim, not a label
+    assert fallen_back.source == "unidentified"
+    assert "기택" in fallen_back.note        # but the rejection is recorded
+
+
+def test_resolve_speakers_honours_a_custom_threshold():
+    candidates = {
+        "SPEAKER_00": SpeakerCandidate(
+            label="SPEAKER_00", name="기택", confidence=0.4,
+        )
+    }
+    profiles = resolve_speakers(
+        _transcript("SPEAKER_00"), candidates, min_confidence=0.3,
+    )
+    assert profiles["SPEAKER_00"].name == "기택"
+
+
+def test_resolve_speakers_ignores_candidates_for_absent_speakers():
+    profiles = resolve_speakers(
+        _transcript("SPEAKER_00"),
+        {
+            "SPEAKER_99": SpeakerCandidate(
+                label="SPEAKER_99", name="없는사람", confidence=1.0,
+            )
+        },
+    )
+    assert set(profiles) == {"SPEAKER_00"}
+
+
+def test_resolve_speakers_covers_every_speaker_with_a_unique_colour():
+    labels = [f"SPEAKER_{i:02d}" for i in range(9)]
+    profiles = resolve_speakers(_transcript(*labels))
+
+    assert set(profiles) == set(labels)
+    # Nine speakers used to collide once the seven-colour palette wrapped.
+    assert len({p.color for p in profiles.values()}) == len(labels)
+
+
+def test_resolve_speakers_never_produces_the_base_colour():
+    # White is what an unfilled word is drawn in; a speaker colour matching it
+    # would make the karaoke fill invisible.
+    labels = [f"SPEAKER_{i:02d}" for i in range(12)]
+    profiles = resolve_speakers(_transcript(*labels))
+    assert all(p.color != BASE_COLOUR for p in profiles.values())

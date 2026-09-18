@@ -2,57 +2,66 @@
 
 Three things live here, in the order the pipeline uses them:
 
-  * **the palette** — the colours a subtitle may be drawn in at all;
-  * **assignment** — turning per-speaker colour *preferences* into one colour
-    each, and settling the case where two speakers want the same one;
-  * **resolution** — running a strategy that produces those preferences,
-    keeping only what it was confident about, and filling the rest from the
-    palette.
+  * **the colour model** — one fixed lightness, hue free, chroma by tier;
+  * **hue assignment** — placing each speaker on the hue circle as near its
+    preference as it can get while staying a minimum arc from everyone else;
+  * **resolution** — running a strategy, keeping only what it was confident
+    about, and spacing out whatever is left.
 
-A strategy never picks a colour. It says what it would prefer and how sure it
-is, and assignment decides — so however a strategy arrives at its answer, it
-cannot hand two speakers the same colour, or one that cannot be read against
-video.
+A strategy never picks a colour. It names a hue it would prefer and says how
+sure it is, and assignment decides — so however a strategy arrives at its
+answer, it cannot hand two speakers the same colour or one that cannot be
+read against video.
 """
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 
+from hearing_to_seeing.design.oklch import hue_to_ass
 from hearing_to_seeing.schema import SpeakerProfile, Transcript
 
-# TODO: 색상 배정 방식 최종 미확정 — 단순 팔레트 순서 배정(현재) vs RAG 기반
-#       (인물 정보 → LLM 색상 결정). 기획서 §다음 논의 필요 사항 참조.
-# Wong colorblind-friendly palette in ASS BGR hex format (&HAABBGGRR&).
-# ASS stores colours byte-reversed relative to RGB, so #E69F00 → &H00009FE6.
-_PALETTE = [
-    "&H00009FE6",  # Orange        #E69F00
-    "&H00E9B456",  # Sky Blue      #56B4E9
-    "&H00739E00",  # Bluish Green  #009E73
-    "&H0042E4F0",  # Yellow        #F0E442
-    "&H00B27200",  # Blue          #0072B2
-    "&H00005ED5",  # Vermillion    #D55E00
-    "&H00A779CC",  # Reddish Purple #CC79A7
-]
+# One lightness for every speaker colour. Fixing it is what makes hue free:
+# legibility is settled once, here, instead of being re-argued for each colour.
+# 0.75 sits in the same band as the colours the project used before (the Wong
+# palette's orange measures 0.753, its sky blue 0.735) and still leaves every
+# hue at least 0.128 chroma to work with, so no hue comes out washed grey.
+# TODO: L·채도 값은 실제 영상 위에서 확인 후 확정 필요 — 밝은 장면에서의 가독성 미검증.
+LIGHTNESS = 0.75
 
-# Colour every word starts out in, before the karaoke fill reaches it.
+# Chroma as a fraction of the most that hue can hold at this lightness. The two
+# tiers are how a named character is told apart from an unidentified one at a
+# glance: vivid means "we know who this is".
+MAIN_CHROMA_RATIO = 0.95
+MINOR_CHROMA_RATIO = 0.32
+
+# How far apart two speakers' hues must stay. Enough that neighbouring
+# assignments do not read as the same colour; loosened automatically when there
+# are more speakers than the circle can space that widely.
+MIN_HUE_GAP = 40.0
+
+# Colour every word starts out in, before the karaoke fill reaches it. Nothing
+# generated here can collide with it: a speaker colour always carries chroma,
+# and white has none.
 BASE_COLOUR = "&H00FFFFFF"  # white
 
 # How sure a strategy has to be before its answer is used at all. A wrong
-# colour is worse than an arbitrary one: a viewer who cannot hear the audio
-# has no way to catch it, so an unconvincing answer is dropped rather than
-# shown. Deliberately high to start with.
+# colour is worse than an arbitrary one: a viewer who cannot hear the audio has
+# no way to catch it, so an unconvincing answer is dropped rather than shown.
+# Deliberately high to start with.
 # TODO: 임계값 0.7은 경험값 — 실제 전략을 붙인 뒤 정확도를 측정해 재조정 필요.
 MIN_CONFIDENCE = 0.7
+
+_EPSILON = 1e-9
 
 
 @dataclass
 class SpeakerCandidate:
     """What a strategy has to say about one speaker.
 
-    `preference` scores palette colours from 0 to 1 — how well each would suit
-    this speaker — instead of naming a colour outright, which is what leaves
-    assignment free to break ties. Scores of zero or less are treated as "no
-    opinion" and fall through to the palette.
+    `preferred_hue` is a position on the colour circle in degrees — where this
+    speaker's colour would ideally sit — rather than a finished colour, which
+    is what leaves assignment free to move it when two speakers want the same
+    place. `hue_weight` decides who gets their wish when they collide.
     """
 
     label: str
@@ -60,7 +69,8 @@ class SpeakerCandidate:
     confidence: float = 0.0
     source: str = ""
     note: str | None = None
-    preference: dict[str, float] = field(default_factory=dict)
+    preferred_hue: float | None = None
+    hue_weight: float = 1.0
 
 
 # Takes the transcript and the media path, returns one candidate per speaker it
@@ -68,71 +78,108 @@ class SpeakerCandidate:
 SpeakerStrategy = Callable[[Transcript, str], dict[str, SpeakerCandidate]]
 
 
-def assign_from_preferences(
-    preferences: Mapping[str, Mapping[str, float]],
-    palette: Sequence[str] = _PALETTE,
-) -> dict[str, str]:
-    """Gives each speaker the colour it prefers, as far as that is possible.
+def hue_distance(a: float, b: float) -> float:
+    """The shorter way round the circle between two hues, in degrees."""
+    apart = abs(a - b) % 360
+    return min(apart, 360 - apart)
 
-    Preferences collide — two characters in orange shirts both score orange
-    highest and only one can have it. The highest score takes the colour
-    outright and the loser drops to its own next best, which keeps both
-    assignments meaningful without ever letting two speakers share a colour.
 
-    Speakers whose preferences are all used up, or who expressed none, are
-    left out for the caller to fill.
+def _is_free(hue: float, placed: Sequence[float], gap: float) -> bool:
+    return all(hue_distance(hue, other) >= gap - _EPSILON for other in placed)
+
+
+def _nearest_free_hue(
+    preferred: float, placed: Sequence[float], gap: float
+) -> float | None:
+    """The hue closest to `preferred` that clears `gap` from everything placed.
+
+    Only the preference itself and the points exactly `gap` to either side of
+    an occupied hue are worth testing: when the preference is blocked, the
+    nearest legal spot is always flush against whatever is blocking it.
     """
-    order = {colour: i for i, colour in enumerate(palette)}
-    # Sorting on the whole tuple keeps ties broken the same way every run:
-    # by score, then speaker label, then palette order.
-    ranked = sorted(
-        (-score, label, order[colour], colour)
-        for label, scores in preferences.items()
-        for colour, score in scores.items()
-        if colour in order and score > 0
-    )
+    preferred %= 360
+    if _is_free(preferred, placed, gap):
+        return preferred
 
-    assigned: dict[str, str] = {}
-    used: set[str] = set()
-    for _, label, _, colour in ranked:
-        if label in assigned or colour in used:
-            continue
-        assigned[label] = colour
-        used.add(colour)
-    return assigned
+    candidates = [
+        (occupied + offset) % 360
+        for occupied in placed
+        for offset in (gap, -gap)
+    ]
+    free = [hue for hue in candidates if _is_free(hue, placed, gap)]
+    if not free:
+        return None
+    return min(free, key=lambda hue: (hue_distance(hue, preferred), hue))
 
 
-def fill_from_palette(
-    labels: Iterable[str],
-    taken: Iterable[str] = (),
-    palette: Sequence[str] = _PALETTE,
-) -> dict[str, str]:
-    """Hands out the colours nothing else is using, in palette order.
+def _largest_gap_midpoint(placed: Sequence[float]) -> float:
+    """The emptiest spot on the circle — where a speaker with no wish goes."""
+    if not placed:
+        return 0.0
+    if len(placed) == 1:
+        return (placed[0] + 180) % 360
 
-    Once every colour is in use the palette cycles, so an eighth speaker
-    shares with the first. Two speakers in one scene sharing a colour is the
-    one failure seven colours cannot avoid; cycling at least makes which pair
-    it is predictable.
+    ordered = sorted(placed)
+    widest_start, widest_size = ordered[0], -1.0
+    for i, start in enumerate(ordered):
+        size = (ordered[(i + 1) % len(ordered)] - start) % 360
+        if size > widest_size:
+            widest_start, widest_size = start, size
+    return (widest_start + widest_size / 2) % 360
+
+
+def assign_hues(
+    labels: Sequence[str],
+    preferences: Mapping[str, float] | None = None,
+    weights: Mapping[str, float] | None = None,
+    min_gap: float = MIN_HUE_GAP,
+) -> dict[str, float]:
+    """Places every label on the hue circle.
+
+    Preferences are honoured in weight order, each taken as close to its wish
+    as the ones already placed allow. Labels without a preference drop into the
+    widest remaining gap, which spreads them out instead of letting them crowd
+    whatever was assigned first.
+
+    With no preferences at all this is an even distribution — which is what
+    keeps an entirely unidentified cast distinguishable anyway.
     """
-    if not palette:
+    labels = sorted(set(labels))
+    if not labels:
         return {}
 
-    used = set(taken)
-    free = [colour for colour in palette if colour not in used]
-    assigned: dict[str, str] = {}
-    # TODO: 화자가 알파벳순(SPEAKER_00, SPEAKER_01, …)으로 정렬되어 색상이
-    #       WhisperX 라벨 순서에 의존함. 대화 첫 등장 순서 기반 배정 방식 검토 필요.
-    for i, label in enumerate(sorted(labels)):
-        if i < len(free):
-            assigned[label] = free[i]
-        else:
-            assigned[label] = palette[(i - len(free)) % len(palette)]
+    preferences = preferences or {}
+    weights = weights or {}
+    # More speakers than the circle can space at `min_gap`: share out what
+    # there is rather than failing to place anyone. Dividing by one more than
+    # the count leaves slack, since placements land flush against each other
+    # and an exactly-tight circle can strand the last speaker.
+    gap = min(min_gap, 360 / (len(labels) + 1))
+
+    if not preferences:
+        step = 360 / len(labels)
+        return {label: (i * step) % 360 for i, label in enumerate(labels)}
+
+    wanted = sorted(
+        (label for label in labels if label in preferences),
+        key=lambda label: (-weights.get(label, 1.0), label),
+    )
+    unwanted = [label for label in labels if label not in preferences]
+
+    assigned: dict[str, float] = {}
+    placed: list[float] = []
+    for label in wanted + unwanted:
+        target = (
+            preferences[label]
+            if label in preferences
+            else _largest_gap_midpoint(placed)
+        )
+        hue = _nearest_free_hue(target, placed, gap)
+        if hue is None:  # pragma: no cover - gap is chosen to keep this unreachable
+            hue = _largest_gap_midpoint(placed)
+        assigned[label] = hue
+        placed.append(hue)
     return assigned
-
-
-def assign_speaker_colors(speakers: list[str]) -> dict[str, str]:
-    """Palette-order assignment with nothing else to go on — the fallback."""
-    return fill_from_palette(set(speakers))
 
 
 def resolve_speakers(
@@ -140,49 +187,55 @@ def resolve_speakers(
     candidates: Mapping[str, SpeakerCandidate] | None = None,
     *,
     min_confidence: float = MIN_CONFIDENCE,
-    palette: Sequence[str] = _PALETTE,
+    lightness: float = LIGHTNESS,
+    min_gap: float = MIN_HUE_GAP,
 ) -> dict[str, SpeakerProfile]:
     """Produces one profile per speaker in `transcript`.
 
     Confidence is judged per speaker, not for the run as a whole: a strategy
     usually knows the leads and not the bit parts, and taking what it is sure
-    of beats discarding the lot. Rejected speakers fall back to the palette,
-    which picks from the colours the accepted ones did not take.
-
-    With no candidates at all this is exactly the old palette-order behaviour.
+    of beats discarding the lot. Speakers it could not place still get a hue of
+    their own — so they stay distinguishable from one another — but at low
+    chroma, which reads as "not one of the named characters".
     """
     labels = transcript.speakers()
     candidates = candidates or {}
 
     # Identity and colour arrive from different steps: a manual mapping knows
-    # exactly who a speaker is and has no opinion on colour, so confidence
-    # alone decides whether a candidate is believed. A candidate with no
-    # preference keeps its name and takes its colour from the palette.
+    # exactly who a speaker is and has no opinion on hue, so confidence alone
+    # decides whether a candidate is believed.
     accepted = {
         label: candidate
         for label, candidate in candidates.items()
         if label in labels and candidate.confidence >= min_confidence
     }
 
-    colours = assign_from_preferences(
-        {label: candidate.preference for label, candidate in accepted.items()},
-        palette,
-    )
-    colours.update(
-        fill_from_palette(
-            [label for label in labels if label not in colours],
-            taken=colours.values(),
-            palette=palette,
-        )
+    hues = assign_hues(
+        labels,
+        preferences={
+            label: candidate.preferred_hue
+            for label, candidate in accepted.items()
+            if candidate.preferred_hue is not None
+        },
+        weights={label: candidate.hue_weight for label, candidate in accepted.items()},
+        min_gap=min_gap,
     )
 
     profiles: dict[str, SpeakerProfile] = {}
     for label in labels:
         candidate = accepted.get(label)
+        # Muted only says "not one of the named characters", which is a
+        # statement about nothing when no character was named at all — so with
+        # an entirely unidentified cast everyone keeps full chroma rather than
+        # the whole film going pale for a contrast that is not being drawn.
+        muted = candidate is None and bool(accepted)
+        ratio = MINOR_CHROMA_RATIO if muted else MAIN_CHROMA_RATIO
+        color = hue_to_ass(hues[label], lightness, ratio)
+
         if candidate is not None:
             profiles[label] = SpeakerProfile(
                 label=label,
-                color=colours.get(label),
+                color=color,
                 name=candidate.name,
                 confidence=candidate.confidence,
                 source=candidate.source or "strategy",
@@ -201,6 +254,8 @@ def resolve_speakers(
                 f"discarded {rejected.name or '(unnamed)'} "
                 f"at confidence {rejected.confidence:.2f}"
             )
-        profiles[label] = SpeakerProfile(label=label, color=colours.get(label), note=note)
+        profiles[label] = SpeakerProfile(
+            label=label, color=color, source="unidentified", note=note,
+        )
 
     return profiles

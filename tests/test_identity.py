@@ -55,4 +55,4 @@ def test_manual_mapping_reports_certainty_and_no_colour_opinion():
     assert candidate.confidence == 1.0
     assert candidate.source == "manual"
     # Naming a speaker says nothing about which colour suits them.
-    assert candidate.preference == {}
+    assert candidate.preferred_hue is None
