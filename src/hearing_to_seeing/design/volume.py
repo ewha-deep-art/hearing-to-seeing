@@ -2,8 +2,10 @@ import numpy as np
 
 from hearing_to_seeing.schema import Transcript, WordEntry
 
-FONT_SIZE_MIN = 36
-FONT_SIZE_MAX = 64
+BASE_FONT_SIZE = 44  # 모든 글자 공통 크기 — 음량에 따라 크기 자체는 더 이상 안 바꿈
+
+LOUD_THRESHOLD = 0.7
+QUIET_THRESHOLD = 0.3
 
 
 def calculate_rms(audio_array: np.ndarray) -> float:
@@ -21,12 +23,13 @@ def normalize(values: list[float]) -> list[float]:
     return [(v - lo) / (hi - lo) for v in values]
 
 
-def compute_font_size(
-    normalized_volume: float,
-    min_size: int = FONT_SIZE_MIN,
-    max_size: int = FONT_SIZE_MAX,
-) -> int:
-    return round(min_size + (max_size - min_size) * normalized_volume)
+def classify_volume(volume: float) -> str:
+    """정규화된 음량(0~1)을 세 구간으로 분류: loud / whisper / normal."""
+    if volume >= LOUD_THRESHOLD:
+        return "loud"
+    if volume <= QUIET_THRESHOLD:
+        return "whisper"
+    return "normal"
 
 
 def annotate_volumes(transcript: Transcript, sample_rate: int, audio_data: np.ndarray) -> None:

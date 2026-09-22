@@ -9,121 +9,368 @@ YCbCr Matrix: TV.709
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Box,Pretendard ExtraBold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,3,4,0,2,10,10,30,1
-Style: Fill,Pretendard ExtraBold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,10,10,30,1
-Style: Pop,Pretendard ExtraBold,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,0,5,10,10,30,1
+Style: Box,Pretendard,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,3,4,0,2,10,10,30,1
+Style: Fill,Pretendard,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,10,10,30,1
+Style: Pop,Pretendard,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,0,5,10,10,30,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:00:00.27,0:00:02.53,Box,SPEAKER_00,0,0,0,,{\fs47\c&H000000&}광천골 {\fs47\c&H000000&}안쪽에 {\fs45\c&H000000&}위치한 {\fs57\c&H000000&}청룡포라고
-Dialogue: 1,0:00:00.27,0:00:02.53,Fill,SPEAKER_00,0,0,0,,{\fs47\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(460,461,\alpha&H00&\c&H00009FE6)}광천골 {\fs47\c&H00FFFFFF&\alpha&H00&\t(520,521,\alpha&HFF&)\t(841,842,\alpha&H00&\c&H00009FE6)}안쪽에 {\fs45\c&H00FFFFFF&\alpha&H00&\t(861,862,\alpha&HFF&)\t(1421,1422,\alpha&H00&\c&H00009FE6)}위치한 {\fs57\c&H00FFFFFF&\alpha&H00&\t(1741,1742,\alpha&HFF&)\t(2262,2263,\alpha&H00&\c&H00009FE6)}청룡포라고
-Dialogue: 2,0:00:00.27,0:00:00.73,Pop,SPEAKER_00,0,0,0,,{\an5\pos(704,1026)\fs47\c&H00009FE6\t(0,184,\fscx150\fscy150)\t(184,460,\fscx100\fscy100)\kf46}광천골
-Dialogue: 2,0:00:00.79,0:00:01.11,Pop,SPEAKER_00,0,0,0,,{\an5\pos(836,1026)\fs47\c&H00009FE6\t(0,128,\fscx150\fscy150)\t(128,321,\fscx100\fscy100)\kf32}안쪽에
-Dialogue: 2,0:00:01.13,0:00:01.69,Pop,SPEAKER_00,0,0,0,,{\an5\pos(965,1028)\fs45\c&H00009FE6\t(0,224,\fscx150\fscy150)\t(224,560,\fscx100\fscy100)\kf56}위치한
-Dialogue: 2,0:00:02.01,0:00:02.53,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1155,1022)\fs57\c&H00009FE6\t(0,208,\fscx150\fscy150)\t(208,521,\fscx100\fscy100)\kf52}청룡포라고
-Dialogue: 0,0:00:02.79,0:00:04.17,Box,SPEAKER_00,0,0,0,,{\fs51\c&H000000&}들어보지 {\fs46\c&H000000&}않습니까?
-Dialogue: 1,0:00:02.79,0:00:04.17,Fill,SPEAKER_00,0,0,0,,{\fs51\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(360,361,\alpha&H00&\c&H00009FE6)}들어보지 {\fs46\c&H00FFFFFF&\alpha&H00&\t(420,421,\alpha&HFF&)\t(1381,1382,\alpha&H00&\c&H00009FE6)}않습니까?
-Dialogue: 2,0:00:02.79,0:00:03.15,Pop,SPEAKER_00,0,0,0,,{\an5\pos(862,1024)\fs51\c&H00009FE6\t(0,144,\fscx150\fscy150)\t(144,360,\fscx100\fscy100)\kf36}들어보지
-Dialogue: 2,0:00:03.21,0:00:04.17,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1052,1027)\fs46\c&H00009FE6\t(0,384,\fscx150\fscy150)\t(384,961,\fscx100\fscy100)\kf96}않습니까?
-Dialogue: 0,0:00:04.89,0:00:07.88,Box,SPEAKER_00,0,0,0,,{\fs56\c&H000000&}겨울에는 {\fs45\c&H000000&}강가에 {\fs55\c&H000000&}냉기가 {\fs43\c&H000000&}슉!
-Dialogue: 1,0:00:04.89,0:00:07.88,Fill,SPEAKER_00,0,0,0,,{\fs56\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(340,341,\alpha&H00&\c&H00009FE6)}겨울에는 {\fs45\c&H00FFFFFF&\alpha&H00&\t(460,461,\alpha&HFF&)\t(881,882,\alpha&H00&\c&H00009FE6)}강가에 {\fs55\c&H00FFFFFF&\alpha&H00&\t(1141,1142,\alpha&HFF&)\t(1421,1422,\alpha&H00&\c&H00009FE6)}냉기가 {\fs43\c&H00FFFFFF&\alpha&H00&\t(1441,1442,\alpha&HFF&)\t(2982,2983,\alpha&H00&\c&H00009FE6)}슉!
-Dialogue: 2,0:00:04.89,0:00:05.23,Pop,SPEAKER_00,0,0,0,,{\an5\pos(790,1022)\fs56\c&H00009FE6\t(0,136,\fscx150\fscy150)\t(136,340,\fscx100\fscy100)\kf34}겨울에는
-Dialogue: 2,0:00:05.35,0:00:05.78,Pop,SPEAKER_00,0,0,0,,{\an5\pos(954,1028)\fs45\c&H00009FE6\t(0,168,\fscx150\fscy150)\t(168,421,\fscx100\fscy100)\kf42}강가에
-Dialogue: 2,0:00:06.04,0:00:06.32,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1094,1022)\fs55\c&H00009FE6\t(0,112,\fscx150\fscy150)\t(112,280,\fscx100\fscy100)\kf28}냉기가
-Dialogue: 2,0:00:06.33,0:00:07.88,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1200,1028)\fs43\c&H00009FE6\t(0,616,\fscx150\fscy150)\t(616,1541,\fscx100\fscy100)\kf154}슉!
-Dialogue: 0,0:00:08.06,0:00:12.74,Box,SPEAKER_00,0,0,0,,{\fs48\c&H000000&}절벽에선 {\fs48\c&H000000&}한계가 {\fs64\c&H000000&}싹 {\fs46\c&H000000&}내려오고!
-Dialogue: 1,0:00:08.06,0:00:12.74,Fill,SPEAKER_00,0,0,0,,{\fs48\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(400,401,\alpha&H00&\c&H00009FE6)}절벽에선 {\fs48\c&H00FFFFFF&\alpha&H00&\t(520,521,\alpha&HFF&)\t(3182,3183,\alpha&H00&\c&H00009FE6)}한계가 {\fs64\c&H00FFFFFF&\alpha&H00&\t(3262,3263,\alpha&HFF&)\t(3502,3503,\alpha&H00&\c&H00009FE6)}싹 {\fs46\c&H00FFFFFF&\alpha&H00&\t(4043,4044,\alpha&HFF&)\t(4683,4684,\alpha&H00&\c&H00009FE6)}내려오고!
-Dialogue: 2,0:00:08.06,0:00:08.46,Pop,SPEAKER_00,0,0,0,,{\an5\pos(770,1026)\fs48\c&H00009FE6\t(0,160,\fscx150\fscy150)\t(160,400,\fscx100\fscy100)\kf40}절벽에선
-Dialogue: 2,0:00:08.58,0:00:11.24,Pop,SPEAKER_00,0,0,0,,{\an5\pos(922,1026)\fs48\c&H00009FE6\t(0,1065,\fscx150\fscy150)\t(1065,2662,\fscx100\fscy100)\kf266}한계가
-Dialogue: 2,0:00:11.32,0:00:11.56,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1021,1018)\fs64\c&H00009FE6\t(0,96,\fscx150\fscy150)\t(96,240,\fscx100\fscy100)\kf24}싹
-Dialogue: 2,0:00:12.10,0:00:12.74,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1145,1027)\fs46\c&H00009FE6\t(0,256,\fscx150\fscy150)\t(256,640,\fscx100\fscy100)\kf64}내려오고!
-Dialogue: 0,0:00:12.82,0:00:14.46,Box,SPEAKER_00,0,0,0,,{\fs49\c&H000000&}해적의 {\fs57\c&H000000&}유배지라는 {\fs50\c&H000000&}말!
-Dialogue: 1,0:00:12.82,0:00:14.46,Fill,SPEAKER_00,0,0,0,,{\fs49\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(460,461,\alpha&H00&\c&H00009FE6)}해적의 {\fs57\c&H00FFFFFF&\alpha&H00&\t(620,621,\alpha&HFF&)\t(1341,1342,\alpha&H00&\c&H00009FE6)}유배지라는 {\fs50\c&H00FFFFFF&\alpha&H00&\t(1401,1402,\alpha&HFF&)\t(1641,1642,\alpha&H00&\c&H00009FE6)}말!
-Dialogue: 2,0:00:12.82,0:00:13.28,Pop,SPEAKER_00,0,0,0,,{\an5\pos(799,1026)\fs49\c&H00009FE6\t(0,184,\fscx150\fscy150)\t(184,460,\fscx100\fscy100)\kf46}해적의
-Dialogue: 2,0:00:13.44,0:00:14.16,Pop,SPEAKER_00,0,0,0,,{\an5\pos(994,1022)\fs57\c&H00009FE6\t(0,288,\fscx150\fscy150)\t(288,721,\fscx100\fscy100)\kf72}유배지라는
-Dialogue: 2,0:00:14.22,0:00:14.46,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1154,1025)\fs50\c&H00009FE6\t(0,96,\fscx150\fscy150)\t(96,240,\fscx100\fscy100)\kf24}말!
-Dialogue: 0,0:00:16.12,0:00:17.86,Box,SPEAKER_02,0,0,0,,{\fs53\c&H000000&}이것을 {\fs52\c&H000000&}유배지로 {\fs44\c&H000000&}지정한다.
-Dialogue: 1,0:00:16.12,0:00:17.86,Fill,SPEAKER_02,0,0,0,,{\fs53\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(400,401,\alpha&H00&\c&H00739E00)}이것을 {\fs52\c&H00FFFFFF&\alpha&H00&\t(520,521,\alpha&HFF&)\t(1061,1062,\alpha&H00&\c&H00739E00)}유배지로 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1161,1162,\alpha&HFF&)\t(1741,1742,\alpha&H00&\c&H00739E00)}지정한다.
-Dialogue: 2,0:00:16.12,0:00:16.52,Pop,SPEAKER_02,0,0,0,,{\an5\pos(778,1024)\fs53\c&H00739E00\t(0,160,\fscx150\fscy150)\t(160,400,\fscx100\fscy100)\kf40}이것을
-Dialogue: 2,0:00:16.64,0:00:17.18,Pop,SPEAKER_02,0,0,0,,{\an5\pos(946,1024)\fs52\c&H00739E00\t(0,216,\fscx150\fscy150)\t(216,541,\fscx100\fscy100)\kf54}유배지로
-Dialogue: 2,0:00:17.28,0:00:17.86,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1128,1028)\fs44\c&H00739E00\t(0,232,\fscx150\fscy150)\t(232,580,\fscx100\fscy100)\kf58}지정한다.
-Dialogue: 0,0:00:20.12,0:00:21.20,Box,SPEAKER_02,0,0,0,,{\fs55\c&H000000&}담당할 {\fs40\c&H000000&}수 {\fs44\c&H000000&}있겠느냐?
-Dialogue: 1,0:00:20.12,0:00:21.20,Fill,SPEAKER_02,0,0,0,,{\fs55\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(380,381,\alpha&H00&\c&H00739E00)}담당할 {\fs40\c&H00FFFFFF&\alpha&H00&\t(480,481,\alpha&HFF&)\t(560,561,\alpha&H00&\c&H00739E00)}수 {\fs44\c&H00FFFFFF&\alpha&H00&\t(580,581,\alpha&HFF&)\t(1080,1081,\alpha&H00&\c&H00739E00)}있겠느냐?
-Dialogue: 2,0:00:20.12,0:00:20.50,Pop,SPEAKER_02,0,0,0,,{\an5\pos(845,1022)\fs55\c&H00739E00\t(0,152,\fscx150\fscy150)\t(152,380,\fscx100\fscy100)\kf38}담당할
-Dialogue: 2,0:00:20.60,0:00:20.68,Pop,SPEAKER_02,0,0,0,,{\an5\pos(944,1030)\fs40\c&H00739E00\t(0,32,\fscx150\fscy150)\t(32,80,\fscx100\fscy100)\kf8}수
-Dialogue: 2,0:00:20.70,0:00:21.20,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1058,1028)\fs44\c&H00739E00\t(0,200,\fscx150\fscy150)\t(200,500,\fscx100\fscy100)\kf50}있겠느냐?
-Dialogue: 0,0:00:21.61,0:00:23.37,Box,SPEAKER_02,0,0,0,,{\fs58\c&H000000&}누가 {\fs45\c&H000000&}오든 {\fs46\c&H000000&}말이다.
-Dialogue: 1,0:00:21.61,0:00:23.37,Fill,SPEAKER_02,0,0,0,,{\fs58\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(180,181,\alpha&H00&\c&H00739E00)}누가 {\fs45\c&H00FFFFFF&\alpha&H00&\t(240,241,\alpha&HFF&)\t(420,421,\alpha&H00&\c&H00739E00)}오든 {\fs46\c&H00FFFFFF&\alpha&H00&\t(480,481,\alpha&HFF&)\t(1761,1762,\alpha&H00&\c&H00739E00)}말이다.
-Dialogue: 2,0:00:21.61,0:00:21.79,Pop,SPEAKER_02,0,0,0,,{\an5\pos(846,1021)\fs58\c&H00739E00\t(0,72,\fscx150\fscy150)\t(72,180,\fscx100\fscy100)\kf18}누가
-Dialogue: 2,0:00:21.84,0:00:22.02,Pop,SPEAKER_02,0,0,0,,{\an5\pos(944,1028)\fs45\c&H00739E00\t(0,72,\fscx150\fscy150)\t(72,180,\fscx100\fscy100)\kf18}오든
-Dialogue: 2,0:00:22.09,0:00:23.37,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1058,1027)\fs46\c&H00739E00\t(0,512,\fscx150\fscy150)\t(512,1281,\fscx100\fscy100)\kf128}말이다.
-Dialogue: 0,0:00:23.45,0:00:23.57,Box,SPEAKER_00,0,0,0,,{\fs36\c&H000000&}웃어!
-Dialogue: 1,0:00:23.45,0:00:23.57,Fill,SPEAKER_00,0,0,0,,{\fs36\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(120,121,\alpha&H00&\c&H00009FE6)}웃어!
-Dialogue: 2,0:00:23.45,0:00:23.57,Pop,SPEAKER_00,0,0,0,,{\an5\pos(960,1032)\fs36\c&H00009FE6\t(0,48,\fscx150\fscy150)\t(48,120,\fscx100\fscy100)\kf12}웃어!
-Dialogue: 0,0:00:25.04,0:00:27.38,Box,SPEAKER_00,0,0,0,,{\fs57\c&H000000&}밥 {\fs55\c&H000000&}한 {\fs57\c&H000000&}공기를 {\fs46\c&H000000&}뚝딱 {\fs51\c&H000000&}비우셨어.
-Dialogue: 1,0:00:25.04,0:00:27.38,Fill,SPEAKER_00,0,0,0,,{\fs57\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(100,101,\alpha&H00&\c&H00009FE6)}밥 {\fs55\c&H00FFFFFF&\alpha&H00&\t(220,221,\alpha&HFF&)\t(300,301,\alpha&H00&\c&H00009FE6)}한 {\fs57\c&H00FFFFFF&\alpha&H00&\t(420,421,\alpha&HFF&)\t(760,761,\alpha&H00&\c&H00009FE6)}공기를 {\fs46\c&H00FFFFFF&\alpha&H00&\t(1121,1122,\alpha&HFF&)\t(1541,1542,\alpha&H00&\c&H00009FE6)}뚝딱 {\fs51\c&H00FFFFFF&\alpha&H00&\t(1621,1622,\alpha&HFF&)\t(2342,2343,\alpha&H00&\c&H00009FE6)}비우셨어.
-Dialogue: 2,0:00:25.04,0:00:25.14,Pop,SPEAKER_00,0,0,0,,{\an5\pos(709,1022)\fs57\c&H00009FE6\t(0,40,\fscx150\fscy150)\t(40,100,\fscx100\fscy100)\kf10}밥
-Dialogue: 2,0:00:25.26,0:00:25.34,Pop,SPEAKER_00,0,0,0,,{\an5\pos(766,1022)\fs55\c&H00009FE6\t(0,32,\fscx150\fscy150)\t(32,80,\fscx100\fscy100)\kf8}한
-Dialogue: 2,0:00:25.46,0:00:25.80,Pop,SPEAKER_00,0,0,0,,{\an5\pos(873,1022)\fs57\c&H00009FE6\t(0,136,\fscx150\fscy150)\t(136,340,\fscx100\fscy100)\kf34}공기를
-Dialogue: 2,0:00:26.16,0:00:26.58,Pop,SPEAKER_00,0,0,0,,{\an5\pos(996,1027)\fs46\c&H00009FE6\t(0,168,\fscx150\fscy150)\t(168,420,\fscx100\fscy100)\kf42}뚝딱
-Dialogue: 2,0:00:26.66,0:00:27.38,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1140,1024)\fs51\c&H00009FE6\t(0,288,\fscx150\fscy150)\t(288,721,\fscx100\fscy100)\kf72}비우셨어.
-Dialogue: 0,0:00:33.38,0:00:35.21,Box,SPEAKER_02,0,0,0,,{\fs58\c&H000000&}귀향 {\fs56\c&H000000&}온 {\fs46\c&H000000&}양반이 {\fs43\c&H000000&}누군지 {\fs48\c&H000000&}아십니까?
-Dialogue: 1,0:00:33.38,0:00:35.21,Fill,SPEAKER_02,0,0,0,,{\fs58\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(181,182,\alpha&H00&\c&H00739E00)}귀향 {\fs56\c&H00FFFFFF&\alpha&H00&\t(241,242,\alpha&HFF&)\t(341,342,\alpha&H00&\c&H00739E00)}온 {\fs46\c&H00FFFFFF&\alpha&H00&\t(401,402,\alpha&HFF&)\t(761,762,\alpha&H00&\c&H00739E00)}양반이 {\fs43\c&H00FFFFFF&\alpha&H00&\t(821,822,\alpha&HFF&)\t(1141,1142,\alpha&H00&\c&H00739E00)}누군지 {\fs48\c&H00FFFFFF&\alpha&H00&\t(1161,1162,\alpha&HFF&)\t(1822,1823,\alpha&H00&\c&H00739E00)}아십니까?
-Dialogue: 2,0:00:33.38,0:00:33.57,Pop,SPEAKER_02,0,0,0,,{\an5\pos(707,1021)\fs58\c&H00739E00\t(0,72,\fscx150\fscy150)\t(72,181,\fscx100\fscy100)\kf18}귀향
-Dialogue: 2,0:00:33.63,0:00:33.73,Pop,SPEAKER_02,0,0,0,,{\an5\pos(790,1022)\fs56\c&H00739E00\t(0,40,\fscx150\fscy150)\t(40,100,\fscx100\fscy100)\kf10}온
-Dialogue: 2,0:00:33.79,0:00:34.15,Pop,SPEAKER_02,0,0,0,,{\an5\pos(883,1027)\fs46\c&H00739E00\t(0,144,\fscx150\fscy150)\t(144,360,\fscx100\fscy100)\kf36}양반이
-Dialogue: 2,0:00:34.21,0:00:34.53,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1008,1028)\fs43\c&H00739E00\t(0,128,\fscx150\fscy150)\t(128,320,\fscx100\fscy100)\kf32}누군지
-Dialogue: 2,0:00:34.55,0:00:35.21,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1168,1026)\fs48\c&H00739E00\t(0,264,\fscx150\fscy150)\t(264,661,\fscx100\fscy100)\kf66}아십니까?
-Dialogue: 0,0:00:36.21,0:00:37.61,Box,SPEAKER_01,0,0,0,,{\fs52\c&H000000&}노상군 {\fs52\c&H000000&}이용이에요.
-Dialogue: 1,0:00:36.21,0:00:37.61,Fill,SPEAKER_01,0,0,0,,{\fs52\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(561,562,\alpha&H00&\c&H00E9B456)}노상군 {\fs52\c&H00FFFFFF&\alpha&H00&\t(661,662,\alpha&HFF&)\t(1401,1402,\alpha&H00&\c&H00E9B456)}이용이에요.
-Dialogue: 2,0:00:36.21,0:00:36.77,Pop,SPEAKER_01,0,0,0,,{\an5\pos(836,1024)\fs52\c&H00E9B456\t(0,224,\fscx150\fscy150)\t(224,561,\fscx100\fscy100)\kf56}노상군
-Dialogue: 2,0:00:36.87,0:00:37.61,Pop,SPEAKER_01,0,0,0,,{\an5\pos(1032,1024)\fs52\c&H00E9B456\t(0,296,\fscx150\fscy150)\t(296,740,\fscx100\fscy100)\kf74}이용이에요.
-Dialogue: 0,0:00:37.99,0:00:39.93,Box,SPEAKER_01,0,0,0,,{\fs51\c&H000000&}얼마 {\fs48\c&H000000&}전까지 {\fs43\c&H000000&}이 {\fs54\c&H000000&}나라의 {\fs55\c&H000000&}왕이었던
-Dialogue: 1,0:00:37.99,0:00:39.93,Fill,SPEAKER_01,0,0,0,,{\fs51\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(241,242,\alpha&H00&\c&H00E9B456)}얼마 {\fs48\c&H00FFFFFF&\alpha&H00&\t(301,302,\alpha&HFF&)\t(641,642,\alpha&H00&\c&H00E9B456)}전까지 {\fs43\c&H00FFFFFF&\alpha&H00&\t(681,682,\alpha&HFF&)\t(741,742,\alpha&H00&\c&H00E9B456)}이 {\fs54\c&H00FFFFFF&\alpha&H00&\t(881,882,\alpha&HFF&)\t(1201,1202,\alpha&H00&\c&H00E9B456)}나라의 {\fs55\c&H00FFFFFF&\alpha&H00&\t(1421,1422,\alpha&HFF&)\t(1942,1943,\alpha&H00&\c&H00E9B456)}왕이었던
-Dialogue: 2,0:00:37.99,0:00:38.23,Pop,SPEAKER_01,0,0,0,,{\an5\pos(696,1024)\fs51\c&H00E9B456\t(0,96,\fscx150\fscy150)\t(96,241,\fscx100\fscy100)\kf24}얼마
-Dialogue: 2,0:00:38.29,0:00:38.63,Pop,SPEAKER_01,0,0,0,,{\an5\pos(810,1026)\fs48\c&H00E9B456\t(0,136,\fscx150\fscy150)\t(136,340,\fscx100\fscy100)\kf34}전까지
-Dialogue: 2,0:00:38.67,0:00:38.73,Pop,SPEAKER_01,0,0,0,,{\an5\pos(899,1028)\fs43\c&H00E9B456\t(0,24,\fscx150\fscy150)\t(24,60,\fscx100\fscy100)\kf6}이
-Dialogue: 2,0:00:38.87,0:00:39.19,Pop,SPEAKER_01,0,0,0,,{\an5\pos(997,1023)\fs54\c&H00E9B456\t(0,128,\fscx150\fscy150)\t(128,320,\fscx100\fscy100)\kf32}나라의
-Dialogue: 2,0:00:39.41,0:00:39.93,Pop,SPEAKER_01,0,0,0,,{\an5\pos(1172,1022)\fs55\c&H00E9B456\t(0,208,\fscx150\fscy150)\t(208,521,\fscx100\fscy100)\kf52}왕이었던
-Dialogue: 0,0:00:39.99,0:00:40.71,Box,SPEAKER_01,0,0,0,,{\fs49\c&H000000&}사람이요.
-Dialogue: 1,0:00:39.99,0:00:40.71,Fill,SPEAKER_01,0,0,0,,{\fs49\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(720,721,\alpha&H00&\c&H00E9B456)}사람이요.
-Dialogue: 2,0:00:39.99,0:00:40.71,Pop,SPEAKER_01,0,0,0,,{\an5\pos(960,1026)\fs49\c&H00E9B456\t(0,288,\fscx150\fscy150)\t(288,720,\fscx100\fscy100)\kf72}사람이요.
-Dialogue: 0,0:00:41.99,0:00:44.39,Box,SPEAKER_02,0,0,0,,{\fs55\c&H000000&}노상과 {\fs47\c&H000000&}통하는 {\fs58\c&H000000&}자는 {\fs57\c&H000000&}죽어야 {\fs51\c&H000000&}한다.
-Dialogue: 1,0:00:41.99,0:00:44.39,Fill,SPEAKER_02,0,0,0,,{\fs55\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(600,601,\alpha&H00&\c&H00739E00)}노상과 {\fs47\c&H00FFFFFF&\alpha&H00&\t(680,681,\alpha&HFF&)\t(1021,1022,\alpha&H00&\c&H00739E00)}통하는 {\fs58\c&H00FFFFFF&\alpha&H00&\t(1081,1082,\alpha&HFF&)\t(1261,1262,\alpha&H00&\c&H00739E00)}자는 {\fs57\c&H00FFFFFF&\alpha&H00&\t(1341,1342,\alpha&HFF&)\t(1601,1602,\alpha&H00&\c&H00739E00)}죽어야 {\fs51\c&H00FFFFFF&\alpha&H00&\t(1621,1622,\alpha&HFF&)\t(2402,2403,\alpha&H00&\c&H00739E00)}한다.
-Dialogue: 2,0:00:41.99,0:00:42.59,Pop,SPEAKER_02,0,0,0,,{\an5\pos(706,1022)\fs55\c&H00739E00\t(0,240,\fscx150\fscy150)\t(240,600,\fscx100\fscy100)\kf60}노상과
-Dialogue: 2,0:00:42.67,0:00:43.01,Pop,SPEAKER_02,0,0,0,,{\an5\pos(848,1026)\fs47\c&H00739E00\t(0,136,\fscx150\fscy150)\t(136,341,\fscx100\fscy100)\kf34}통하는
-Dialogue: 2,0:00:43.07,0:00:43.25,Pop,SPEAKER_02,0,0,0,,{\an5\pos(968,1021)\fs58\c&H00739E00\t(0,72,\fscx150\fscy150)\t(72,180,\fscx100\fscy100)\kf18}자는
-Dialogue: 2,0:00:43.33,0:00:43.59,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1101,1022)\fs57\c&H00739E00\t(0,104,\fscx150\fscy150)\t(104,260,\fscx100\fscy100)\kf26}죽어야
-Dialogue: 2,0:00:43.61,0:00:44.39,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1235,1024)\fs51\c&H00739E00\t(0,312,\fscx150\fscy150)\t(312,781,\fscx100\fscy100)\kf78}한다.
-Dialogue: 0,0:00:45.61,0:00:45.95,Box,SPEAKER_01,0,0,0,,{\fs56\c&H000000&}이
-Dialogue: 1,0:00:45.61,0:00:45.95,Fill,SPEAKER_01,0,0,0,,{\fs56\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(341,342,\alpha&H00&\c&H00E9B456)}이
-Dialogue: 2,0:00:45.61,0:00:45.95,Pop,SPEAKER_01,0,0,0,,{\an5\pos(960,1022)\fs56\c&H00E9B456\t(0,136,\fscx150\fscy150)\t(136,341,\fscx100\fscy100)\kf34}이
-Dialogue: 0,0:00:46.67,0:00:49.44,Box,SPEAKER_01,0,0,0,,{\fs52\c&H000000&}놈이 {\fs49\c&H000000&}감히 {\fs53\c&H000000&}왕족을 {\fs50\c&H000000&}능멸하니까.
-Dialogue: 1,0:00:46.67,0:00:49.44,Fill,SPEAKER_01,0,0,0,,{\fs52\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(140,141,\alpha&H00&\c&H00E9B456)}놈이 {\fs49\c&H00FFFFFF&\alpha&H00&\t(560,561,\alpha&HFF&)\t(861,862,\alpha&H00&\c&H00E9B456)}감히 {\fs53\c&H00FFFFFF&\alpha&H00&\t(1001,1002,\alpha&HFF&)\t(1401,1402,\alpha&H00&\c&H00E9B456)}왕족을 {\fs50\c&H00FFFFFF&\alpha&H00&\t(1541,1542,\alpha&HFF&)\t(2762,2763,\alpha&H00&\c&H00E9B456)}능멸하니까.
-Dialogue: 2,0:00:46.67,0:00:46.81,Pop,SPEAKER_01,0,0,0,,{\an5\pos(720,1024)\fs52\c&H00E9B456\t(0,56,\fscx150\fscy150)\t(56,140,\fscx100\fscy100)\kf14}놈이
-Dialogue: 2,0:00:47.23,0:00:47.53,Pop,SPEAKER_01,0,0,0,,{\an5\pos(816,1026)\fs49\c&H00E9B456\t(0,120,\fscx150\fscy150)\t(120,301,\fscx100\fscy100)\kf30}감히
-Dialogue: 2,0:00:47.67,0:00:48.08,Pop,SPEAKER_01,0,0,0,,{\an5\pos(936,1024)\fs53\c&H00E9B456\t(0,160,\fscx150\fscy150)\t(160,400,\fscx100\fscy100)\kf40}왕족을
-Dialogue: 2,0:00:48.22,0:00:49.44,Pop,SPEAKER_01,0,0,0,,{\an5\pos(1130,1025)\fs50\c&H00E9B456\t(0,488,\fscx150\fscy150)\t(488,1221,\fscx100\fscy100)\kf122}능멸하니까.
-Dialogue: 0,0:00:51.69,0:00:53.51,Box,SPEAKER_02,0,0,0,,{\fs47\c&H000000&}더 {\fs55\c&H000000&}이상 {\fs55\c&H000000&}나로 {\fs48\c&H000000&}인해 {\fs53\c&H000000&}내가 {\fs41\c&H000000&}아끼고
-Dialogue: 1,0:00:51.69,0:00:53.51,Fill,SPEAKER_02,0,0,0,,{\fs47\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(20,21,\alpha&H00&\c&H00739E00)}더 {\fs55\c&H00FFFFFF&\alpha&H00&\t(40,41,\alpha&HFF&)\t(340,341,\alpha&H00&\c&H00739E00)}이상 {\fs55\c&H00FFFFFF&\alpha&H00&\t(421,422,\alpha&HFF&)\t(501,502,\alpha&H00&\c&H00739E00)}나로 {\fs48\c&H00FFFFFF&\alpha&H00&\t(681,682,\alpha&HFF&)\t(961,962,\alpha&H00&\c&H00739E00)}인해 {\fs53\c&H00FFFFFF&\alpha&H00&\t(1262,1263,\alpha&HFF&)\t(1422,1423,\alpha&H00&\c&H00739E00)}내가 {\fs41\c&H00FFFFFF&\alpha&H00&\t(1482,1483,\alpha&HFF&)\t(1822,1823,\alpha&H00&\c&H00739E00)}아끼고
-Dialogue: 2,0:00:51.69,0:00:51.71,Pop,SPEAKER_02,0,0,0,,{\an5\pos(702,1026)\fs47\c&H00739E00\t(0,8,\fscx150\fscy150)\t(8,20,\fscx100\fscy100)\kf2}더
-Dialogue: 2,0:00:51.73,0:00:52.03,Pop,SPEAKER_02,0,0,0,,{\an5\pos(780,1022)\fs55\c&H00739E00\t(0,120,\fscx150\fscy150)\t(120,300,\fscx100\fscy100)\kf30}이상
-Dialogue: 2,0:00:52.11,0:00:52.19,Pop,SPEAKER_02,0,0,0,,{\an5\pos(884,1022)\fs55\c&H00739E00\t(0,32,\fscx150\fscy150)\t(32,80,\fscx100\fscy100)\kf8}나로
-Dialogue: 2,0:00:52.37,0:00:52.65,Pop,SPEAKER_02,0,0,0,,{\an5\pos(982,1026)\fs48\c&H00739E00\t(0,112,\fscx150\fscy150)\t(112,280,\fscx100\fscy100)\kf28}인해
-Dialogue: 2,0:00:52.95,0:00:53.11,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1078,1024)\fs53\c&H00739E00\t(0,64,\fscx150\fscy150)\t(64,160,\fscx100\fscy100)\kf16}내가
-Dialogue: 2,0:00:53.17,0:00:53.51,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1186,1030)\fs41\c&H00739E00\t(0,136,\fscx150\fscy150)\t(136,340,\fscx100\fscy100)\kf34}아끼고
-Dialogue: 0,0:00:53.59,0:00:57.92,Box,SPEAKER_02,0,0,0,,{\fs47\c&H000000&}사랑하던 {\fs45\c&H000000&}사람들을 {\fs50\c&H000000&}믿고 {\fs43\c&H000000&}싶지 {\fs48\c&H000000&}않다.
-Dialogue: 1,0:00:53.59,0:00:57.92,Fill,SPEAKER_02,0,0,0,,{\fs47\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(420,421,\alpha&H00&\c&H00739E00)}사랑하던 {\fs45\c&H00FFFFFF&\alpha&H00&\t(440,441,\alpha&HFF&)\t(660,661,\alpha&H00&\c&H00739E00)}사람들을 {\fs50\c&H00FFFFFF&\alpha&H00&\t(1101,1102,\alpha&HFF&)\t(1321,1322,\alpha&H00&\c&H00739E00)}믿고 {\fs43\c&H00FFFFFF&\alpha&H00&\t(1381,1382,\alpha&HFF&)\t(1642,1643,\alpha&H00&\c&H00739E00)}싶지 {\fs48\c&H00FFFFFF&\alpha&H00&\t(1662,1663,\alpha&HFF&)\t(4325,4326,\alpha&H00&\c&H00739E00)}않다.
-Dialogue: 2,0:00:53.59,0:00:54.01,Pop,SPEAKER_02,0,0,0,,{\an5\pos(736,1026)\fs47\c&H00739E00\t(0,168,\fscx150\fscy150)\t(168,420,\fscx100\fscy100)\kf42}사랑하던
-Dialogue: 2,0:00:54.03,0:00:54.25,Pop,SPEAKER_02,0,0,0,,{\an5\pos(905,1028)\fs45\c&H00739E00\t(0,88,\fscx150\fscy150)\t(88,220,\fscx100\fscy100)\kf22}사람들을
-Dialogue: 2,0:00:54.69,0:00:54.91,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1035,1025)\fs50\c&H00739E00\t(0,88,\fscx150\fscy150)\t(88,220,\fscx100\fscy100)\kf22}믿고
-Dialogue: 2,0:00:54.97,0:00:55.23,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1124,1028)\fs43\c&H00739E00\t(0,104,\fscx150\fscy150)\t(104,261,\fscx100\fscy100)\kf26}싶지
-Dialogue: 2,0:00:55.25,0:00:57.92,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1218,1026)\fs48\c&H00739E00\t(0,1065,\fscx150\fscy150)\t(1065,2663,\fscx100\fscy100)\kf266}않다.
-Dialogue: 0,0:00:58.54,0:00:58.82,Box,SPEAKER_00,0,0,0,,{\fs52\c&H000000&}저도
-Dialogue: 1,0:00:58.54,0:00:58.82,Fill,SPEAKER_00,0,0,0,,{\fs52\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(281,282,\alpha&H00&\c&H00009FE6)}저도
-Dialogue: 2,0:00:58.54,0:00:58.82,Pop,SPEAKER_00,0,0,0,,{\an5\pos(960,1024)\fs52\c&H00009FE6\t(0,112,\fscx150\fscy150)\t(112,281,\fscx100\fscy100)\kf28}저도
-Dialogue: 0,0:00:59.56,0:01:00.50,Box,SPEAKER_00,0,0,0,,{\fs39\c&H000000&}그 {\fs51\c&H000000&}안에 {\fs43\c&H000000&}있습니까?
-Dialogue: 1,0:00:59.56,0:01:00.50,Fill,SPEAKER_00,0,0,0,,{\fs39\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(80,81,\alpha&H00&\c&H00009FE6)}그 {\fs51\c&H00FFFFFF&\alpha&H00&\t(120,121,\alpha&HFF&)\t(360,361,\alpha&H00&\c&H00009FE6)}안에 {\fs43\c&H00FFFFFF&\alpha&H00&\t(380,381,\alpha&HFF&)\t(941,942,\alpha&H00&\c&H00009FE6)}있습니까?
-Dialogue: 2,0:00:59.56,0:00:59.64,Pop,SPEAKER_00,0,0,0,,{\an5\pos(821,1030)\fs39\c&H00009FE6\t(0,32,\fscx150\fscy150)\t(32,80,\fscx100\fscy100)\kf8}그
-Dialogue: 2,0:00:59.68,0:00:59.92,Pop,SPEAKER_00,0,0,0,,{\an5\pos(891,1024)\fs51\c&H00009FE6\t(0,96,\fscx150\fscy150)\t(96,240,\fscx100\fscy100)\kf24}안에
-Dialogue: 2,0:00:59.94,0:01:00.50,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1030,1028)\fs43\c&H00009FE6\t(0,224,\fscx150\fscy150)\t(224,561,\fscx100\fscy100)\kf56}있습니까?
+Dialogue: 0,0:00:00.27,0:00:02.53,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}광천골 {\fs44\c&H000000&}안쪽에 {\fs44\c&H000000&}위치한 {\fs44\c&H000000&}청룡포라고
+Dialogue: 1,0:00:00.27,0:00:02.53,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(460,461,\alpha&H00&\c&H00009FE6)}광천골 {\fs44\c&H00FFFFFF&\alpha&H00&\t(520,521,\alpha&HFF&)\t(841,842,\alpha&H00&\c&H00009FE6)}안쪽에 {\fs44\c&H00FFFFFF&\alpha&H00&\t(861,862,\alpha&HFF&)\t(1421,1422,\alpha&H00&\c&H00009FE6)}위치한 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1741,1742,\alpha&HFF&)\t(2262,2263,\alpha&H00&\c&H00009FE6)}청룡포라고
+Dialogue: 2,0:00:00.27,0:00:00.34,Pop,SPEAKER_00,0,0,0,,{\an5\move(698,1028,698,1010,0,70)\fs44\c&H00009FE6}광
+Dialogue: 2,0:00:00.34,0:00:00.73,Pop,SPEAKER_00,0,0,0,,{\an5\move(698,1010,698,1028,0,90)\fs44\c&H00009FE6}광
+Dialogue: 2,0:00:00.42,0:00:00.49,Pop,SPEAKER_00,0,0,0,,{\an5\move(736,1028,736,1010,0,70)\fs44\c&H00009FE6}천
+Dialogue: 2,0:00:00.49,0:00:00.73,Pop,SPEAKER_00,0,0,0,,{\an5\move(736,1010,736,1028,0,90)\fs44\c&H00009FE6}천
+Dialogue: 2,0:00:00.58,0:00:00.65,Pop,SPEAKER_00,0,0,0,,{\an5\move(774,1028,774,1010,0,70)\fs44\c&H00009FE6}골
+Dialogue: 2,0:00:00.65,0:00:00.73,Pop,SPEAKER_00,0,0,0,,{\an5\move(774,1010,774,1028,0,90)\fs44\c&H00009FE6}골
+Dialogue: 2,0:00:00.79,0:00:00.86,Pop,SPEAKER_00,0,0,0,,{\an5\move(822,1028,822,1010,0,70)\fs44\c&H00009FE6}안
+Dialogue: 2,0:00:00.86,0:00:01.11,Pop,SPEAKER_00,0,0,0,,{\an5\move(822,1010,822,1028,0,90)\fs44\c&H00009FE6}안
+Dialogue: 2,0:00:00.90,0:00:00.97,Pop,SPEAKER_00,0,0,0,,{\an5\move(860,1028,860,1010,0,70)\fs44\c&H00009FE6}쪽
+Dialogue: 2,0:00:00.97,0:00:01.11,Pop,SPEAKER_00,0,0,0,,{\an5\move(860,1010,860,1028,0,90)\fs44\c&H00009FE6}쪽
+Dialogue: 2,0:00:01.01,0:00:01.08,Pop,SPEAKER_00,0,0,0,,{\an5\move(898,1028,898,1010,0,70)\fs44\c&H00009FE6}에
+Dialogue: 2,0:00:01.08,0:00:01.11,Pop,SPEAKER_00,0,0,0,,{\an5\move(898,1010,898,1028,0,90)\fs44\c&H00009FE6}에
+Dialogue: 2,0:00:01.13,0:00:01.20,Pop,SPEAKER_00,0,0,0,,{\an5\move(946,1028,946,1010,0,70)\fs44\c&H00009FE6}위
+Dialogue: 2,0:00:01.20,0:00:01.69,Pop,SPEAKER_00,0,0,0,,{\an5\move(946,1010,946,1028,0,90)\fs44\c&H00009FE6}위
+Dialogue: 2,0:00:01.32,0:00:01.39,Pop,SPEAKER_00,0,0,0,,{\an5\move(984,1028,984,1010,0,70)\fs44\c&H00009FE6}치
+Dialogue: 2,0:00:01.39,0:00:01.69,Pop,SPEAKER_00,0,0,0,,{\an5\move(984,1010,984,1028,0,90)\fs44\c&H00009FE6}치
+Dialogue: 2,0:00:01.51,0:00:01.58,Pop,SPEAKER_00,0,0,0,,{\an5\move(1022,1028,1022,1010,0,70)\fs44\c&H00009FE6}한
+Dialogue: 2,0:00:01.58,0:00:01.69,Pop,SPEAKER_00,0,0,0,,{\an5\move(1022,1010,1022,1028,0,90)\fs44\c&H00009FE6}한
+Dialogue: 2,0:00:02.01,0:00:02.53,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1146,1028)\fs44\c&H00009FE6\t(0,208,\fscx150\fscy150)\t(208,521,\fscx100\fscy100)}청룡포라고
+Dialogue: 0,0:00:02.79,0:00:04.17,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}들어보지 {\fs44\c&H000000&}않습니까?
+Dialogue: 1,0:00:02.79,0:00:04.17,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(360,361,\alpha&H00&\c&H00009FE6)}들어보지 {\fs44\c&H00FFFFFF&\alpha&H00&\t(420,421,\alpha&HFF&)\t(1381,1382,\alpha&H00&\c&H00009FE6)}않습니까?
+Dialogue: 2,0:00:02.79,0:00:02.86,Pop,SPEAKER_00,0,0,0,,{\an5\move(810,1028,810,1010,0,70)\fs44\c&H00009FE6}들
+Dialogue: 2,0:00:02.86,0:00:03.15,Pop,SPEAKER_00,0,0,0,,{\an5\move(810,1010,810,1028,0,90)\fs44\c&H00009FE6}들
+Dialogue: 2,0:00:02.88,0:00:02.95,Pop,SPEAKER_00,0,0,0,,{\an5\move(848,1028,848,1010,0,70)\fs44\c&H00009FE6}어
+Dialogue: 2,0:00:02.95,0:00:03.15,Pop,SPEAKER_00,0,0,0,,{\an5\move(848,1010,848,1028,0,90)\fs44\c&H00009FE6}어
+Dialogue: 2,0:00:02.97,0:00:03.04,Pop,SPEAKER_00,0,0,0,,{\an5\move(886,1028,886,1010,0,70)\fs44\c&H00009FE6}보
+Dialogue: 2,0:00:03.04,0:00:03.15,Pop,SPEAKER_00,0,0,0,,{\an5\move(886,1010,886,1028,0,90)\fs44\c&H00009FE6}보
+Dialogue: 2,0:00:03.06,0:00:03.13,Pop,SPEAKER_00,0,0,0,,{\an5\move(924,1028,924,1010,0,70)\fs44\c&H00009FE6}지
+Dialogue: 2,0:00:03.13,0:00:03.15,Pop,SPEAKER_00,0,0,0,,{\an5\move(924,1010,924,1028,0,90)\fs44\c&H00009FE6}지
+Dialogue: 2,0:00:03.21,0:00:03.28,Pop,SPEAKER_00,0,0,0,,{\an5\move(972,1028,972,1010,0,70)\fs44\c&H00009FE6}않
+Dialogue: 2,0:00:03.28,0:00:04.17,Pop,SPEAKER_00,0,0,0,,{\an5\move(972,1010,972,1028,0,90)\fs44\c&H00009FE6}않
+Dialogue: 2,0:00:03.41,0:00:03.48,Pop,SPEAKER_00,0,0,0,,{\an5\move(1010,1028,1010,1010,0,70)\fs44\c&H00009FE6}습
+Dialogue: 2,0:00:03.48,0:00:04.17,Pop,SPEAKER_00,0,0,0,,{\an5\move(1010,1010,1010,1028,0,90)\fs44\c&H00009FE6}습
+Dialogue: 2,0:00:03.60,0:00:03.67,Pop,SPEAKER_00,0,0,0,,{\an5\move(1048,1028,1048,1010,0,70)\fs44\c&H00009FE6}니
+Dialogue: 2,0:00:03.67,0:00:04.17,Pop,SPEAKER_00,0,0,0,,{\an5\move(1048,1010,1048,1028,0,90)\fs44\c&H00009FE6}니
+Dialogue: 2,0:00:03.79,0:00:03.86,Pop,SPEAKER_00,0,0,0,,{\an5\move(1086,1028,1086,1010,0,70)\fs44\c&H00009FE6}까
+Dialogue: 2,0:00:03.86,0:00:04.17,Pop,SPEAKER_00,0,0,0,,{\an5\move(1086,1010,1086,1028,0,90)\fs44\c&H00009FE6}까
+Dialogue: 2,0:00:03.98,0:00:04.05,Pop,SPEAKER_00,0,0,0,,{\an5\move(1117,1028,1117,1010,0,70)\fs44\c&H00009FE6}?
+Dialogue: 2,0:00:04.05,0:00:04.17,Pop,SPEAKER_00,0,0,0,,{\an5\move(1117,1010,1117,1028,0,90)\fs44\c&H00009FE6}?
+Dialogue: 0,0:00:04.89,0:00:07.88,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}겨울에는 {\fs44\c&H000000&}강가에 {\fs44\c&H000000&}냉기가 {\fs44\c&H000000&}슉!
+Dialogue: 1,0:00:04.89,0:00:07.88,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(340,341,\alpha&H00&\c&H00009FE6)}겨울에는 {\fs44\c&H00FFFFFF&\alpha&H00&\t(460,461,\alpha&HFF&)\t(881,882,\alpha&H00&\c&H00009FE6)}강가에 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1141,1142,\alpha&HFF&)\t(1421,1422,\alpha&H00&\c&H00009FE6)}냉기가 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1441,1442,\alpha&HFF&)\t(2982,2983,\alpha&H00&\c&H00009FE6)}슉!
+Dialogue: 2,0:00:04.89,0:00:05.23,Pop,SPEAKER_00,0,0,0,,{\an5\pos(805,1028)\fs44\c&H00009FE6\t(0,136,\fscx150\fscy150)\t(136,340,\fscx100\fscy100)}겨울에는
+Dialogue: 2,0:00:05.35,0:00:05.42,Pop,SPEAKER_00,0,0,0,,{\an5\move(910,1028,910,1010,0,70)\fs44\c&H00009FE6}강
+Dialogue: 2,0:00:05.42,0:00:05.78,Pop,SPEAKER_00,0,0,0,,{\an5\move(910,1010,910,1028,0,90)\fs44\c&H00009FE6}강
+Dialogue: 2,0:00:05.49,0:00:05.56,Pop,SPEAKER_00,0,0,0,,{\an5\move(948,1028,948,1010,0,70)\fs44\c&H00009FE6}가
+Dialogue: 2,0:00:05.56,0:00:05.78,Pop,SPEAKER_00,0,0,0,,{\an5\move(948,1010,948,1028,0,90)\fs44\c&H00009FE6}가
+Dialogue: 2,0:00:05.63,0:00:05.70,Pop,SPEAKER_00,0,0,0,,{\an5\move(986,1028,986,1010,0,70)\fs44\c&H00009FE6}에
+Dialogue: 2,0:00:05.70,0:00:05.78,Pop,SPEAKER_00,0,0,0,,{\an5\move(986,1010,986,1028,0,90)\fs44\c&H00009FE6}에
+Dialogue: 2,0:00:06.04,0:00:06.11,Pop,SPEAKER_00,0,0,0,,{\an5\move(1034,1028,1034,1010,0,70)\fs44\c&H00009FE6}냉
+Dialogue: 2,0:00:06.11,0:00:06.32,Pop,SPEAKER_00,0,0,0,,{\an5\move(1034,1010,1034,1028,0,90)\fs44\c&H00009FE6}냉
+Dialogue: 2,0:00:06.13,0:00:06.20,Pop,SPEAKER_00,0,0,0,,{\an5\move(1072,1028,1072,1010,0,70)\fs44\c&H00009FE6}기
+Dialogue: 2,0:00:06.20,0:00:06.32,Pop,SPEAKER_00,0,0,0,,{\an5\move(1072,1010,1072,1028,0,90)\fs44\c&H00009FE6}기
+Dialogue: 2,0:00:06.22,0:00:06.29,Pop,SPEAKER_00,0,0,0,,{\an5\move(1110,1028,1110,1010,0,70)\fs44\c&H00009FE6}가
+Dialogue: 2,0:00:06.29,0:00:06.32,Pop,SPEAKER_00,0,0,0,,{\an5\move(1110,1010,1110,1028,0,90)\fs44\c&H00009FE6}가
+Dialogue: 2,0:00:06.33,0:00:07.88,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1165,1028)\fs44\c&H00009FE6\t(0,616,\fscx65\fscy65)\t(616,1541,\fscx100\fscy100)}슉!
+Dialogue: 0,0:00:08.06,0:00:12.74,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}절벽에선 {\fs44\c&H000000&}한계가 {\fs44\c&H000000&}싹 {\fs44\c&H000000&}내려오고!
+Dialogue: 1,0:00:08.06,0:00:12.74,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(400,401,\alpha&H00&\c&H00009FE6)}절벽에선 {\fs44\c&H00FFFFFF&\alpha&H00&\t(520,521,\alpha&HFF&)\t(3182,3183,\alpha&H00&\c&H00009FE6)}한계가 {\fs44\c&H00FFFFFF&\alpha&H00&\t(3262,3263,\alpha&HFF&)\t(3502,3503,\alpha&H00&\c&H00009FE6)}싹 {\fs44\c&H00FFFFFF&\alpha&H00&\t(4043,4044,\alpha&HFF&)\t(4683,4684,\alpha&H00&\c&H00009FE6)}내려오고!
+Dialogue: 2,0:00:08.06,0:00:08.13,Pop,SPEAKER_00,0,0,0,,{\an5\move(729,1028,729,1010,0,70)\fs44\c&H00009FE6}절
+Dialogue: 2,0:00:08.13,0:00:08.46,Pop,SPEAKER_00,0,0,0,,{\an5\move(729,1010,729,1028,0,90)\fs44\c&H00009FE6}절
+Dialogue: 2,0:00:08.16,0:00:08.23,Pop,SPEAKER_00,0,0,0,,{\an5\move(767,1028,767,1010,0,70)\fs44\c&H00009FE6}벽
+Dialogue: 2,0:00:08.23,0:00:08.46,Pop,SPEAKER_00,0,0,0,,{\an5\move(767,1010,767,1028,0,90)\fs44\c&H00009FE6}벽
+Dialogue: 2,0:00:08.26,0:00:08.33,Pop,SPEAKER_00,0,0,0,,{\an5\move(805,1028,805,1010,0,70)\fs44\c&H00009FE6}에
+Dialogue: 2,0:00:08.33,0:00:08.46,Pop,SPEAKER_00,0,0,0,,{\an5\move(805,1010,805,1028,0,90)\fs44\c&H00009FE6}에
+Dialogue: 2,0:00:08.36,0:00:08.43,Pop,SPEAKER_00,0,0,0,,{\an5\move(843,1028,843,1010,0,70)\fs44\c&H00009FE6}선
+Dialogue: 2,0:00:08.43,0:00:08.46,Pop,SPEAKER_00,0,0,0,,{\an5\move(843,1010,843,1028,0,90)\fs44\c&H00009FE6}선
+Dialogue: 2,0:00:08.58,0:00:08.65,Pop,SPEAKER_00,0,0,0,,{\an5\move(891,1028,891,1010,0,70)\fs44\c&H00009FE6}한
+Dialogue: 2,0:00:08.65,0:00:11.24,Pop,SPEAKER_00,0,0,0,,{\an5\move(891,1010,891,1028,0,90)\fs44\c&H00009FE6}한
+Dialogue: 2,0:00:09.46,0:00:09.53,Pop,SPEAKER_00,0,0,0,,{\an5\move(929,1028,929,1010,0,70)\fs44\c&H00009FE6}계
+Dialogue: 2,0:00:09.53,0:00:11.24,Pop,SPEAKER_00,0,0,0,,{\an5\move(929,1010,929,1028,0,90)\fs44\c&H00009FE6}계
+Dialogue: 2,0:00:10.35,0:00:10.42,Pop,SPEAKER_00,0,0,0,,{\an5\move(967,1028,967,1010,0,70)\fs44\c&H00009FE6}가
+Dialogue: 2,0:00:10.42,0:00:11.24,Pop,SPEAKER_00,0,0,0,,{\an5\move(967,1010,967,1028,0,90)\fs44\c&H00009FE6}가
+Dialogue: 2,0:00:11.32,0:00:11.56,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1015,1028)\fs44\c&H00009FE6\t(0,96,\fscx150\fscy150)\t(96,240,\fscx100\fscy100)}싹
+Dialogue: 2,0:00:12.10,0:00:12.17,Pop,SPEAKER_00,0,0,0,,{\an5\move(1063,1028,1063,1010,0,70)\fs44\c&H00009FE6}내
+Dialogue: 2,0:00:12.17,0:00:12.74,Pop,SPEAKER_00,0,0,0,,{\an5\move(1063,1010,1063,1028,0,90)\fs44\c&H00009FE6}내
+Dialogue: 2,0:00:12.23,0:00:12.30,Pop,SPEAKER_00,0,0,0,,{\an5\move(1101,1028,1101,1010,0,70)\fs44\c&H00009FE6}려
+Dialogue: 2,0:00:12.30,0:00:12.74,Pop,SPEAKER_00,0,0,0,,{\an5\move(1101,1010,1101,1028,0,90)\fs44\c&H00009FE6}려
+Dialogue: 2,0:00:12.36,0:00:12.43,Pop,SPEAKER_00,0,0,0,,{\an5\move(1139,1028,1139,1010,0,70)\fs44\c&H00009FE6}오
+Dialogue: 2,0:00:12.43,0:00:12.74,Pop,SPEAKER_00,0,0,0,,{\an5\move(1139,1010,1139,1028,0,90)\fs44\c&H00009FE6}오
+Dialogue: 2,0:00:12.48,0:00:12.55,Pop,SPEAKER_00,0,0,0,,{\an5\move(1177,1028,1177,1010,0,70)\fs44\c&H00009FE6}고
+Dialogue: 2,0:00:12.55,0:00:12.74,Pop,SPEAKER_00,0,0,0,,{\an5\move(1177,1010,1177,1028,0,90)\fs44\c&H00009FE6}고
+Dialogue: 2,0:00:12.61,0:00:12.68,Pop,SPEAKER_00,0,0,0,,{\an5\move(1203,1028,1203,1010,0,70)\fs44\c&H00009FE6}!
+Dialogue: 2,0:00:12.68,0:00:12.74,Pop,SPEAKER_00,0,0,0,,{\an5\move(1203,1010,1203,1028,0,90)\fs44\c&H00009FE6}!
+Dialogue: 0,0:00:12.82,0:00:14.46,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}해적의 {\fs44\c&H000000&}유배지라는 {\fs44\c&H000000&}말!
+Dialogue: 1,0:00:12.82,0:00:14.46,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(460,461,\alpha&H00&\c&H00009FE6)}해적의 {\fs44\c&H00FFFFFF&\alpha&H00&\t(620,621,\alpha&HFF&)\t(1341,1342,\alpha&H00&\c&H00009FE6)}유배지라는 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1401,1402,\alpha&HFF&)\t(1641,1642,\alpha&H00&\c&H00009FE6)}말!
+Dialogue: 2,0:00:12.82,0:00:12.89,Pop,SPEAKER_00,0,0,0,,{\an5\move(791,1028,791,1010,0,70)\fs44\c&H00009FE6}해
+Dialogue: 2,0:00:12.89,0:00:13.28,Pop,SPEAKER_00,0,0,0,,{\an5\move(791,1010,791,1028,0,90)\fs44\c&H00009FE6}해
+Dialogue: 2,0:00:12.97,0:00:13.04,Pop,SPEAKER_00,0,0,0,,{\an5\move(829,1028,829,1010,0,70)\fs44\c&H00009FE6}적
+Dialogue: 2,0:00:13.04,0:00:13.28,Pop,SPEAKER_00,0,0,0,,{\an5\move(829,1010,829,1028,0,90)\fs44\c&H00009FE6}적
+Dialogue: 2,0:00:13.13,0:00:13.20,Pop,SPEAKER_00,0,0,0,,{\an5\move(867,1028,867,1010,0,70)\fs44\c&H00009FE6}의
+Dialogue: 2,0:00:13.20,0:00:13.28,Pop,SPEAKER_00,0,0,0,,{\an5\move(867,1010,867,1028,0,90)\fs44\c&H00009FE6}의
+Dialogue: 2,0:00:13.44,0:00:14.16,Pop,SPEAKER_00,0,0,0,,{\an5\pos(991,1028)\fs44\c&H00009FE6\t(0,288,\fscx150\fscy150)\t(288,721,\fscx100\fscy100)}유배지라는
+Dialogue: 2,0:00:14.22,0:00:14.29,Pop,SPEAKER_00,0,0,0,,{\an5\move(1115,1028,1115,1010,0,70)\fs44\c&H00009FE6}말
+Dialogue: 2,0:00:14.29,0:00:14.46,Pop,SPEAKER_00,0,0,0,,{\an5\move(1115,1010,1115,1028,0,90)\fs44\c&H00009FE6}말
+Dialogue: 2,0:00:14.34,0:00:14.41,Pop,SPEAKER_00,0,0,0,,{\an5\move(1141,1028,1141,1010,0,70)\fs44\c&H00009FE6}!
+Dialogue: 2,0:00:14.41,0:00:14.46,Pop,SPEAKER_00,0,0,0,,{\an5\move(1141,1010,1141,1028,0,90)\fs44\c&H00009FE6}!
+Dialogue: 0,0:00:16.12,0:00:17.86,Box,SPEAKER_02,0,0,0,,{\fs44\c&H000000&}이것을 {\fs44\c&H000000&}유배지로 {\fs44\c&H000000&}지정한다.
+Dialogue: 1,0:00:16.12,0:00:17.86,Fill,SPEAKER_02,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(400,401,\alpha&H00&\c&H00739E00)}이것을 {\fs44\c&H00FFFFFF&\alpha&H00&\t(520,521,\alpha&HFF&)\t(1061,1062,\alpha&H00&\c&H00739E00)}유배지로 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1161,1162,\alpha&HFF&)\t(1741,1742,\alpha&H00&\c&H00739E00)}지정한다.
+Dialogue: 2,0:00:16.12,0:00:16.19,Pop,SPEAKER_02,0,0,0,,{\an5\move(754,1028,754,1010,0,70)\fs44\c&H00739E00}이
+Dialogue: 2,0:00:16.19,0:00:16.52,Pop,SPEAKER_02,0,0,0,,{\an5\move(754,1010,754,1028,0,90)\fs44\c&H00739E00}이
+Dialogue: 2,0:00:16.25,0:00:16.32,Pop,SPEAKER_02,0,0,0,,{\an5\move(792,1028,792,1010,0,70)\fs44\c&H00739E00}것
+Dialogue: 2,0:00:16.32,0:00:16.52,Pop,SPEAKER_02,0,0,0,,{\an5\move(792,1010,792,1028,0,90)\fs44\c&H00739E00}것
+Dialogue: 2,0:00:16.39,0:00:16.46,Pop,SPEAKER_02,0,0,0,,{\an5\move(830,1028,830,1010,0,70)\fs44\c&H00739E00}을
+Dialogue: 2,0:00:16.46,0:00:16.52,Pop,SPEAKER_02,0,0,0,,{\an5\move(830,1010,830,1028,0,90)\fs44\c&H00739E00}을
+Dialogue: 2,0:00:16.64,0:00:16.71,Pop,SPEAKER_02,0,0,0,,{\an5\move(878,1028,878,1010,0,70)\fs44\c&H00739E00}유
+Dialogue: 2,0:00:16.71,0:00:17.18,Pop,SPEAKER_02,0,0,0,,{\an5\move(878,1010,878,1028,0,90)\fs44\c&H00739E00}유
+Dialogue: 2,0:00:16.78,0:00:16.85,Pop,SPEAKER_02,0,0,0,,{\an5\move(916,1028,916,1010,0,70)\fs44\c&H00739E00}배
+Dialogue: 2,0:00:16.85,0:00:17.18,Pop,SPEAKER_02,0,0,0,,{\an5\move(916,1010,916,1028,0,90)\fs44\c&H00739E00}배
+Dialogue: 2,0:00:16.91,0:00:16.98,Pop,SPEAKER_02,0,0,0,,{\an5\move(954,1028,954,1010,0,70)\fs44\c&H00739E00}지
+Dialogue: 2,0:00:16.98,0:00:17.18,Pop,SPEAKER_02,0,0,0,,{\an5\move(954,1010,954,1028,0,90)\fs44\c&H00739E00}지
+Dialogue: 2,0:00:17.05,0:00:17.12,Pop,SPEAKER_02,0,0,0,,{\an5\move(992,1028,992,1010,0,70)\fs44\c&H00739E00}로
+Dialogue: 2,0:00:17.12,0:00:17.18,Pop,SPEAKER_02,0,0,0,,{\an5\move(992,1010,992,1028,0,90)\fs44\c&H00739E00}로
+Dialogue: 2,0:00:17.28,0:00:17.86,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1103,1028)\fs44\c&H00739E00\t(0,232,\fscx65\fscy65)\t(232,580,\fscx100\fscy100)}지정한다.
+Dialogue: 0,0:00:20.12,0:00:21.20,Box,SPEAKER_02,0,0,0,,{\fs44\c&H000000&}담당할 {\fs44\c&H000000&}수 {\fs44\c&H000000&}있겠느냐?
+Dialogue: 1,0:00:20.12,0:00:21.20,Fill,SPEAKER_02,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(380,381,\alpha&H00&\c&H00739E00)}담당할 {\fs44\c&H00FFFFFF&\alpha&H00&\t(480,481,\alpha&HFF&)\t(560,561,\alpha&H00&\c&H00739E00)}수 {\fs44\c&H00FFFFFF&\alpha&H00&\t(580,581,\alpha&HFF&)\t(1080,1081,\alpha&H00&\c&H00739E00)}있겠느냐?
+Dialogue: 2,0:00:20.12,0:00:20.19,Pop,SPEAKER_02,0,0,0,,{\an5\move(804,1028,804,1010,0,70)\fs44\c&H00739E00}담
+Dialogue: 2,0:00:20.19,0:00:20.50,Pop,SPEAKER_02,0,0,0,,{\an5\move(804,1010,804,1028,0,90)\fs44\c&H00739E00}담
+Dialogue: 2,0:00:20.25,0:00:20.32,Pop,SPEAKER_02,0,0,0,,{\an5\move(842,1028,842,1010,0,70)\fs44\c&H00739E00}당
+Dialogue: 2,0:00:20.32,0:00:20.50,Pop,SPEAKER_02,0,0,0,,{\an5\move(842,1010,842,1028,0,90)\fs44\c&H00739E00}당
+Dialogue: 2,0:00:20.38,0:00:20.45,Pop,SPEAKER_02,0,0,0,,{\an5\move(880,1028,880,1010,0,70)\fs44\c&H00739E00}할
+Dialogue: 2,0:00:20.45,0:00:20.50,Pop,SPEAKER_02,0,0,0,,{\an5\move(880,1010,880,1028,0,90)\fs44\c&H00739E00}할
+Dialogue: 2,0:00:20.60,0:00:20.68,Pop,SPEAKER_02,0,0,0,,{\an5\pos(928,1028)\fs44\c&H00739E00\t(0,32,\fscx65\fscy65)\t(32,80,\fscx100\fscy100)}수
+Dialogue: 2,0:00:20.70,0:00:21.20,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1046,1028)\fs44\c&H00739E00\t(0,200,\fscx65\fscy65)\t(200,500,\fscx100\fscy100)}있겠느냐?
+Dialogue: 0,0:00:21.61,0:00:23.37,Box,SPEAKER_02,0,0,0,,{\fs44\c&H000000&}누가 {\fs44\c&H000000&}오든 {\fs44\c&H000000&}말이다.
+Dialogue: 1,0:00:21.61,0:00:23.37,Fill,SPEAKER_02,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(180,181,\alpha&H00&\c&H00739E00)}누가 {\fs44\c&H00FFFFFF&\alpha&H00&\t(240,241,\alpha&HFF&)\t(420,421,\alpha&H00&\c&H00739E00)}오든 {\fs44\c&H00FFFFFF&\alpha&H00&\t(480,481,\alpha&HFF&)\t(1761,1762,\alpha&H00&\c&H00739E00)}말이다.
+Dialogue: 2,0:00:21.61,0:00:21.79,Pop,SPEAKER_02,0,0,0,,{\an5\pos(848,1028)\fs44\c&H00739E00\t(0,72,\fscx150\fscy150)\t(72,180,\fscx100\fscy100)}누가
+Dialogue: 2,0:00:21.84,0:00:21.91,Pop,SPEAKER_02,0,0,0,,{\an5\move(916,1028,916,1010,0,70)\fs44\c&H00739E00}오
+Dialogue: 2,0:00:21.91,0:00:22.02,Pop,SPEAKER_02,0,0,0,,{\an5\move(916,1010,916,1028,0,90)\fs44\c&H00739E00}오
+Dialogue: 2,0:00:21.93,0:00:22.00,Pop,SPEAKER_02,0,0,0,,{\an5\move(954,1028,954,1010,0,70)\fs44\c&H00739E00}든
+Dialogue: 2,0:00:22.00,0:00:22.02,Pop,SPEAKER_02,0,0,0,,{\an5\move(954,1010,954,1028,0,90)\fs44\c&H00739E00}든
+Dialogue: 2,0:00:22.09,0:00:22.16,Pop,SPEAKER_02,0,0,0,,{\an5\move(1002,1028,1002,1010,0,70)\fs44\c&H00739E00}말
+Dialogue: 2,0:00:22.16,0:00:23.37,Pop,SPEAKER_02,0,0,0,,{\an5\move(1002,1010,1002,1028,0,90)\fs44\c&H00739E00}말
+Dialogue: 2,0:00:22.41,0:00:22.48,Pop,SPEAKER_02,0,0,0,,{\an5\move(1040,1028,1040,1010,0,70)\fs44\c&H00739E00}이
+Dialogue: 2,0:00:22.48,0:00:23.37,Pop,SPEAKER_02,0,0,0,,{\an5\move(1040,1010,1040,1028,0,90)\fs44\c&H00739E00}이
+Dialogue: 2,0:00:22.73,0:00:22.80,Pop,SPEAKER_02,0,0,0,,{\an5\move(1078,1028,1078,1010,0,70)\fs44\c&H00739E00}다
+Dialogue: 2,0:00:22.80,0:00:23.37,Pop,SPEAKER_02,0,0,0,,{\an5\move(1078,1010,1078,1028,0,90)\fs44\c&H00739E00}다
+Dialogue: 2,0:00:23.05,0:00:23.12,Pop,SPEAKER_02,0,0,0,,{\an5\move(1103,1028,1103,1010,0,70)\fs44\c&H00739E00}.
+Dialogue: 2,0:00:23.12,0:00:23.37,Pop,SPEAKER_02,0,0,0,,{\an5\move(1103,1010,1103,1028,0,90)\fs44\c&H00739E00}.
+Dialogue: 0,0:00:23.45,0:00:23.57,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}웃어!
+Dialogue: 1,0:00:23.45,0:00:23.57,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(120,121,\alpha&H00&\c&H00009FE6)}웃어!
+Dialogue: 2,0:00:23.45,0:00:23.57,Pop,SPEAKER_00,0,0,0,,{\an5\pos(960,1028)\fs44\c&H00009FE6\t(0,48,\fscx65\fscy65)\t(48,120,\fscx100\fscy100)}웃어!
+Dialogue: 0,0:00:25.04,0:00:27.38,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}밥 {\fs44\c&H000000&}한 {\fs44\c&H000000&}공기를 {\fs44\c&H000000&}뚝딱 {\fs44\c&H000000&}비우셨어.
+Dialogue: 1,0:00:25.04,0:00:27.38,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(100,101,\alpha&H00&\c&H00009FE6)}밥 {\fs44\c&H00FFFFFF&\alpha&H00&\t(220,221,\alpha&HFF&)\t(300,301,\alpha&H00&\c&H00009FE6)}한 {\fs44\c&H00FFFFFF&\alpha&H00&\t(420,421,\alpha&HFF&)\t(760,761,\alpha&H00&\c&H00009FE6)}공기를 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1121,1122,\alpha&HFF&)\t(1541,1542,\alpha&H00&\c&H00009FE6)}뚝딱 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1621,1622,\alpha&HFF&)\t(2342,2343,\alpha&H00&\c&H00009FE6)}비우셨어.
+Dialogue: 2,0:00:25.04,0:00:25.14,Pop,SPEAKER_00,0,0,0,,{\an5\pos(744,1028)\fs44\c&H00009FE6\t(0,40,\fscx150\fscy150)\t(40,100,\fscx100\fscy100)}밥
+Dialogue: 2,0:00:25.26,0:00:25.33,Pop,SPEAKER_00,0,0,0,,{\an5\move(792,1028,792,1010,0,70)\fs44\c&H00009FE6}한
+Dialogue: 2,0:00:25.33,0:00:25.34,Pop,SPEAKER_00,0,0,0,,{\an5\move(792,1010,792,1028,0,80)\fs44\c&H00009FE6}한
+Dialogue: 2,0:00:25.46,0:00:25.80,Pop,SPEAKER_00,0,0,0,,{\an5\pos(878,1028)\fs44\c&H00009FE6\t(0,136,\fscx150\fscy150)\t(136,340,\fscx100\fscy100)}공기를
+Dialogue: 2,0:00:26.16,0:00:26.23,Pop,SPEAKER_00,0,0,0,,{\an5\move(964,1028,964,1010,0,70)\fs44\c&H00009FE6}뚝
+Dialogue: 2,0:00:26.23,0:00:26.58,Pop,SPEAKER_00,0,0,0,,{\an5\move(964,1010,964,1028,0,90)\fs44\c&H00009FE6}뚝
+Dialogue: 2,0:00:26.37,0:00:26.44,Pop,SPEAKER_00,0,0,0,,{\an5\move(1002,1028,1002,1010,0,70)\fs44\c&H00009FE6}딱
+Dialogue: 2,0:00:26.44,0:00:26.58,Pop,SPEAKER_00,0,0,0,,{\an5\move(1002,1010,1002,1028,0,90)\fs44\c&H00009FE6}딱
+Dialogue: 2,0:00:26.66,0:00:26.73,Pop,SPEAKER_00,0,0,0,,{\an5\move(1050,1028,1050,1010,0,70)\fs44\c&H00009FE6}비
+Dialogue: 2,0:00:26.73,0:00:27.38,Pop,SPEAKER_00,0,0,0,,{\an5\move(1050,1010,1050,1028,0,90)\fs44\c&H00009FE6}비
+Dialogue: 2,0:00:26.81,0:00:26.88,Pop,SPEAKER_00,0,0,0,,{\an5\move(1088,1028,1088,1010,0,70)\fs44\c&H00009FE6}우
+Dialogue: 2,0:00:26.88,0:00:27.38,Pop,SPEAKER_00,0,0,0,,{\an5\move(1088,1010,1088,1028,0,90)\fs44\c&H00009FE6}우
+Dialogue: 2,0:00:26.95,0:00:27.02,Pop,SPEAKER_00,0,0,0,,{\an5\move(1126,1028,1126,1010,0,70)\fs44\c&H00009FE6}셨
+Dialogue: 2,0:00:27.02,0:00:27.38,Pop,SPEAKER_00,0,0,0,,{\an5\move(1126,1010,1126,1028,0,90)\fs44\c&H00009FE6}셨
+Dialogue: 2,0:00:27.09,0:00:27.16,Pop,SPEAKER_00,0,0,0,,{\an5\move(1164,1028,1164,1010,0,70)\fs44\c&H00009FE6}어
+Dialogue: 2,0:00:27.16,0:00:27.38,Pop,SPEAKER_00,0,0,0,,{\an5\move(1164,1010,1164,1028,0,90)\fs44\c&H00009FE6}어
+Dialogue: 2,0:00:27.24,0:00:27.31,Pop,SPEAKER_00,0,0,0,,{\an5\move(1190,1028,1190,1010,0,70)\fs44\c&H00009FE6}.
+Dialogue: 2,0:00:27.31,0:00:27.38,Pop,SPEAKER_00,0,0,0,,{\an5\move(1190,1010,1190,1028,0,90)\fs44\c&H00009FE6}.
+Dialogue: 0,0:00:33.38,0:00:35.21,Box,SPEAKER_02,0,0,0,,{\fs44\c&H000000&}귀향 {\fs44\c&H000000&}온 {\fs44\c&H000000&}양반이 {\fs44\c&H000000&}누군지 {\fs44\c&H000000&}아십니까?
+Dialogue: 1,0:00:33.38,0:00:35.21,Fill,SPEAKER_02,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(181,182,\alpha&H00&\c&H00739E00)}귀향 {\fs44\c&H00FFFFFF&\alpha&H00&\t(241,242,\alpha&HFF&)\t(341,342,\alpha&H00&\c&H00739E00)}온 {\fs44\c&H00FFFFFF&\alpha&H00&\t(401,402,\alpha&HFF&)\t(761,762,\alpha&H00&\c&H00739E00)}양반이 {\fs44\c&H00FFFFFF&\alpha&H00&\t(821,822,\alpha&HFF&)\t(1141,1142,\alpha&H00&\c&H00739E00)}누군지 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1161,1162,\alpha&HFF&)\t(1822,1823,\alpha&H00&\c&H00739E00)}아십니까?
+Dialogue: 2,0:00:33.38,0:00:33.57,Pop,SPEAKER_02,0,0,0,,{\an5\pos(718,1028)\fs44\c&H00739E00\t(0,72,\fscx150\fscy150)\t(72,181,\fscx100\fscy100)}귀향
+Dialogue: 2,0:00:33.63,0:00:33.73,Pop,SPEAKER_02,0,0,0,,{\an5\pos(786,1028)\fs44\c&H00739E00\t(0,40,\fscx150\fscy150)\t(40,100,\fscx100\fscy100)}온
+Dialogue: 2,0:00:33.79,0:00:33.86,Pop,SPEAKER_02,0,0,0,,{\an5\move(834,1028,834,1010,0,70)\fs44\c&H00739E00}양
+Dialogue: 2,0:00:33.86,0:00:34.15,Pop,SPEAKER_02,0,0,0,,{\an5\move(834,1010,834,1028,0,90)\fs44\c&H00739E00}양
+Dialogue: 2,0:00:33.91,0:00:33.98,Pop,SPEAKER_02,0,0,0,,{\an5\move(872,1028,872,1010,0,70)\fs44\c&H00739E00}반
+Dialogue: 2,0:00:33.98,0:00:34.15,Pop,SPEAKER_02,0,0,0,,{\an5\move(872,1010,872,1028,0,90)\fs44\c&H00739E00}반
+Dialogue: 2,0:00:34.03,0:00:34.10,Pop,SPEAKER_02,0,0,0,,{\an5\move(910,1028,910,1010,0,70)\fs44\c&H00739E00}이
+Dialogue: 2,0:00:34.10,0:00:34.15,Pop,SPEAKER_02,0,0,0,,{\an5\move(910,1010,910,1028,0,90)\fs44\c&H00739E00}이
+Dialogue: 2,0:00:34.21,0:00:34.53,Pop,SPEAKER_02,0,0,0,,{\an5\pos(996,1028)\fs44\c&H00739E00\t(0,128,\fscx65\fscy65)\t(128,320,\fscx100\fscy100)}누군지
+Dialogue: 2,0:00:34.55,0:00:34.62,Pop,SPEAKER_02,0,0,0,,{\an5\move(1082,1028,1082,1010,0,70)\fs44\c&H00739E00}아
+Dialogue: 2,0:00:34.62,0:00:35.21,Pop,SPEAKER_02,0,0,0,,{\an5\move(1082,1010,1082,1028,0,90)\fs44\c&H00739E00}아
+Dialogue: 2,0:00:34.68,0:00:34.75,Pop,SPEAKER_02,0,0,0,,{\an5\move(1120,1028,1120,1010,0,70)\fs44\c&H00739E00}십
+Dialogue: 2,0:00:34.75,0:00:35.21,Pop,SPEAKER_02,0,0,0,,{\an5\move(1120,1010,1120,1028,0,90)\fs44\c&H00739E00}십
+Dialogue: 2,0:00:34.81,0:00:34.88,Pop,SPEAKER_02,0,0,0,,{\an5\move(1158,1028,1158,1010,0,70)\fs44\c&H00739E00}니
+Dialogue: 2,0:00:34.88,0:00:35.21,Pop,SPEAKER_02,0,0,0,,{\an5\move(1158,1010,1158,1028,0,90)\fs44\c&H00739E00}니
+Dialogue: 2,0:00:34.94,0:00:35.01,Pop,SPEAKER_02,0,0,0,,{\an5\move(1196,1028,1196,1010,0,70)\fs44\c&H00739E00}까
+Dialogue: 2,0:00:35.01,0:00:35.21,Pop,SPEAKER_02,0,0,0,,{\an5\move(1196,1010,1196,1028,0,90)\fs44\c&H00739E00}까
+Dialogue: 2,0:00:35.07,0:00:35.14,Pop,SPEAKER_02,0,0,0,,{\an5\move(1227,1028,1227,1010,0,70)\fs44\c&H00739E00}?
+Dialogue: 2,0:00:35.14,0:00:35.21,Pop,SPEAKER_02,0,0,0,,{\an5\move(1227,1010,1227,1028,0,90)\fs44\c&H00739E00}?
+Dialogue: 0,0:00:36.21,0:00:37.61,Box,SPEAKER_01,0,0,0,,{\fs44\c&H000000&}노상군 {\fs44\c&H000000&}이용이에요.
+Dialogue: 1,0:00:36.21,0:00:37.61,Fill,SPEAKER_01,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(561,562,\alpha&H00&\c&H00E9B456)}노상군 {\fs44\c&H00FFFFFF&\alpha&H00&\t(661,662,\alpha&HFF&)\t(1401,1402,\alpha&H00&\c&H00E9B456)}이용이에요.
+Dialogue: 2,0:00:36.21,0:00:36.28,Pop,SPEAKER_01,0,0,0,,{\an5\move(816,1028,816,1010,0,70)\fs44\c&H00E9B456}노
+Dialogue: 2,0:00:36.28,0:00:36.77,Pop,SPEAKER_01,0,0,0,,{\an5\move(816,1010,816,1028,0,90)\fs44\c&H00E9B456}노
+Dialogue: 2,0:00:36.39,0:00:36.46,Pop,SPEAKER_01,0,0,0,,{\an5\move(854,1028,854,1010,0,70)\fs44\c&H00E9B456}상
+Dialogue: 2,0:00:36.46,0:00:36.77,Pop,SPEAKER_01,0,0,0,,{\an5\move(854,1010,854,1028,0,90)\fs44\c&H00E9B456}상
+Dialogue: 2,0:00:36.58,0:00:36.65,Pop,SPEAKER_01,0,0,0,,{\an5\move(892,1028,892,1010,0,70)\fs44\c&H00E9B456}군
+Dialogue: 2,0:00:36.65,0:00:36.77,Pop,SPEAKER_01,0,0,0,,{\an5\move(892,1010,892,1028,0,90)\fs44\c&H00E9B456}군
+Dialogue: 2,0:00:36.87,0:00:36.94,Pop,SPEAKER_01,0,0,0,,{\an5\move(940,1028,940,1010,0,70)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:36.94,0:00:37.61,Pop,SPEAKER_01,0,0,0,,{\an5\move(940,1010,940,1028,0,90)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:36.99,0:00:37.06,Pop,SPEAKER_01,0,0,0,,{\an5\move(978,1028,978,1010,0,70)\fs44\c&H00E9B456}용
+Dialogue: 2,0:00:37.06,0:00:37.61,Pop,SPEAKER_01,0,0,0,,{\an5\move(978,1010,978,1028,0,90)\fs44\c&H00E9B456}용
+Dialogue: 2,0:00:37.11,0:00:37.18,Pop,SPEAKER_01,0,0,0,,{\an5\move(1016,1028,1016,1010,0,70)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:37.18,0:00:37.61,Pop,SPEAKER_01,0,0,0,,{\an5\move(1016,1010,1016,1028,0,90)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:37.24,0:00:37.31,Pop,SPEAKER_01,0,0,0,,{\an5\move(1054,1028,1054,1010,0,70)\fs44\c&H00E9B456}에
+Dialogue: 2,0:00:37.31,0:00:37.61,Pop,SPEAKER_01,0,0,0,,{\an5\move(1054,1010,1054,1028,0,90)\fs44\c&H00E9B456}에
+Dialogue: 2,0:00:37.36,0:00:37.43,Pop,SPEAKER_01,0,0,0,,{\an5\move(1092,1028,1092,1010,0,70)\fs44\c&H00E9B456}요
+Dialogue: 2,0:00:37.43,0:00:37.61,Pop,SPEAKER_01,0,0,0,,{\an5\move(1092,1010,1092,1028,0,90)\fs44\c&H00E9B456}요
+Dialogue: 2,0:00:37.48,0:00:37.55,Pop,SPEAKER_01,0,0,0,,{\an5\move(1117,1028,1117,1010,0,70)\fs44\c&H00E9B456}.
+Dialogue: 2,0:00:37.55,0:00:37.61,Pop,SPEAKER_01,0,0,0,,{\an5\move(1117,1010,1117,1028,0,90)\fs44\c&H00E9B456}.
+Dialogue: 0,0:00:37.99,0:00:39.93,Box,SPEAKER_01,0,0,0,,{\fs44\c&H000000&}얼마 {\fs44\c&H000000&}전까지 {\fs44\c&H000000&}이 {\fs44\c&H000000&}나라의 {\fs44\c&H000000&}왕이었던
+Dialogue: 1,0:00:37.99,0:00:39.93,Fill,SPEAKER_01,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(241,242,\alpha&H00&\c&H00E9B456)}얼마 {\fs44\c&H00FFFFFF&\alpha&H00&\t(301,302,\alpha&HFF&)\t(641,642,\alpha&H00&\c&H00E9B456)}전까지 {\fs44\c&H00FFFFFF&\alpha&H00&\t(681,682,\alpha&HFF&)\t(741,742,\alpha&H00&\c&H00E9B456)}이 {\fs44\c&H00FFFFFF&\alpha&H00&\t(881,882,\alpha&HFF&)\t(1201,1202,\alpha&H00&\c&H00E9B456)}나라의 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1421,1422,\alpha&HFF&)\t(1942,1943,\alpha&H00&\c&H00E9B456)}왕이었던
+Dialogue: 2,0:00:37.99,0:00:38.06,Pop,SPEAKER_01,0,0,0,,{\an5\move(712,1028,712,1010,0,70)\fs44\c&H00E9B456}얼
+Dialogue: 2,0:00:38.06,0:00:38.23,Pop,SPEAKER_01,0,0,0,,{\an5\move(712,1010,712,1028,0,90)\fs44\c&H00E9B456}얼
+Dialogue: 2,0:00:38.11,0:00:38.18,Pop,SPEAKER_01,0,0,0,,{\an5\move(750,1028,750,1010,0,70)\fs44\c&H00E9B456}마
+Dialogue: 2,0:00:38.18,0:00:38.23,Pop,SPEAKER_01,0,0,0,,{\an5\move(750,1010,750,1028,0,90)\fs44\c&H00E9B456}마
+Dialogue: 2,0:00:38.29,0:00:38.36,Pop,SPEAKER_01,0,0,0,,{\an5\move(798,1028,798,1010,0,70)\fs44\c&H00E9B456}전
+Dialogue: 2,0:00:38.36,0:00:38.63,Pop,SPEAKER_01,0,0,0,,{\an5\move(798,1010,798,1028,0,90)\fs44\c&H00E9B456}전
+Dialogue: 2,0:00:38.40,0:00:38.47,Pop,SPEAKER_01,0,0,0,,{\an5\move(836,1028,836,1010,0,70)\fs44\c&H00E9B456}까
+Dialogue: 2,0:00:38.47,0:00:38.63,Pop,SPEAKER_01,0,0,0,,{\an5\move(836,1010,836,1028,0,90)\fs44\c&H00E9B456}까
+Dialogue: 2,0:00:38.52,0:00:38.59,Pop,SPEAKER_01,0,0,0,,{\an5\move(874,1028,874,1010,0,70)\fs44\c&H00E9B456}지
+Dialogue: 2,0:00:38.59,0:00:38.63,Pop,SPEAKER_01,0,0,0,,{\an5\move(874,1010,874,1028,0,90)\fs44\c&H00E9B456}지
+Dialogue: 2,0:00:38.67,0:00:38.73,Pop,SPEAKER_01,0,0,0,,{\an5\pos(922,1028)\fs44\c&H00E9B456\t(0,24,\fscx65\fscy65)\t(24,60,\fscx100\fscy100)}이
+Dialogue: 2,0:00:38.87,0:00:38.94,Pop,SPEAKER_01,0,0,0,,{\an5\move(970,1028,970,1010,0,70)\fs44\c&H00E9B456}나
+Dialogue: 2,0:00:38.94,0:00:39.19,Pop,SPEAKER_01,0,0,0,,{\an5\move(970,1010,970,1028,0,90)\fs44\c&H00E9B456}나
+Dialogue: 2,0:00:38.98,0:00:39.05,Pop,SPEAKER_01,0,0,0,,{\an5\move(1008,1028,1008,1010,0,70)\fs44\c&H00E9B456}라
+Dialogue: 2,0:00:39.05,0:00:39.19,Pop,SPEAKER_01,0,0,0,,{\an5\move(1008,1010,1008,1028,0,90)\fs44\c&H00E9B456}라
+Dialogue: 2,0:00:39.08,0:00:39.15,Pop,SPEAKER_01,0,0,0,,{\an5\move(1046,1028,1046,1010,0,70)\fs44\c&H00E9B456}의
+Dialogue: 2,0:00:39.15,0:00:39.19,Pop,SPEAKER_01,0,0,0,,{\an5\move(1046,1010,1046,1028,0,90)\fs44\c&H00E9B456}의
+Dialogue: 2,0:00:39.41,0:00:39.48,Pop,SPEAKER_01,0,0,0,,{\an5\move(1094,1028,1094,1010,0,70)\fs44\c&H00E9B456}왕
+Dialogue: 2,0:00:39.48,0:00:39.93,Pop,SPEAKER_01,0,0,0,,{\an5\move(1094,1010,1094,1028,0,90)\fs44\c&H00E9B456}왕
+Dialogue: 2,0:00:39.54,0:00:39.61,Pop,SPEAKER_01,0,0,0,,{\an5\move(1132,1028,1132,1010,0,70)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:39.61,0:00:39.93,Pop,SPEAKER_01,0,0,0,,{\an5\move(1132,1010,1132,1028,0,90)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:39.67,0:00:39.74,Pop,SPEAKER_01,0,0,0,,{\an5\move(1170,1028,1170,1010,0,70)\fs44\c&H00E9B456}었
+Dialogue: 2,0:00:39.74,0:00:39.93,Pop,SPEAKER_01,0,0,0,,{\an5\move(1170,1010,1170,1028,0,90)\fs44\c&H00E9B456}었
+Dialogue: 2,0:00:39.80,0:00:39.87,Pop,SPEAKER_01,0,0,0,,{\an5\move(1209,1028,1209,1010,0,70)\fs44\c&H00E9B456}던
+Dialogue: 2,0:00:39.87,0:00:39.93,Pop,SPEAKER_01,0,0,0,,{\an5\move(1209,1010,1209,1028,0,90)\fs44\c&H00E9B456}던
+Dialogue: 0,0:00:39.99,0:00:40.71,Box,SPEAKER_01,0,0,0,,{\fs44\c&H000000&}사람이요.
+Dialogue: 1,0:00:39.99,0:00:40.71,Fill,SPEAKER_01,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(720,721,\alpha&H00&\c&H00E9B456)}사람이요.
+Dialogue: 2,0:00:39.99,0:00:40.06,Pop,SPEAKER_01,0,0,0,,{\an5\move(896,1028,896,1010,0,70)\fs44\c&H00E9B456}사
+Dialogue: 2,0:00:40.06,0:00:40.71,Pop,SPEAKER_01,0,0,0,,{\an5\move(896,1010,896,1028,0,90)\fs44\c&H00E9B456}사
+Dialogue: 2,0:00:40.13,0:00:40.20,Pop,SPEAKER_01,0,0,0,,{\an5\move(934,1028,934,1010,0,70)\fs44\c&H00E9B456}람
+Dialogue: 2,0:00:40.20,0:00:40.71,Pop,SPEAKER_01,0,0,0,,{\an5\move(934,1010,934,1028,0,90)\fs44\c&H00E9B456}람
+Dialogue: 2,0:00:40.28,0:00:40.35,Pop,SPEAKER_01,0,0,0,,{\an5\move(972,1028,972,1010,0,70)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:40.35,0:00:40.71,Pop,SPEAKER_01,0,0,0,,{\an5\move(972,1010,972,1028,0,90)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:40.42,0:00:40.49,Pop,SPEAKER_01,0,0,0,,{\an5\move(1010,1028,1010,1010,0,70)\fs44\c&H00E9B456}요
+Dialogue: 2,0:00:40.49,0:00:40.71,Pop,SPEAKER_01,0,0,0,,{\an5\move(1010,1010,1010,1028,0,90)\fs44\c&H00E9B456}요
+Dialogue: 2,0:00:40.57,0:00:40.64,Pop,SPEAKER_01,0,0,0,,{\an5\move(1036,1028,1036,1010,0,70)\fs44\c&H00E9B456}.
+Dialogue: 2,0:00:40.64,0:00:40.71,Pop,SPEAKER_01,0,0,0,,{\an5\move(1036,1010,1036,1028,0,90)\fs44\c&H00E9B456}.
+Dialogue: 0,0:00:41.99,0:00:44.39,Box,SPEAKER_02,0,0,0,,{\fs44\c&H000000&}노상과 {\fs44\c&H000000&}통하는 {\fs44\c&H000000&}자는 {\fs44\c&H000000&}죽어야 {\fs44\c&H000000&}한다.
+Dialogue: 1,0:00:41.99,0:00:44.39,Fill,SPEAKER_02,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(600,601,\alpha&H00&\c&H00739E00)}노상과 {\fs44\c&H00FFFFFF&\alpha&H00&\t(680,681,\alpha&HFF&)\t(1021,1022,\alpha&H00&\c&H00739E00)}통하는 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1081,1082,\alpha&HFF&)\t(1261,1262,\alpha&H00&\c&H00739E00)}자는 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1341,1342,\alpha&HFF&)\t(1601,1602,\alpha&H00&\c&H00739E00)}죽어야 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1621,1622,\alpha&HFF&)\t(2402,2403,\alpha&H00&\c&H00739E00)}한다.
+Dialogue: 2,0:00:41.99,0:00:42.06,Pop,SPEAKER_02,0,0,0,,{\an5\move(706,1028,706,1010,0,70)\fs44\c&H00739E00}노
+Dialogue: 2,0:00:42.06,0:00:42.59,Pop,SPEAKER_02,0,0,0,,{\an5\move(706,1010,706,1028,0,90)\fs44\c&H00739E00}노
+Dialogue: 2,0:00:42.19,0:00:42.26,Pop,SPEAKER_02,0,0,0,,{\an5\move(744,1028,744,1010,0,70)\fs44\c&H00739E00}상
+Dialogue: 2,0:00:42.26,0:00:42.59,Pop,SPEAKER_02,0,0,0,,{\an5\move(744,1010,744,1028,0,90)\fs44\c&H00739E00}상
+Dialogue: 2,0:00:42.39,0:00:42.46,Pop,SPEAKER_02,0,0,0,,{\an5\move(782,1028,782,1010,0,70)\fs44\c&H00739E00}과
+Dialogue: 2,0:00:42.46,0:00:42.59,Pop,SPEAKER_02,0,0,0,,{\an5\move(782,1010,782,1028,0,90)\fs44\c&H00739E00}과
+Dialogue: 2,0:00:42.67,0:00:42.74,Pop,SPEAKER_02,0,0,0,,{\an5\move(830,1028,830,1010,0,70)\fs44\c&H00739E00}통
+Dialogue: 2,0:00:42.74,0:00:43.01,Pop,SPEAKER_02,0,0,0,,{\an5\move(830,1010,830,1028,0,90)\fs44\c&H00739E00}통
+Dialogue: 2,0:00:42.78,0:00:42.85,Pop,SPEAKER_02,0,0,0,,{\an5\move(868,1028,868,1010,0,70)\fs44\c&H00739E00}하
+Dialogue: 2,0:00:42.85,0:00:43.01,Pop,SPEAKER_02,0,0,0,,{\an5\move(868,1010,868,1028,0,90)\fs44\c&H00739E00}하
+Dialogue: 2,0:00:42.90,0:00:42.97,Pop,SPEAKER_02,0,0,0,,{\an5\move(906,1028,906,1010,0,70)\fs44\c&H00739E00}는
+Dialogue: 2,0:00:42.97,0:00:43.01,Pop,SPEAKER_02,0,0,0,,{\an5\move(906,1010,906,1028,0,90)\fs44\c&H00739E00}는
+Dialogue: 2,0:00:43.07,0:00:43.25,Pop,SPEAKER_02,0,0,0,,{\an5\pos(972,1028)\fs44\c&H00739E00\t(0,72,\fscx150\fscy150)\t(72,180,\fscx100\fscy100)}자는
+Dialogue: 2,0:00:43.33,0:00:43.59,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1078,1028)\fs44\c&H00739E00\t(0,104,\fscx150\fscy150)\t(104,260,\fscx100\fscy100)}죽어야
+Dialogue: 2,0:00:43.61,0:00:43.68,Pop,SPEAKER_02,0,0,0,,{\an5\move(1164,1028,1164,1010,0,70)\fs44\c&H00739E00}한
+Dialogue: 2,0:00:43.68,0:00:44.39,Pop,SPEAKER_02,0,0,0,,{\an5\move(1164,1010,1164,1028,0,90)\fs44\c&H00739E00}한
+Dialogue: 2,0:00:43.87,0:00:43.94,Pop,SPEAKER_02,0,0,0,,{\an5\move(1202,1028,1202,1010,0,70)\fs44\c&H00739E00}다
+Dialogue: 2,0:00:43.94,0:00:44.39,Pop,SPEAKER_02,0,0,0,,{\an5\move(1202,1010,1202,1028,0,90)\fs44\c&H00739E00}다
+Dialogue: 2,0:00:44.13,0:00:44.20,Pop,SPEAKER_02,0,0,0,,{\an5\move(1227,1028,1227,1010,0,70)\fs44\c&H00739E00}.
+Dialogue: 2,0:00:44.20,0:00:44.39,Pop,SPEAKER_02,0,0,0,,{\an5\move(1227,1010,1227,1028,0,90)\fs44\c&H00739E00}.
+Dialogue: 0,0:00:45.61,0:00:45.95,Box,SPEAKER_01,0,0,0,,{\fs44\c&H000000&}이
+Dialogue: 1,0:00:45.61,0:00:45.95,Fill,SPEAKER_01,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(341,342,\alpha&H00&\c&H00E9B456)}이
+Dialogue: 2,0:00:45.61,0:00:45.95,Pop,SPEAKER_01,0,0,0,,{\an5\pos(960,1028)\fs44\c&H00E9B456\t(0,136,\fscx150\fscy150)\t(136,341,\fscx100\fscy100)}이
+Dialogue: 0,0:00:46.67,0:00:49.44,Box,SPEAKER_01,0,0,0,,{\fs44\c&H000000&}놈이 {\fs44\c&H000000&}감히 {\fs44\c&H000000&}왕족을 {\fs44\c&H000000&}능멸하니까.
+Dialogue: 1,0:00:46.67,0:00:49.44,Fill,SPEAKER_01,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(140,141,\alpha&H00&\c&H00E9B456)}놈이 {\fs44\c&H00FFFFFF&\alpha&H00&\t(560,561,\alpha&HFF&)\t(861,862,\alpha&H00&\c&H00E9B456)}감히 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1001,1002,\alpha&HFF&)\t(1401,1402,\alpha&H00&\c&H00E9B456)}왕족을 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1541,1542,\alpha&HFF&)\t(2762,2763,\alpha&H00&\c&H00E9B456)}능멸하니까.
+Dialogue: 2,0:00:46.67,0:00:46.74,Pop,SPEAKER_01,0,0,0,,{\an5\move(730,1028,730,1010,0,70)\fs44\c&H00E9B456}놈
+Dialogue: 2,0:00:46.74,0:00:46.81,Pop,SPEAKER_01,0,0,0,,{\an5\move(730,1010,730,1028,0,70)\fs44\c&H00E9B456}놈
+Dialogue: 2,0:00:46.74,0:00:46.81,Pop,SPEAKER_01,0,0,0,,{\an5\move(768,1028,768,1010,0,70)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:46.81,0:00:46.81,Pop,SPEAKER_01,0,0,0,,{\an5\move(768,1010,768,1028,0,70)\fs44\c&H00E9B456}이
+Dialogue: 2,0:00:47.23,0:00:47.30,Pop,SPEAKER_01,0,0,0,,{\an5\move(816,1028,816,1010,0,70)\fs44\c&H00E9B456}감
+Dialogue: 2,0:00:47.30,0:00:47.53,Pop,SPEAKER_01,0,0,0,,{\an5\move(816,1010,816,1028,0,90)\fs44\c&H00E9B456}감
+Dialogue: 2,0:00:47.38,0:00:47.45,Pop,SPEAKER_01,0,0,0,,{\an5\move(854,1028,854,1010,0,70)\fs44\c&H00E9B456}히
+Dialogue: 2,0:00:47.45,0:00:47.53,Pop,SPEAKER_01,0,0,0,,{\an5\move(854,1010,854,1028,0,90)\fs44\c&H00E9B456}히
+Dialogue: 2,0:00:47.67,0:00:47.74,Pop,SPEAKER_01,0,0,0,,{\an5\move(902,1028,902,1010,0,70)\fs44\c&H00E9B456}왕
+Dialogue: 2,0:00:47.74,0:00:48.08,Pop,SPEAKER_01,0,0,0,,{\an5\move(902,1010,902,1028,0,90)\fs44\c&H00E9B456}왕
+Dialogue: 2,0:00:47.81,0:00:47.88,Pop,SPEAKER_01,0,0,0,,{\an5\move(940,1028,940,1010,0,70)\fs44\c&H00E9B456}족
+Dialogue: 2,0:00:47.88,0:00:48.08,Pop,SPEAKER_01,0,0,0,,{\an5\move(940,1010,940,1028,0,90)\fs44\c&H00E9B456}족
+Dialogue: 2,0:00:47.94,0:00:48.01,Pop,SPEAKER_01,0,0,0,,{\an5\move(978,1028,978,1010,0,70)\fs44\c&H00E9B456}을
+Dialogue: 2,0:00:48.01,0:00:48.08,Pop,SPEAKER_01,0,0,0,,{\an5\move(978,1010,978,1028,0,90)\fs44\c&H00E9B456}을
+Dialogue: 2,0:00:48.22,0:00:48.29,Pop,SPEAKER_01,0,0,0,,{\an5\move(1026,1028,1026,1010,0,70)\fs44\c&H00E9B456}능
+Dialogue: 2,0:00:48.29,0:00:49.44,Pop,SPEAKER_01,0,0,0,,{\an5\move(1026,1010,1026,1028,0,90)\fs44\c&H00E9B456}능
+Dialogue: 2,0:00:48.42,0:00:48.49,Pop,SPEAKER_01,0,0,0,,{\an5\move(1064,1028,1064,1010,0,70)\fs44\c&H00E9B456}멸
+Dialogue: 2,0:00:48.49,0:00:49.44,Pop,SPEAKER_01,0,0,0,,{\an5\move(1064,1010,1064,1028,0,90)\fs44\c&H00E9B456}멸
+Dialogue: 2,0:00:48.62,0:00:48.69,Pop,SPEAKER_01,0,0,0,,{\an5\move(1102,1028,1102,1010,0,70)\fs44\c&H00E9B456}하
+Dialogue: 2,0:00:48.69,0:00:49.44,Pop,SPEAKER_01,0,0,0,,{\an5\move(1102,1010,1102,1028,0,90)\fs44\c&H00E9B456}하
+Dialogue: 2,0:00:48.83,0:00:48.90,Pop,SPEAKER_01,0,0,0,,{\an5\move(1140,1028,1140,1010,0,70)\fs44\c&H00E9B456}니
+Dialogue: 2,0:00:48.90,0:00:49.44,Pop,SPEAKER_01,0,0,0,,{\an5\move(1140,1010,1140,1028,0,90)\fs44\c&H00E9B456}니
+Dialogue: 2,0:00:49.03,0:00:49.10,Pop,SPEAKER_01,0,0,0,,{\an5\move(1178,1028,1178,1010,0,70)\fs44\c&H00E9B456}까
+Dialogue: 2,0:00:49.10,0:00:49.44,Pop,SPEAKER_01,0,0,0,,{\an5\move(1178,1010,1178,1028,0,90)\fs44\c&H00E9B456}까
+Dialogue: 2,0:00:49.23,0:00:49.30,Pop,SPEAKER_01,0,0,0,,{\an5\move(1203,1028,1203,1010,0,70)\fs44\c&H00E9B456}.
+Dialogue: 2,0:00:49.30,0:00:49.44,Pop,SPEAKER_01,0,0,0,,{\an5\move(1203,1010,1203,1028,0,90)\fs44\c&H00E9B456}.
+Dialogue: 0,0:00:51.69,0:00:53.51,Box,SPEAKER_02,0,0,0,,{\fs44\c&H000000&}더 {\fs44\c&H000000&}이상 {\fs44\c&H000000&}나로 {\fs44\c&H000000&}인해 {\fs44\c&H000000&}내가 {\fs44\c&H000000&}아끼고
+Dialogue: 1,0:00:51.69,0:00:53.51,Fill,SPEAKER_02,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(20,21,\alpha&H00&\c&H00739E00)}더 {\fs44\c&H00FFFFFF&\alpha&H00&\t(40,41,\alpha&HFF&)\t(340,341,\alpha&H00&\c&H00739E00)}이상 {\fs44\c&H00FFFFFF&\alpha&H00&\t(421,422,\alpha&HFF&)\t(501,502,\alpha&H00&\c&H00739E00)}나로 {\fs44\c&H00FFFFFF&\alpha&H00&\t(681,682,\alpha&HFF&)\t(961,962,\alpha&H00&\c&H00739E00)}인해 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1262,1263,\alpha&HFF&)\t(1422,1423,\alpha&H00&\c&H00739E00)}내가 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1482,1483,\alpha&HFF&)\t(1822,1823,\alpha&H00&\c&H00739E00)}아끼고
+Dialogue: 2,0:00:51.69,0:00:51.71,Pop,SPEAKER_02,0,0,0,,{\an5\move(726,1028,726,1010,0,20)\fs44\c&H00739E00}더
+Dialogue: 2,0:00:51.71,0:00:51.71,Pop,SPEAKER_02,0,0,0,,{\an5\move(726,1010,726,1028,0,20)\fs44\c&H00739E00}더
+Dialogue: 2,0:00:51.73,0:00:51.80,Pop,SPEAKER_02,0,0,0,,{\an5\move(774,1028,774,1010,0,70)\fs44\c&H00739E00}이
+Dialogue: 2,0:00:51.80,0:00:52.03,Pop,SPEAKER_02,0,0,0,,{\an5\move(774,1010,774,1028,0,90)\fs44\c&H00739E00}이
+Dialogue: 2,0:00:51.88,0:00:51.95,Pop,SPEAKER_02,0,0,0,,{\an5\move(812,1028,812,1010,0,70)\fs44\c&H00739E00}상
+Dialogue: 2,0:00:51.95,0:00:52.03,Pop,SPEAKER_02,0,0,0,,{\an5\move(812,1010,812,1028,0,90)\fs44\c&H00739E00}상
+Dialogue: 2,0:00:52.11,0:00:52.15,Pop,SPEAKER_02,0,0,0,,{\an5\move(860,1028,860,1010,0,40)\fs44\c&H00739E00}나
+Dialogue: 2,0:00:52.15,0:00:52.19,Pop,SPEAKER_02,0,0,0,,{\an5\move(860,1010,860,1028,0,40)\fs44\c&H00739E00}나
+Dialogue: 2,0:00:52.15,0:00:52.19,Pop,SPEAKER_02,0,0,0,,{\an5\move(898,1028,898,1010,0,40)\fs44\c&H00739E00}로
+Dialogue: 2,0:00:52.19,0:00:52.19,Pop,SPEAKER_02,0,0,0,,{\an5\move(898,1010,898,1028,0,40)\fs44\c&H00739E00}로
+Dialogue: 2,0:00:52.37,0:00:52.44,Pop,SPEAKER_02,0,0,0,,{\an5\move(946,1028,946,1010,0,70)\fs44\c&H00739E00}인
+Dialogue: 2,0:00:52.44,0:00:52.65,Pop,SPEAKER_02,0,0,0,,{\an5\move(946,1010,946,1028,0,90)\fs44\c&H00739E00}인
+Dialogue: 2,0:00:52.51,0:00:52.58,Pop,SPEAKER_02,0,0,0,,{\an5\move(984,1028,984,1010,0,70)\fs44\c&H00739E00}해
+Dialogue: 2,0:00:52.58,0:00:52.65,Pop,SPEAKER_02,0,0,0,,{\an5\move(984,1010,984,1028,0,90)\fs44\c&H00739E00}해
+Dialogue: 2,0:00:52.95,0:00:53.02,Pop,SPEAKER_02,0,0,0,,{\an5\move(1032,1028,1032,1010,0,70)\fs44\c&H00739E00}내
+Dialogue: 2,0:00:53.02,0:00:53.11,Pop,SPEAKER_02,0,0,0,,{\an5\move(1032,1010,1032,1028,0,80)\fs44\c&H00739E00}내
+Dialogue: 2,0:00:53.03,0:00:53.10,Pop,SPEAKER_02,0,0,0,,{\an5\move(1070,1028,1070,1010,0,70)\fs44\c&H00739E00}가
+Dialogue: 2,0:00:53.10,0:00:53.11,Pop,SPEAKER_02,0,0,0,,{\an5\move(1070,1010,1070,1028,0,80)\fs44\c&H00739E00}가
+Dialogue: 2,0:00:53.17,0:00:53.51,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1156,1028)\fs44\c&H00739E00\t(0,136,\fscx65\fscy65)\t(136,340,\fscx100\fscy100)}아끼고
+Dialogue: 0,0:00:53.59,0:00:57.92,Box,SPEAKER_02,0,0,0,,{\fs44\c&H000000&}사랑하던 {\fs44\c&H000000&}사람들을 {\fs44\c&H000000&}믿고 {\fs44\c&H000000&}싶지 {\fs44\c&H000000&}않다.
+Dialogue: 1,0:00:53.59,0:00:57.92,Fill,SPEAKER_02,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(420,421,\alpha&H00&\c&H00739E00)}사랑하던 {\fs44\c&H00FFFFFF&\alpha&H00&\t(440,441,\alpha&HFF&)\t(660,661,\alpha&H00&\c&H00739E00)}사람들을 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1101,1102,\alpha&HFF&)\t(1321,1322,\alpha&H00&\c&H00739E00)}믿고 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1381,1382,\alpha&HFF&)\t(1642,1643,\alpha&H00&\c&H00739E00)}싶지 {\fs44\c&H00FFFFFF&\alpha&H00&\t(1662,1663,\alpha&HFF&)\t(4325,4326,\alpha&H00&\c&H00739E00)}않다.
+Dialogue: 2,0:00:53.59,0:00:53.66,Pop,SPEAKER_02,0,0,0,,{\an5\move(686,1028,686,1010,0,70)\fs44\c&H00739E00}사
+Dialogue: 2,0:00:53.66,0:00:54.01,Pop,SPEAKER_02,0,0,0,,{\an5\move(686,1010,686,1028,0,90)\fs44\c&H00739E00}사
+Dialogue: 2,0:00:53.70,0:00:53.77,Pop,SPEAKER_02,0,0,0,,{\an5\move(724,1028,724,1010,0,70)\fs44\c&H00739E00}랑
+Dialogue: 2,0:00:53.77,0:00:54.01,Pop,SPEAKER_02,0,0,0,,{\an5\move(724,1010,724,1028,0,90)\fs44\c&H00739E00}랑
+Dialogue: 2,0:00:53.80,0:00:53.87,Pop,SPEAKER_02,0,0,0,,{\an5\move(762,1028,762,1010,0,70)\fs44\c&H00739E00}하
+Dialogue: 2,0:00:53.87,0:00:54.01,Pop,SPEAKER_02,0,0,0,,{\an5\move(762,1010,762,1028,0,90)\fs44\c&H00739E00}하
+Dialogue: 2,0:00:53.91,0:00:53.98,Pop,SPEAKER_02,0,0,0,,{\an5\move(800,1028,800,1010,0,70)\fs44\c&H00739E00}던
+Dialogue: 2,0:00:53.98,0:00:54.01,Pop,SPEAKER_02,0,0,0,,{\an5\move(800,1010,800,1028,0,90)\fs44\c&H00739E00}던
+Dialogue: 2,0:00:54.03,0:00:54.09,Pop,SPEAKER_02,0,0,0,,{\an5\move(848,1028,848,1010,0,55)\fs44\c&H00739E00}사
+Dialogue: 2,0:00:54.09,0:00:54.25,Pop,SPEAKER_02,0,0,0,,{\an5\move(848,1010,848,1028,0,55)\fs44\c&H00739E00}사
+Dialogue: 2,0:00:54.09,0:00:54.14,Pop,SPEAKER_02,0,0,0,,{\an5\move(886,1028,886,1010,0,55)\fs44\c&H00739E00}람
+Dialogue: 2,0:00:54.14,0:00:54.25,Pop,SPEAKER_02,0,0,0,,{\an5\move(886,1010,886,1028,0,55)\fs44\c&H00739E00}람
+Dialogue: 2,0:00:54.14,0:00:54.20,Pop,SPEAKER_02,0,0,0,,{\an5\move(924,1028,924,1010,0,55)\fs44\c&H00739E00}들
+Dialogue: 2,0:00:54.20,0:00:54.25,Pop,SPEAKER_02,0,0,0,,{\an5\move(924,1010,924,1028,0,55)\fs44\c&H00739E00}들
+Dialogue: 2,0:00:54.20,0:00:54.25,Pop,SPEAKER_02,0,0,0,,{\an5\move(962,1028,962,1010,0,55)\fs44\c&H00739E00}을
+Dialogue: 2,0:00:54.25,0:00:54.25,Pop,SPEAKER_02,0,0,0,,{\an5\move(962,1010,962,1028,0,55)\fs44\c&H00739E00}을
+Dialogue: 2,0:00:54.69,0:00:54.76,Pop,SPEAKER_02,0,0,0,,{\an5\move(1010,1028,1010,1010,0,70)\fs44\c&H00739E00}믿
+Dialogue: 2,0:00:54.76,0:00:54.91,Pop,SPEAKER_02,0,0,0,,{\an5\move(1010,1010,1010,1028,0,90)\fs44\c&H00739E00}믿
+Dialogue: 2,0:00:54.80,0:00:54.87,Pop,SPEAKER_02,0,0,0,,{\an5\move(1048,1028,1048,1010,0,70)\fs44\c&H00739E00}고
+Dialogue: 2,0:00:54.87,0:00:54.91,Pop,SPEAKER_02,0,0,0,,{\an5\move(1048,1010,1048,1028,0,90)\fs44\c&H00739E00}고
+Dialogue: 2,0:00:54.97,0:00:55.23,Pop,SPEAKER_02,0,0,0,,{\an5\pos(1116,1028)\fs44\c&H00739E00\t(0,104,\fscx65\fscy65)\t(104,261,\fscx100\fscy100)}싶지
+Dialogue: 2,0:00:55.25,0:00:55.32,Pop,SPEAKER_02,0,0,0,,{\an5\move(1182,1028,1182,1010,0,70)\fs44\c&H00739E00}않
+Dialogue: 2,0:00:55.32,0:00:57.92,Pop,SPEAKER_02,0,0,0,,{\an5\move(1182,1010,1182,1028,0,90)\fs44\c&H00739E00}않
+Dialogue: 2,0:00:56.14,0:00:56.21,Pop,SPEAKER_02,0,0,0,,{\an5\move(1220,1028,1220,1010,0,70)\fs44\c&H00739E00}다
+Dialogue: 2,0:00:56.21,0:00:57.92,Pop,SPEAKER_02,0,0,0,,{\an5\move(1220,1010,1220,1028,0,90)\fs44\c&H00739E00}다
+Dialogue: 2,0:00:57.03,0:00:57.10,Pop,SPEAKER_02,0,0,0,,{\an5\move(1246,1028,1246,1010,0,70)\fs44\c&H00739E00}.
+Dialogue: 2,0:00:57.10,0:00:57.92,Pop,SPEAKER_02,0,0,0,,{\an5\move(1246,1010,1246,1028,0,90)\fs44\c&H00739E00}.
+Dialogue: 0,0:00:58.54,0:00:58.82,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}저도
+Dialogue: 1,0:00:58.54,0:00:58.82,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(281,282,\alpha&H00&\c&H00009FE6)}저도
+Dialogue: 2,0:00:58.54,0:00:58.61,Pop,SPEAKER_00,0,0,0,,{\an5\move(941,1028,941,1010,0,70)\fs44\c&H00009FE6}저
+Dialogue: 2,0:00:58.61,0:00:58.82,Pop,SPEAKER_00,0,0,0,,{\an5\move(941,1010,941,1028,0,90)\fs44\c&H00009FE6}저
+Dialogue: 2,0:00:58.68,0:00:58.75,Pop,SPEAKER_00,0,0,0,,{\an5\move(979,1028,979,1010,0,70)\fs44\c&H00009FE6}도
+Dialogue: 2,0:00:58.75,0:00:58.82,Pop,SPEAKER_00,0,0,0,,{\an5\move(979,1010,979,1028,0,90)\fs44\c&H00009FE6}도
+Dialogue: 0,0:00:59.56,0:01:00.50,Box,SPEAKER_00,0,0,0,,{\fs44\c&H000000&}그 {\fs44\c&H000000&}안에 {\fs44\c&H000000&}있습니까?
+Dialogue: 1,0:00:59.56,0:01:00.50,Fill,SPEAKER_00,0,0,0,,{\fs44\c&H00FFFFFF&\alpha&H00&\t(0,1,\alpha&HFF&)\t(80,81,\alpha&H00&\c&H00009FE6)}그 {\fs44\c&H00FFFFFF&\alpha&H00&\t(120,121,\alpha&HFF&)\t(360,361,\alpha&H00&\c&H00009FE6)}안에 {\fs44\c&H00FFFFFF&\alpha&H00&\t(380,381,\alpha&HFF&)\t(941,942,\alpha&H00&\c&H00009FE6)}있습니까?
+Dialogue: 2,0:00:59.56,0:00:59.64,Pop,SPEAKER_00,0,0,0,,{\an5\pos(824,1028)\fs44\c&H00009FE6\t(0,32,\fscx65\fscy65)\t(32,80,\fscx100\fscy100)}그
+Dialogue: 2,0:00:59.68,0:00:59.75,Pop,SPEAKER_00,0,0,0,,{\an5\move(872,1028,872,1010,0,70)\fs44\c&H00009FE6}안
+Dialogue: 2,0:00:59.75,0:00:59.92,Pop,SPEAKER_00,0,0,0,,{\an5\move(872,1010,872,1028,0,90)\fs44\c&H00009FE6}안
+Dialogue: 2,0:00:59.80,0:00:59.87,Pop,SPEAKER_00,0,0,0,,{\an5\move(910,1028,910,1010,0,70)\fs44\c&H00009FE6}에
+Dialogue: 2,0:00:59.87,0:00:59.92,Pop,SPEAKER_00,0,0,0,,{\an5\move(910,1010,910,1028,0,90)\fs44\c&H00009FE6}에
+Dialogue: 2,0:00:59.94,0:01:00.50,Pop,SPEAKER_00,0,0,0,,{\an5\pos(1027,1028)\fs44\c&H00009FE6\t(0,224,\fscx65\fscy65)\t(224,561,\fscx100\fscy100)}있습니까?

@@ -2,11 +2,14 @@ from itertools import groupby
 
 from hearing_to_seeing.schema import Transcript, WordEntry
 from hearing_to_seeing.design.speaker import assign_speaker_colors
-
-from hearing_to_seeing.design.sync import build_fill_text, build_pop_event_text
-from hearing_to_seeing.design.volume import compute_font_size
+from hearing_to_seeing.design.sync import (
+    build_fill_text,
+    build_loud_event_text,
+    build_whisper_event_text,
+    build_wave_events,
+)
+from hearing_to_seeing.design.volume import BASE_FONT_SIZE, classify_volume
 from hearing_to_seeing.design.layout import text_width
-
 
 PLAY_RES_X = 1920
 PLAY_RES_Y = 1080
@@ -14,14 +17,11 @@ MARGIN_L = 10
 MARGIN_R = 10
 MARGIN_V = 30
 
-POP_SCALE = 130          # 말하는 순간 팝업 크기 배율(%)
-BOX_FONT_SIZE = 40  # 박스는 항상 이 크기로 고정 (넘치는 건 허용)
-
 MAX_LINE_CHARS = 20
 GAP_THRESHOLD = 0.7
 SENTENCE_ENDINGS = (".", "!", "?", "…")
 
-FONT_NAME = "Pretendard ExtraBold"  # 실제 설치된 이름으로 확인 후 맞춰주세요
+FONT_NAME = "Pretendard"  # 화자별 폰트/볼드는 다음에
 
 _HEADER = f"""\
 [Script Info]
@@ -90,30 +90,35 @@ def _split_into_chunks(
         chunks.append(current)
     return chunks
 
+
 def _build_box_text(chunk: list[WordEntry]) -> str:
-    """박스 모양 전용: Fill과 똑같은 실제 크기를 써서 타이트하게 맞춤."""
-    parts = []
-    for word in chunk:
-        fs = compute_font_size(word.volume)
-        parts.append(f"{{\\fs{fs}\\c&H000000&}}{word.text}")
-    return " ".join(parts)
+    return " ".join(f"{{\\fs{BASE_FONT_SIZE}\\c&H000000&}}{w.text}" for w in chunk)
 
 
-def _compute_word_positions(chunk: list[WordEntry]) -> list[tuple[float, float, int]]:
-    sizes = [compute_font_size(w.volume) for w in chunk]
-    widths = [text_width(w.text, fs) for w, fs in zip(chunk, sizes)]
-    space_width = text_width(" ", 40)
+def _compute_word_layout(chunk: list[WordEntry]) -> list[tuple[float, float, float]]:
+    """단어별 (왼쪽 끝 x, 중심 y, 폭). 전부 같은 크기라 계산이 단순함."""
+    widths = [text_width(w.text, BASE_FONT_SIZE) for w in chunk]
+    space_width = text_width(" ", BASE_FONT_SIZE)
 
     total_width = sum(widths) + space_width * max(len(chunk) - 1, 0)
     available_width = PLAY_RES_X - MARGIN_L - MARGIN_R
     cursor = MARGIN_L + (available_width - total_width) / 2
+    center_y = PLAY_RES_Y - MARGIN_V - BASE_FONT_SIZE / 2
 
-    positions = []
-    for width, fs in zip(widths, sizes):
-        center_x = cursor + width / 2
-        center_y = PLAY_RES_Y - MARGIN_V - fs / 2
-        positions.append((center_x, center_y, fs))
+    layout = []
+    for width in widths:
+        layout.append((cursor, center_y, width))
         cursor += width + space_width
+    return layout
+
+
+def _char_positions(word: WordEntry, left_x: float, center_y: float) -> list[tuple[str, float, float]]:
+    cursor = left_x
+    positions = []
+    for ch in word.text:
+        w = text_width(ch, BASE_FONT_SIZE)
+        positions.append((ch, cursor + w / 2, center_y))
+        cursor += w
     return positions
 
 
@@ -129,34 +134,38 @@ def generate_ass(transcript: Transcript) -> str:
         for chunk in _split_into_chunks(group):
             start, end = chunk[0].start, chunk[-1].end
 
-            box_text = _build_box_text(chunk)
             lines.append(
-                f"Dialogue: 0,{_fmt_time(start)},{_fmt_time(end)},Box,{speaker},0,0,0,,{box_text}"
+                f"Dialogue: 0,{_fmt_time(start)},{_fmt_time(end)},Box,{speaker},0,0,0,,{_build_box_text(chunk)}"
+            )
+            lines.append(
+                f"Dialogue: 1,{_fmt_time(start)},{_fmt_time(end)},Fill,{speaker},0,0,0,,{build_fill_text(chunk, color)}"
             )
 
-            fill_text = build_fill_text(chunk, color)
-            lines.append(
-                f"Dialogue: 1,{_fmt_time(start)},{_fmt_time(end)},Fill,{speaker},0,0,0,,{fill_text}"
-            )
+            layout = _compute_word_layout(chunk)
+            for word, (left_x, cy, width) in zip(chunk, layout):
+                category = classify_volume(word.volume)
+                cx = left_x + width / 2
 
-            positions = _compute_word_positions(chunk)
-            for word, (cx, cy, fs) in zip(chunk, positions):
-                pop_text = build_pop_event_text(word, color, cx, cy, fs)
-                lines.append(
-                    f"Dialogue: 2,{_fmt_time(word.start)},{_fmt_time(word.end)},Pop,{speaker},0,0,0,,{pop_text}"
-                )
+                if category == "loud":
+                    text = build_loud_event_text(word, color, cx, cy)
+                    lines.append(
+                        f"Dialogue: 2,{_fmt_time(word.start)},{_fmt_time(word.end)},Pop,{speaker},0,0,0,,{text}"
+                    )
+                elif category == "whisper":
+                    text = build_whisper_event_text(word, color, cx, cy)
+                    lines.append(
+                        f"Dialogue: 2,{_fmt_time(word.start)},{_fmt_time(word.end)},Pop,{speaker},0,0,0,,{text}"
+                    )
+                else:
+                    for w_start, w_end, text in build_wave_events(
+                        word, color, _char_positions(word, left_x, cy)
+                    ):
+                        lines.append(
+                            f"Dialogue: 2,{_fmt_time(w_start)},{_fmt_time(w_end)},Pop,{speaker},0,0,0,,{text}"
+                        )
 
     return "\n".join(lines) + "\n"
 
-def _build_pop_events(
-    chunk: list[WordEntry], color: str, positions: list[tuple[float, float, int]]
-) -> list[tuple[float, float, str]]:
-    events = []
-    for word, (cx, cy, fs) in zip(chunk, positions):
-        pop_fs = round(fs * POP_SCALE / 100)
-        text = f"{{\\an5\\pos({cx:.0f},{cy:.0f})\\fs{pop_fs}\\c{color}}}{word.text}"
-        events.append((word.start, word.end, text))
-    return events
 
 def write_ass(transcript: Transcript, output_path: str) -> None:
     content = generate_ass(transcript)
