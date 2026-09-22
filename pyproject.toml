@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "google-genai>=2.24.0",
     "numpy>=2.5.2",
     "pytest>=9.1.1",
     "python-dotenv>=1.2.3",
@@ -17,6 +18,11 @@ dependencies = [
 
 [project.scripts]
 hearing-to-seeing = "hearing_to_seeing.cli:main"
+
+[project.optional-dependencies]
+claude = [
+    "anthropic>=1.7.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.9,<0.13.0"]
