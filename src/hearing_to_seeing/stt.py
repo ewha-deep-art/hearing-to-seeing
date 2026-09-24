@@ -1,76 +1,69 @@
-import gc
-import os
-from dataclasses import dataclass
+"""STT, forced alignment and speaker diarization via the remote WhisperX API.
 
-import torch
-import whisperx
+The server runs WhisperX and returns its `assign_word_speakers` output as-is:
+segments carrying per-word `start`/`end`/`speaker`. Set WHISPERX_API_KEY and
+WHISPERX_API_URL in the environment or `.env`.
+"""
+
+import os
+
+import requests
 from dotenv import load_dotenv
 
 from hearing_to_seeing.schema import Transcript, WordEntry
 
-
-def _device() -> str:
-    return "cuda" if torch.cuda.is_available() else "cpu"
-
-
-def _free(model) -> None:
-    del model
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+# The server processes roughly in real time (45 s of audio took ~50 s), so a
+# long input needs a generous read timeout.
+REQUEST_TIMEOUT = 1800
 
 
-@dataclass
-class WhisperXModels:
-    asr: object
-    align: object
-    align_metadata: object
-    diarize: object
-    device: str
+class STTRequestError(RuntimeError):
+    pass
 
 
-def load_models(language: str = "ko") -> WhisperXModels:
+def _request(wav: bytes, language: str | None) -> dict:
     load_dotenv()
-    device = _device()
-    compute_type = "float16" if device == "cuda" else "int8"
+    api_key = os.environ.get("WHISPERX_API_KEY")
+    if not api_key:
+        raise STTRequestError("WHISPERX_API_KEY is not set (see .env.example).")
+    url = os.environ.get("WHISPERX_API_URL")
+    if not url:
+        raise STTRequestError("WHISPERX_API_URL is not set (see .env.example).")
 
-    # TODO: 모델 크기가 "large-v3"로 고정되어 있음 — 속도·정확도 트레이드오프를 위해
-    #       호출자가 모델 크기를 선택할 수 있도록 파라미터화 필요.
-    asr = whisperx.load_model("large-v3", device, compute_type=compute_type)
-    align, align_metadata = whisperx.load_align_model(language_code=language, device=device)
     # TODO: 화자 수 상한이 없음 — 기획서 §10에서 max_speakers 상한 설정으로
-    #       유사한 목소리의 오분류를 줄이도록 권고함.
-    diarize = whisperx.DiarizationPipeline(token=os.environ.get("HF_TOKEN"), device=device)
+    #       유사한 목소리의 오분류를 줄이도록 권고함. API의 max_speakers 파라미터 활용 필요.
+    data = {"align": "true", "diarize": "true"}
+    if language:
+        data["language"] = language
 
-    return WhisperXModels(
-        asr=asr,
-        align=align,
-        align_metadata=align_metadata,
-        diarize=diarize,
-        device=device,
-    )
+    try:
+        response = requests.post(
+            url,
+            headers={"X-API-Key": api_key},
+            # The server accepts only parts typed audio/*.
+            files={"file": ("audio.wav", wav, "audio/wav")},
+            data=data,
+            timeout=REQUEST_TIMEOUT,
+        )
+    except requests.RequestException as exc:
+        raise STTRequestError(f"WhisperX API request failed: {exc}") from exc
+
+    if not response.ok:
+        try:
+            detail = response.json().get("detail", response.text)
+        except ValueError:
+            detail = response.text
+        raise STTRequestError(f"WhisperX API returned {response.status_code}: {detail}")
+    return response.json()
 
 
-def transcribe(audio_path: str, models: WhisperXModels, language: str | None = None) -> Transcript:
-    audio = whisperx.load_audio(audio_path)
-
-    result = models.asr.transcribe(audio, batch_size=16)
-    detected_lang = language or result.get("language", "en")
-
-    aligned = whisperx.align(
-        result["segments"],
-        models.align,
-        models.align_metadata,
-        audio,
-        models.device,
-        return_char_alignments=False,
-    )
-
-    diarize_segments = models.diarize(audio)
-    final = whisperx.assign_word_speakers(diarize_segments, aligned)
+def transcribe(wav_path: str, language: str | None = None) -> Transcript:
+    with open(wav_path, "rb") as f:
+        result = _request(f.read(), language)
+    detected_lang = language or result.get("language")
 
     words: list[WordEntry] = []
-    for segment in final["segments"]:
+    for segment in result["segments"]:
         speaker = segment.get("speaker", "SPEAKER_00")
         for w in segment.get("words", []):
             start = w.get("start")
