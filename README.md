@@ -10,23 +10,11 @@
 # 의존성 설치
 uv sync
 
-# 자막 생성 (기본 경로: WhisperX STT + 화자 분리 실행, GPU 필요)
+# 자막 생성 (원격 WhisperX API로 STT + 화자 분리, .env에 WHISPERX_API_KEY 필요)
 uv run hearing-to-seeing run data/input/sample.mp4 --json
 
-# 기존 transcript로부터 생성 (GPU 없는 환경을 위한 임시 대안)
-uv run hearing-to-seeing from-json data/input/sample.mp4 transcript.json
-
 # 자막을 영상에 입혀 미리보기 생성
-uv run python -m web.render data/input/sample.mp4 data/input/sample.ass data/output/preview.mp4
-
-# 테스트 실행
-uv run pytest
-
-# 특정 테스트 파일만 실행
-uv run pytest tests/path/to/test_file.py
-
-# 의존성 추가
-uv add <package>
+uv run python -m hearing_to_seeing.render data/input/sample.mp4 data/input/sample.ass data/output/preview.mp4
 ```
 
 아키텍처와 저장소 구조는 [CLAUDE.md](CLAUDE.md)를, 브랜치 전략과 커밋 컨벤션은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.

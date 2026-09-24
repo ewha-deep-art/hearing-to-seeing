@@ -11,8 +11,8 @@ dependencies = [
     "numpy>=2.5.2",
     "pytest>=9.1.1",
     "python-dotenv>=1.2.3",
-    "torch>=2.0",
-    "whisperx",
+    "requests>=2.34.2",
+    "scipy>=1.18.1",
 ]
 
 [project.scripts]
