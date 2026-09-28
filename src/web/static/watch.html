@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hearing to Seeing</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="/"><span class="logo-mark">H→S</span>Hearing to Seeing</a>
+  </header>
+
+  <main class="watch">
+    <section>
+      <div class="player" id="player" tabindex="-1">
+        <video id="video" playsinline preload="auto"></video>
+        <div class="player-state" id="state"><div class="spinner"></div></div>
+        <button class="big-play" id="big-play" type="button" aria-label="재생" hidden></button>
+        <div class="toast" id="toast"></div>
+        <div class="controls" id="controls" hidden>
+          <div class="seek" id="seek">
+            <div class="seek-track">
+              <div class="seek-buffered" id="seek-buffered"></div>
+              <div class="seek-played" id="seek-played"></div>
+              <div class="seek-thumb" id="seek-thumb"></div>
+            </div>
+            <div class="seek-tip" id="seek-tip" hidden></div>
+          </div>
+          <div class="control-row">
+            <button class="icon-btn" id="play" type="button" aria-label="재생 (k)"></button>
+            <div class="volume">
+              <button class="icon-btn" id="mute" type="button" aria-label="음소거 (m)"></button>
+              <input id="volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="볼륨">
+            </div>
+            <span class="time" id="time">0:00 / 0:00</span>
+            <span class="spacer"></span>
+            <div class="sub-mode" id="sub-mode" role="group" aria-label="자막 (c)">
+              <button type="button" data-mode="kinetic">키네틱</button>
+              <button type="button" data-mode="plain">일반</button>
+              <button type="button" data-mode="off">끄기</button>
+            </div>
+            <button class="icon-btn" id="fullscreen" type="button" aria-label="전체 화면 (f)"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="watch-meta">
+        <h1 id="title"></h1>
+        <div class="meta-row">
+          <div class="legend" id="legend"></div>
+          <details class="menu" id="downloads" hidden>
+            <summary class="btn" id="downloads-button">자막 파일</summary>
+            <div class="menu-list">
+              <a data-kind="ass">키네틱 자막 (.ass)<small>화자 색 · 채움 · 음량 크기</small></a>
+              <a data-kind="plain">일반 자막 (.ass)<small>같은 타이밍, 효과 없음</small></a>
+              <a data-kind="json">전사 데이터 (.json)<small>단어별 화자 · 시간 · 음량</small></a>
+            </div>
+          </details>
+        </div>
+        <div class="meta-sub" id="meta-sub"></div>
+      </div>
+    </section>
+
+    <aside class="script" id="script" hidden>
+      <div class="script-head">
+        <h2>스크립트</h2>
+        <label><input type="checkbox" id="autoscroll" checked> 자동 스크롤</label>
+      </div>
+      <ol class="script-list" id="script-list"></ol>
+    </aside>
+  </main>
+
+  <script type="module" src="/static/watch.js"></script>
+</body>
+</html>
