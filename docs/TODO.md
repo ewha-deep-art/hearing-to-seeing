@@ -9,16 +9,16 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 1 | [speaker.py](../src/hearing_to_seeing/design/speaker.py) | **색상 배정 방식 미확정.** 여러 방식을 검토 중: (1) 현재 구현 — 화자를 라벨 알파벳순(`SPEAKER_00`, `SPEAKER_01`, …)으로 정렬해 팔레트를 순서대로 배정, 대화 등장 순서와 자연스럽게 대응되지 않을 수 있음. (2) RAG 기반 — 인물 정보를 조회해 LLM이 색상을 결정. (3) 첫 등장 순서 기반 — 라벨 정렬 대신 대화에 처음 등장한 순서로 팔레트 배정. 최종 방식 결정 필요. | 기획서 §다음 논의 필요 사항 |
+| 1 | [speaker.py](../src/hearing_to_seeing/design/speaker.py) | **RAG 기반 색상 배정 구현됨 — 값 검증 필요.** 영상 제목 → 작품명 → 위키 검색 → 인물표·인물별 색 → 대사 기반 화자→인물 추론 → OKLCH 색상환 배정 (상세: [PIPELINE.md](PIPELINE.md)). 웹 작업에서 `GEMINI_API_KEY`가 있으면 STT와 병렬로 자동 실행되고, 없거나 실패하면 균등 배치로 폴백. 남은 결정: (1) `MIN_CONFIDENCE`(0.7)·`LIGHTNESS`(0.75)·채도 비율은 경험값 — 실제 영상 위 가독성·매핑 정확도 측정 후 조정. (2) 확인 UI(인물명·색상 수정, 화자 병합)와 수동 매핑 미구현. (3) Gemini 무료 티어가 수요 폭주(503)일 때 SDK 재시도로 수 분이 걸릴 수 있음 — 화자 추론은 STT 이후 직렬 단계라 작업 시간이 그만큼 늘어남. | 기획서 §다음 논의 필요 사항 |
 
 ---
 
-## design/volume.py — 진폭 → 글자 크기
+## design/volume.py — 음량 → 움직임
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 2 | [volume.py:5](../src/hearing_to_seeing/design/volume.py#L5) | **`FONT_SIZE_MIN`/`FONT_SIZE_MAX` 값 미확정.** 현재 값(24/48)은 접근성 표준을 근거로 설정된 것이 아님. Netflix Timed Text Style Guide, BBC Subtitle Guidelines, WCAG 등을 조사한 후 최종 값 확정 필요. | 기획서 §다음 논의 필요 사항 (표준 자막 크기 기준 조사) |
-| 3 | [volume.py:18](../src/hearing_to_seeing/design/volume.py#L18) | **전체 정규화로 인한 국소 음량 대비 손실.** 속삭이는 장면과 소리치는 장면 모두 동일한 `FONT_SIZE_MIN`–`FONT_SIZE_MAX` 범위에 매핑됨. 장면별 또는 화자별 정규화 방식 검토 필요. | 기획서 §4 (크기 — 음량 강조) |
+| 2 | [volume.py](../src/hearing_to_seeing/design/volume.py) | **`BASE_FONT_SIZE`(44)·분류 임계값 미확정.** 음량은 더 이상 글자 크기를 바꾸지 않고, 정규화 음량을 `LOUD_THRESHOLD`(0.7)/`QUIET_THRESHOLD`(0.3)로 loud/whisper/normal 세 단계로 나눠 움직임으로 표현함(sync.py). 글자 크기와 임계값 모두 접근성 표준·사용자 검증에 근거하지 않은 값. | 기획서 §다음 논의 필요 사항 (표준 자막 크기 기준 조사) |
+| 3 | [volume.py](../src/hearing_to_seeing/design/volume.py) | **전체 min-max 정규화 + 고정 임계값 조합이 한쪽으로 쏠림.** 튀는 단어 하나가 최댓값을 차지하면 나머지가 모두 낮게 눌림 — 실제 라이브러리 영상(검사외전 클립)에서 443단어 중 434개가 whisper로 분류됨(정규화 음량 중앙값 0.12). 백분위 기반 정규화, 장면별/화자별 정규화 등 검토 필요. | 기획서 §4 (크기 — 음량 강조) |
 
 ---
 
@@ -26,7 +26,7 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 4 | [sync.py:17](../src/hearing_to_seeing/design/sync.py#L17) | **위로 뜨는 효과가 실제 위치 이동이 아님.** ASS의 `\move`/`\pos`는 Dialogue 이벤트 전체에만 적용되므로, 한 줄 안의 단어 하나를 옮기려면 단어별 이벤트 분할과 글꼴 메트릭 기반 x 좌표 계산이 필요함. 현재는 `\t`로 `\fscy`(위로 자람) + `\shad`(그림자 이격)를 애니메이션해 부양감만 근사함. 사용자 검증 후 실제 좌표 이동 구현 여부 결정. | 기획서 §4 (싱크 — 위치 이동) |
+| 4 | [sync.py](../src/hearing_to_seeing/design/sync.py) | **실제 위치 이동 구현됨 — 연출 검증 필요.** 자막을 Box(검정 박스)·Fill(말하기 전 흰색 → 발화 중 숨김 → 발화 후 화자색)·Pop(단어별 이벤트) 세 레이어로 그리고, Pop 레이어가 [layout.py](../src/hearing_to_seeing/design/layout.py)의 폰트 메트릭으로 계산한 좌표에 loud=확대 팝, whisper=축소, normal=글자별 파도(`\move`)를 그림. 효과 크기·타이밍 상수(`LOUD_SCALE`, `WAVE_RISE_PX` 등)는 사용자 검증 후 조정 필요. | 기획서 §4 (싱크 — 위치 이동) |
 
 ---
 
@@ -34,8 +34,8 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 5 | [ass.py:23](../src/hearing_to_seeing/converter/ass.py#L23) | **해상도 1920×1080 고정.** `PLAY_RES` 상수로 모아 두어 프리뷰 렌더러와는 일치하지만 여전히 하드코딩임. 파라미터로 받거나 `ffprobe`로 입력 영상 해상도를 자동 감지하도록 개선 필요. | — |
-| 6 | [ass.py:44](../src/hearing_to_seeing/converter/ass.py#L44) | **Default 스타일 폰트를 Pretendard로 변경 — 최종 폰트·배포 방식은 미확정.** 기존 Arial(한글 미지원) 대신 웹 화면([watch.js](../src/web/static/watch.js#L8))이 JASSUB에서 쓰는 것과 동일한 Pretendard를 ASS `[V4+ Styles]` 기본값으로 지정해, CLI 경로(`render.py`)도 `--force-style` 없이 한글이 그려지도록 가장 간단한 방식으로 우선 구현함. 다만 (1) Pretendard가 최종 확정 폰트인지, (2) 배포 방식을 시스템 폰트 설치에 의존할지 폰트 파일을 번들할지는 기획 미확정 — 현재는 사용자 환경에 Pretendard가 설치되어 있지 않으면 CLI 경로는 여전히 기본 폰트로 렌더링되지 않음(예: 미설치 시 시스템 대체 폰트 사용, 웹 경로는 `SUBTITLE_FONT`를 매번 내려받아 우회 중). | 기획서 §10 (자막 서식의 가독성) |
+| 5 | [ass.py](../src/hearing_to_seeing/converter/ass.py) | **해상도 1920×1080 고정.** `PLAY_RES` 상수로 모아 두어 프리뷰 렌더러와는 일치하지만 여전히 하드코딩임. 파라미터로 받거나 `ffprobe`로 입력 영상 해상도를 자동 감지하도록 개선 필요. | — |
+| 6 | [ass.py](../src/hearing_to_seeing/converter/ass.py) | **폰트를 Pretendard SemiBold로 번들 — 최종 폰트는 미확정.** Pop 레이어 좌표 계산을 위해 [design/fonts/](../src/hearing_to_seeing/design/fonts/)에 Pretendard SemiBold(OFL)를 포함하고, ASS 스타일도 웹 화면([watch.js](../src/web/static/watch.js))이 JASSUB에서 쓰는 것과 같은 `Pretendard SemiBold`로 지정함. `render.py`는 기본으로 이 폴더를 libass `fontsdir`로 넘기므로 시스템 설치 없이 동일하게 렌더링됨. 남은 결정: Pretendard가 최종 확정 폰트인지. 폰트를 바꾸면 layout.py가 측정하는 파일과 웹의 `SUBTITLE_FONT`도 함께 바꿔야 좌표가 어긋나지 않음. | 기획서 §10 (자막 서식의 가독성) |
 
 ---
 
@@ -59,7 +59,7 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 9 | [ass.py:81](../src/hearing_to_seeing/converter/ass.py#L81) | **줄 분할 기준값 미확정.** `split_into_lines`가 (1) 화자 전환, (2) 직전 단어와의 침묵이 `MAX_GAP`(0.7초) 초과, (3) 누적 폭이 `MAX_WIDTH`(전각 기준 42자 × 2행) 초과, (4) 자막 노출 시간이 `MAX_DURATION`(6초) 초과, (5) 직전 단어가 문장 종결부호(`.?!…`)로 끝남 — 이 다섯 조건 중 하나를 만나면 새 자막(Dialogue)을 시작함. 이후 `_merge_unterminated_lines`가 종결부호 없이(즉 화자 전환/침묵/폭/길이 때문에) 끊긴 줄을, 위 다섯 제약을 다시 만족하는 한도 내에서 문장을 마저 끝내는 다음 줄과 재병합함. 한 화면에 두 줄까지 허용하며, `_row_break_index`가 폭이 `ROW_WIDTH`(21자 상당)를 넘을 때 글자 수가 가장 균등하게 갈리는 지점에서 개행함. **현재 값(`MAX_GAP`/`MAX_WIDTH`/`MAX_DURATION`/`ROW_WIDTH`)은 임의로 설정된 것으로, 접근성 표준이나 사용자 검증에 근거하지 않음.** 실사용 테스트 결과에 따라 기준값 및 분할 로직 자체(예: 문장 단위 대신 구/절 단위 분할 등) 재검토 필요. | — |
+| 9 | [ass.py](../src/hearing_to_seeing/converter/ass.py) | **줄 분할 기준값 미확정.** `split_into_lines`가 (1) 화자 전환, (2) 직전 단어와의 침묵이 `MAX_GAP`(0.7초) 초과, (3) 누적 폭이 `MAX_WIDTH`(전각 기준 42자 × 2행) 초과, (4) 자막 노출 시간이 `MAX_DURATION`(6초) 초과, (5) 직전 단어가 문장 종결부호(`.?!…`)로 끝남 — 이 다섯 조건 중 하나를 만나면 새 자막(Dialogue)을 시작함. 이후 `_merge_unterminated_lines`가 종결부호 없이(즉 화자 전환/침묵/폭/길이 때문에) 끊긴 줄을, 위 다섯 제약을 다시 만족하는 한도 내에서 문장을 마저 끝내는 다음 줄과 재병합함. 한 화면에 두 줄까지 허용하며, `_row_break_index`가 폭이 `ROW_WIDTH`(21자 상당)를 넘을 때 글자 수가 가장 균등하게 갈리는 지점에서 개행함. **현재 값(`MAX_GAP`/`MAX_WIDTH`/`MAX_DURATION`/`ROW_WIDTH`)은 임의로 설정된 것으로, 접근성 표준이나 사용자 검증에 근거하지 않음.** 실사용 테스트 결과에 따라 기준값 및 분할 로직 자체(예: 문장 단위 대신 구/절 단위 분할 등) 재검토 필요. | — |
 
 ---
 
@@ -75,8 +75,8 @@
 
 코드 문제가 아닌 구현에 영향을 미치는 미결 제품 결정 사항:
 
-- **색상 배정 방식** — 현재 구현(라벨 정렬 순서) vs 첫 등장 순서 기반 vs RAG 기반 LLM 색상 결정, 최종 확정 필요 (TODO #1 선행 조건).
-- **글자 크기 범위** — 접근성 표준 자막 크기 지침 조사 후 `FONT_SIZE_MIN`/`FONT_SIZE_MAX` 최종값 확정 (TODO #2 선행 조건).
+- **색상 배정 방식** — RAG 기반으로 구현됨. 임계값·밝기·채도 등 세부 값과 확인 UI 여부 확정 필요 (TODO #1 선행 조건).
+- **글자 크기·음량 분류 기준** — 접근성 표준 자막 크기 지침 조사 후 `BASE_FONT_SIZE`와 loud/whisper 임계값 확정 (TODO #2 선행 조건).
 - **대사 라인 분할 기준** — `MAX_GAP`/`MAX_WIDTH`/`MAX_DURATION`/`ROW_WIDTH` 등 분할 기준값과 분할 방식 자체를 실사용 테스트를 통해 확정 (TODO #9 선행 조건).
 - **웹 화면 문구·디자인** — 실사용 테스트 피드백을 바탕으로 문구, 레이아웃, 디자인 확정 (TODO #10 선행 조건).
 - **사용자 검증** — 청각장애인 대상 인터뷰·테스트 세션을 통해 색상·싱크·크기 효과의 실효성 검증 일정 수립 (모든 UX 튜닝의 선행 조건).
