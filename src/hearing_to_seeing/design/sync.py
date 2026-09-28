@@ -1,74 +1,139 @@
 from hearing_to_seeing.schema import WordEntry
+from hearing_to_seeing.design.volume import BASE_FONT_SIZE
 
-# The last word of a line has no successor to bound it, so its own duration
-# decides how long the fill runs. Forced aligners routinely stretch the final
-# character of an utterance across the silence that follows it, which would
-# otherwise leave one word creeping across the screen for tens of seconds.
+# Forced aligners routinely stretch the final character of an utterance across
+# the silence that follows it. Capping how long a word counts as "being said"
+# keeps such a word from animating (or hiding its fill) for tens of seconds.
 MAX_TRAILING_HOLD = 2.0
 
-# --- "위로 뜨는" 효과 ---------------------------------------------------------
-# 기획서 §4는 발화 시점에 해당 단어가 살짝 위로 뜨는 효과를 요구한다. ASS에서
-# 위치 이동 태그(\pos, \move)는 Dialogue 이벤트 전체에만 걸리므로 한 줄 안의 한
-# 단어만 실제로 옮기려면 단어마다 이벤트를 쪼개고 글꼴 메트릭으로 x 좌표를 직접
-# 계산해야 한다. 대신 한 이벤트 안에서 처리 가능한 두 신호로 부양감을 만든다:
-#   * \fscy — 글자가 베이스라인 위로 자란다. 세로만 늘리므로 뒤따르는 단어가
-#             가로로 밀리지 않는다 (\fs나 \fscx를 쓰면 줄 전체가 흔들린다).
-#   * \shad — 그림자가 글자에서 멀어지며 떠오른 높이를 암시한다.
-# TODO: 기획서가 말하는 "위치 이동"은 아직 근사치 — 실제 좌표 이동은 단어별
-#       Dialogue 이벤트 분할과 글꼴 메트릭 기반 x 좌표 계산이 필요함. 현재 연출로
-#       충분한지 사용자 검증 후 결정.
-LIFT_SCALE = 110        # \fscy at the peak, percent
-LIFT_SHADOW = 4         # \shad at the peak, pixels
-BASE_SHADOW = 1         # \shad in the Default style — where the fall lands
-LIFT_RISE = 0.12        # seconds to reach the peak
-LIFT_FALL = 0.20        # seconds to settle back
+# --- The three layers of a subtitle -------------------------------------------
+# converter/ass.py draws each on-screen subtitle as stacked Dialogue events:
+#   0. Box  — the whole line in an opaque black box, so it reads over any video.
+#   1. Fill — the whole line again: white before a word is said, hidden while it
+#             is being said (layer 2 draws it instead), speaker colour after.
+#   2. Pop  — one event per word (per character for the wave), positioned by
+#             coordinate, carrying the motion that shows how the word was said:
+#               loud    → grows to LOUD_SCALE and settles back
+#               whisper → shrinks to WHISPER_SCALE and settles back
+#               normal  → its characters rise and fall one after another
+# ASS moves (\pos, \move) apply to a whole event, which is why layer 2 splits
+# words out instead of animating inside the line.
+LOUD_SCALE = 150           # \fscx/\fscy at the peak, percent
+LOUD_GROW_RATIO = 0.4      # share of the word's duration spent growing
+
+WHISPER_SCALE = 65
+WHISPER_SHRINK_RATIO = 0.4
+
+WAVE_RISE_PX = 18          # how far each character lifts
+WAVE_RISE_MS = 70
+WAVE_FALL_MS = 90
 
 
 def seconds_to_centiseconds(seconds: float) -> int:
     return max(1, round(seconds * 100))
 
 
-def karaoke_durations(words: list[WordEntry]) -> list[int]:
-    """Per-word karaoke durations (centiseconds) that span the whole line.
+def spoken_end(word: WordEntry) -> float:
+    """When `word` stops being said, with an aligner-stretched tail cut off."""
+    return min(word.end, word.start + MAX_TRAILING_HOLD)
 
-    A word's \\k value must cover the silence that follows it, not just its own
-    utterance — ASS advances the fill by the sum of the \\k values, so dropping
-    the inter-word gaps makes the animation race ahead of the audio. Each word
-    therefore holds until the next word begins; the last word uses its own
-    duration.
+
+def karaoke_durations(words: list[WordEntry]) -> list[int]:
+    """Per-word durations (centiseconds) that span the whole line.
+
+    Each word holds until the next word begins, so the sum is the time from the
+    first word's start to the last word's (capped) end — the span the line
+    needs to stay on screen for every effect to finish.
     """
     durations = []
     for i, word in enumerate(words):
         if i + 1 < len(words):
             span = words[i + 1].start - word.start
         else:
-            span = min(word.duration, MAX_TRAILING_HOLD)
+            span = spoken_end(word) - word.start
         durations.append(seconds_to_centiseconds(span))
     return durations
 
 
-def lift_tags(durations: list[int]) -> list[str]:
-    """Per-word \\t transforms that lift each word as the karaoke fill reaches it.
+def build_fill_text(words: list[WordEntry], color: str, break_at: int | None = None) -> str:
+    """Layer 1: white before a word is said, hidden while it is, `color` after.
 
-    `durations` is what `karaoke_durations()` returned for the same line, so the
-    lift runs off the karaoke clock itself and cannot drift away from the \\kf
-    fill that triggers it: \\t offsets are milliseconds from the Dialogue event
-    start, which is exactly where that clock starts.
-
-    A word too short for the full rise-and-fall gets a proportionally quicker
-    animation, so it is back down before the next word takes off instead of
-    leaving a run of words hanging at once.
+    \\t offsets are milliseconds from the Dialogue event start, which is the
+    first word's start. `break_at` is the index of the word that starts the
+    second row, if any.
     """
-    tags: list[str] = []
-    offset_ms = 0
-    for cs in durations:
-        span_ms = cs * 10
-        rise = min(round(LIFT_RISE * 1000), max(1, span_ms // 3))
-        fall = min(round(LIFT_FALL * 1000), span_ms - rise)
-        peak = offset_ms + rise
-        tags.append(
-            f"\\t({offset_ms},{peak},\\fscy{LIFT_SCALE}\\shad{LIFT_SHADOW})"
-            f"\\t({peak},{peak + fall},\\fscy100\\shad{BASE_SHADOW})"
+    if not words:
+        return ""
+
+    chunk_start = words[0].start
+    parts = []
+    for i, word in enumerate(words):
+        if i:
+            parts.append("\\N" if i == break_at else " ")
+        t0 = round((word.start - chunk_start) * 1000)
+        t1 = round((spoken_end(word) - chunk_start) * 1000)
+        parts.append(
+            f"{{\\fs{BASE_FONT_SIZE}\\c&H00FFFFFF&\\alpha&H00&"
+            f"\\t({t0},{t0 + 1},\\alpha&HFF&)"
+            f"\\t({t1},{t1 + 1},\\alpha&H00&\\c{color})}}{word.text}"
         )
-        offset_ms += span_ms
-    return tags
+    return "".join(parts)
+
+
+def _scale_event_text(
+    word: WordEntry, color: str, cx: float, cy: float, scale: int, ratio: float,
+) -> str:
+    duration_ms = max(1, round((spoken_end(word) - word.start) * 1000))
+    turn_ms = max(1, round(duration_ms * ratio))
+    return (
+        f"{{\\an5\\pos({cx:.0f},{cy:.0f})\\fs{BASE_FONT_SIZE}\\c{color}"
+        f"\\t(0,{turn_ms},\\fscx{scale}\\fscy{scale})"
+        f"\\t({turn_ms},{duration_ms},\\fscx100\\fscy100)}}{word.text}"
+    )
+
+
+def build_loud_event_text(word: WordEntry, color: str, cx: float, cy: float) -> str:
+    """Layer 2, shouted word: grows while it is said, then back to size."""
+    return _scale_event_text(word, color, cx, cy, LOUD_SCALE, LOUD_GROW_RATIO)
+
+
+def build_whisper_event_text(word: WordEntry, color: str, cx: float, cy: float) -> str:
+    """Layer 2, whispered word: shrinks while it is said, then back to size."""
+    return _scale_event_text(word, color, cx, cy, WHISPER_SCALE, WHISPER_SHRINK_RATIO)
+
+
+def build_wave_events(
+    word: WordEntry, color: str, char_positions: list[tuple[str, float, float]]
+) -> list[tuple[float, float, str]]:
+    """Layer 2, normally spoken word: its characters lift and land in turn.
+
+    `char_positions` is `(character, centre x, centre y)` for each character.
+    ASS allows one \\move per event, so each character is two events — the rise,
+    then the fall — back to back. Returns `(start, end, text)` per event.
+    """
+    n = len(char_positions)
+    if n == 0:
+        return []
+
+    end = spoken_end(word)
+    slot = (end - word.start) / n
+    events = []
+    for i, (ch, cx, cy) in enumerate(char_positions):
+        rise_start = word.start + i * slot
+        rise_dur = max(1, min(WAVE_RISE_MS, round(slot * 1000)))
+        fall_dur = max(1, min(WAVE_FALL_MS, round(slot * 1000)))
+        rise_end = rise_start + rise_dur / 1000
+
+        rise_text = (
+            f"{{\\an5\\move({cx:.0f},{cy:.0f},{cx:.0f},{cy - WAVE_RISE_PX:.0f},0,{rise_dur})"
+            f"\\fs{BASE_FONT_SIZE}\\c{color}}}{ch}"
+        )
+        events.append((rise_start, rise_end, rise_text))
+
+        fall_text = (
+            f"{{\\an5\\move({cx:.0f},{cy - WAVE_RISE_PX:.0f},{cx:.0f},{cy:.0f},0,{fall_dur})"
+            f"\\fs{BASE_FONT_SIZE}\\c{color}}}{ch}"
+        )
+        events.append((rise_end, max(end, rise_end), fall_text))
+
+    return events

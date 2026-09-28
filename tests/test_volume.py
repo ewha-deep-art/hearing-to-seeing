@@ -1,10 +1,10 @@
 import numpy as np
 
 from hearing_to_seeing.design.volume import (
-    FONT_SIZE_MAX,
-    FONT_SIZE_MIN,
+    LOUD_THRESHOLD,
+    QUIET_THRESHOLD,
     calculate_rms,
-    compute_font_size,
+    classify_volume,
     normalize,
 )
 
@@ -32,7 +32,9 @@ def test_normalize_uniform_values_avoids_division_by_zero():
     assert normalize([2.0, 2.0, 2.0]) == [0.0, 0.0, 0.0]
 
 
-def test_compute_font_size_bounds():
-    assert compute_font_size(0.0) == FONT_SIZE_MIN
-    assert compute_font_size(1.0) == FONT_SIZE_MAX
-    assert compute_font_size(0.5) == round((FONT_SIZE_MIN + FONT_SIZE_MAX) / 2)
+def test_classify_volume_bands():
+    assert classify_volume(1.0) == "loud"
+    assert classify_volume(LOUD_THRESHOLD) == "loud"
+    assert classify_volume(0.5) == "normal"
+    assert classify_volume(QUIET_THRESHOLD) == "whisper"
+    assert classify_volume(0.0) == "whisper"

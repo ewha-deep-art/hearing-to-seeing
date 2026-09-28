@@ -11,6 +11,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "httpx2>=2.13.1",
     "numpy>=2.5.2",
+    "pillow>=12.3.0",
     "pytest>=9.1.1",
     "python-dotenv>=1.2.3",
     "python-multipart>=0.0.32",

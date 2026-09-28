@@ -79,7 +79,8 @@ def test_speakers_are_numbered_in_label_order():
 def test_cues_match_ass_dialogue_lines():
     transcript = _transcript()
     cues = subtitles.cues(transcript)
-    dialogues = [l for l in generate_ass(transcript).splitlines() if l.startswith("Dialogue:")]
+    # One Box event per on-screen subtitle; Fill and Pop ride on top of it.
+    dialogues = [l for l in generate_ass(transcript).splitlines() if l.startswith("Dialogue: 0,")]
 
     assert len(cues) == len(dialogues)
     assert cues[0] == {"start": 0.0, "end": cues[0]["end"], "speaker": "SPEAKER_00", "text": "hello world"}

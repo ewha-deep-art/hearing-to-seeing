@@ -1,9 +1,17 @@
 import unicodedata
 
 from hearing_to_seeing.schema import Transcript, WordEntry
+from hearing_to_seeing.design.layout import text_width
 from hearing_to_seeing.design.speaker import BASE_COLOUR, assign_speaker_colors
-from hearing_to_seeing.design.sync import karaoke_durations, lift_tags
-from hearing_to_seeing.design.volume import compute_font_size
+from hearing_to_seeing.design.sync import (
+    build_fill_text,
+    build_loud_event_text,
+    build_wave_events,
+    build_whisper_event_text,
+    karaoke_durations,
+    spoken_end,
+)
+from hearing_to_seeing.design.volume import BASE_FONT_SIZE, classify_volume
 
 # --- Subtitle line segmentation ------------------------------------------------
 # A single Dialogue event is one on-screen subtitle. Without these limits the
@@ -41,12 +49,19 @@ _TERMINATORS = (".", "?", "!", "…")
 # TODO: 파라미터로 받거나 ffprobe로 입력 영상 해상도를 자동 감지하도록 개선 필요.
 PLAY_RES = (1920, 1080)
 
-# Pretendard also matches the font the web player preloads for JASSUB
-# (watch.js), so both rendering paths draw Hangul with the same face.
-# TODO: 폰트 선택(Pretendard 확정 여부)과 배포 방식(시스템 폰트 의존 vs 번들)은
-#       기획 미확정. CLI/render.py 경로는 시스템에 Pretendard가 설치되어 있지
-#       않으면 여전히 --force-style로 다른 폰트를 지정해야 함.
-_DEFAULT_FONT = "Pretendard"
+# Horizontal and bottom margins, shared by the styles and by
+# `_compute_word_layout`, which has to reproduce where libass puts each row.
+MARGIN_H = 160
+MARGIN_V = 60
+
+# The face the web player renders every line in (watch.js), bundled for layout
+# measurement in design/fonts/ — the render preview passes that directory to
+# libass, so both rendering paths and the measured positions agree.
+# TODO: 폰트 선택(Pretendard SemiBold 확정 여부)은 기획 미확정.
+_DEFAULT_FONT = "Pretendard SemiBold"
+
+# Default is the plain baseline (`generate_plain_ass`). The dynamic subtitle is
+# three layers — Box, Fill, Pop — described in design/sync.py.
 _HEADER = f"""\
 [Script Info]
 Title: Hearing to Seeing
@@ -59,7 +74,10 @@ YCbCr Matrix: TV.709
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{_DEFAULT_FONT},36,&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,0,0,1,3,1,2,160,160,60,1
+Style: Default,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,0,0,1,3,1,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Box,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,3,4,0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Fill,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Pop,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,0,5,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"""
@@ -168,20 +186,66 @@ def _row_break_index(words: list[WordEntry]) -> int | None:
     return best_index
 
 
-def _render_line(words: list[WordEntry], color: str, durations: list[int]) -> str:
-    # \kf fills each word left-to-right in the speaker colour; until the fill
-    # reaches a word it is drawn in SecondaryColour (\2c), the neutral base.
-    # The \t transforms from sync.lift_tags() ride the same clock, so each word
-    # rises at the moment its fill arrives.
-    break_at = _row_break_index(words)
-    lifts = lift_tags(durations)
-    chunks = [f"{{\\1c{color}\\2c{BASE_COLOUR}}}"]
-    for i, (word, cs, lift) in enumerate(zip(words, durations, lifts)):
-        if i:
-            chunks.append("\\N" if i == break_at else " ")
-        fs = compute_font_size(word.volume)
-        chunks.append(f"{{\\kf{cs}\\fs{fs}{lift}}}{word.text}")
-    return "".join(chunks)
+def _rows(words: list[WordEntry], break_at: int | None) -> list[list[WordEntry]]:
+    if break_at is None:
+        return [words]
+    return [words[:break_at], words[break_at:]]
+
+
+def _compute_word_layout(
+    words: list[WordEntry], break_at: int | None,
+) -> list[tuple[float, float]]:
+    """(left x, centre y) of every word, where libass draws it in the Fill line.
+
+    Each row is centred between the margins on its own width, and rows stack
+    upwards from the bottom margin one font height apart — libass sizes a font
+    so its ascent + descent equal the font size, which is also its line height.
+    Offsets are measured on the joined prefix rather than summed per word, so
+    kerning across a word boundary is counted the way libass counts it.
+    """
+    rows = _rows(words, break_at)
+    centre_x = MARGIN_H + (PLAY_RES[0] - 2 * MARGIN_H) / 2
+    bottom_y = PLAY_RES[1] - MARGIN_V - BASE_FONT_SIZE / 2
+
+    layout = []
+    for r, row in enumerate(rows):
+        cy = bottom_y - (len(rows) - 1 - r) * BASE_FONT_SIZE
+        texts = [w.text for w in row]
+        left = centre_x - text_width(" ".join(texts), BASE_FONT_SIZE) / 2
+        for i in range(len(row)):
+            prefix = "".join(t + " " for t in texts[:i])
+            layout.append((left + text_width(prefix, BASE_FONT_SIZE), cy))
+    return layout
+
+
+def _char_positions(word: WordEntry, left_x: float, cy: float) -> list[tuple[str, float, float]]:
+    """(character, centre x, centre y) for each character of `word`."""
+    positions = []
+    for i, ch in enumerate(word.text):
+        start = left_x + text_width(word.text[:i], BASE_FONT_SIZE)
+        end = left_x + text_width(word.text[: i + 1], BASE_FONT_SIZE)
+        positions.append((ch, (start + end) / 2, cy))
+    return positions
+
+
+def _box_text(words: list[WordEntry], break_at: int | None) -> str:
+    return "".join(
+        ("\\N" if i == break_at else " ") + w.text if i else w.text
+        for i, w in enumerate(words)
+    )
+
+
+def _pop_events(
+    word: WordEntry, color: str, left_x: float, cy: float,
+) -> list[tuple[float, float, str]]:
+    """Layer-2 events for one word, chosen by how loudly it was said."""
+    category = classify_volume(word.volume)
+    if category == "normal":
+        return build_wave_events(word, color, _char_positions(word, left_x, cy))
+
+    cx = left_x + text_width(word.text, BASE_FONT_SIZE) / 2
+    build = build_loud_event_text if category == "loud" else build_whisper_event_text
+    return [(word.start, spoken_end(word), build(word, color, cx, cy))]
 
 
 def subtitle_events(
@@ -203,17 +267,31 @@ def subtitle_events(
     return events
 
 
-def _dialogue(start: float, end: float, speaker: str, text: str) -> str:
-    return f"Dialogue: 0,{_fmt_time(start)},{_fmt_time(end)},Default,{speaker},0,0,0,,{text}"
+def _dialogue(
+    start: float, end: float, speaker: str, text: str,
+    style: str = "Default", layer: int = 0,
+) -> str:
+    return (
+        f"Dialogue: {layer},{_fmt_time(start)},{_fmt_time(end)},"
+        f"{style},{speaker},0,0,0,,{text}"
+    )
 
 
 def generate_ass(transcript: Transcript) -> str:
     color_map = assign_speaker_colors(transcript.speakers())
     lines = [_HEADER]
-    for group, start, end, durations in subtitle_events(transcript):
+    for group, start, end, _ in subtitle_events(transcript):
         speaker = group[0].speaker
         color = color_map.get(speaker, BASE_COLOUR)
-        lines.append(_dialogue(start, end, speaker, _render_line(group, color, durations)))
+        break_at = _row_break_index(group)
+
+        lines.append(_dialogue(start, end, speaker, _box_text(group, break_at), "Box", 0))
+        lines.append(
+            _dialogue(start, end, speaker, build_fill_text(group, color, break_at), "Fill", 1)
+        )
+        for word, (left_x, cy) in zip(group, _compute_word_layout(group, break_at)):
+            for w_start, w_end, text in _pop_events(word, color, left_x, cy):
+                lines.append(_dialogue(w_start, w_end, speaker, text, "Pop", 2))
     return "\n".join(lines) + "\n"
 
 
@@ -221,15 +299,11 @@ def generate_plain_ass(transcript: Transcript) -> str:
     """The same subtitles as `generate_ass` in plain white at one size.
 
     A baseline for comparison: identical line breaks and timing, with the
-    speaker colour, karaoke fill, lift and volume sizing left out.
+    speaker colour, box, fill and volume motion left out.
     """
     lines = [_HEADER]
     for group, start, end, _ in subtitle_events(transcript):
-        break_at = _row_break_index(group)
-        text = "".join(
-            ("\\N" if i == break_at else " ") + word.text if i else word.text
-            for i, word in enumerate(group)
-        )
+        text = _box_text(group, _row_break_index(group))
         lines.append(_dialogue(start, end, group[0].speaker, text))
     return "\n".join(lines) + "\n"
 

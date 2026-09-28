@@ -14,6 +14,7 @@ import shutil
 import subprocess
 
 from hearing_to_seeing.converter.ass import PLAY_RES
+from hearing_to_seeing.design.layout import FONTS_DIR
 
 # An audio-only source gets a canvas the size of the script's own coordinate
 # space, so the subtitle layout renders at the scale it was designed for.
@@ -87,7 +88,7 @@ def build_render_command(
     resolution: tuple[int, int] = DEFAULT_RESOLUTION,
     fps: int = DEFAULT_FPS,
     background: str = DEFAULT_BACKGROUND,
-    fonts_dir: str | None = None,
+    fonts_dir: str | None = FONTS_DIR,
     force_style: str | None = None,
 ) -> list[str]:
     width, height = resolution
@@ -131,7 +132,7 @@ def render(
     resolution: tuple[int, int] = DEFAULT_RESOLUTION,
     fps: int = DEFAULT_FPS,
     background: str = DEFAULT_BACKGROUND,
-    fonts_dir: str | None = None,
+    fonts_dir: str | None = FONTS_DIR,
     force_style: str | None = None,
 ) -> str:
     """Burns `ass_path` onto `media_path` and writes an mp4 to `output_path`."""
@@ -167,7 +168,8 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--fps", type=int, default=DEFAULT_FPS)
     parser.add_argument("--background", default=DEFAULT_BACKGROUND)
-    parser.add_argument("--fonts-dir", default=None, help="extra font directory for libass")
+    parser.add_argument("--fonts-dir", default=FONTS_DIR,
+                        help="font directory for libass (default: the bundled subtitle font)")
     parser.add_argument(
         "--force-style", default=None,
         help="ASS style overrides, e.g. \"FontName=Noto Sans KR\"",
