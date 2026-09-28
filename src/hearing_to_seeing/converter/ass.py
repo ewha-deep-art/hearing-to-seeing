@@ -2,7 +2,7 @@ import unicodedata
 
 from hearing_to_seeing.schema import Transcript, WordEntry
 from hearing_to_seeing.design.layout import text_width
-from hearing_to_seeing.design.speaker import BASE_COLOUR, assign_speaker_colors
+from hearing_to_seeing.design.speaker import BASE_COLOUR, speaker_colors
 from hearing_to_seeing.design.sync import (
     build_fill_text,
     build_loud_event_text,
@@ -278,7 +278,7 @@ def _dialogue(
 
 
 def generate_ass(transcript: Transcript) -> str:
-    color_map = assign_speaker_colors(transcript.speakers())
+    color_map = speaker_colors(transcript)
     lines = [_HEADER]
     for group, start, end, _ in subtitle_events(transcript):
         speaker = group[0].speaker

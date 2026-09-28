@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.141.1",
+    "google-genai>=2.24.0",
     "httpx2>=2.13.1",
     "numpy>=2.5.2",
     "pillow>=12.3.0",

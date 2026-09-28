@@ -18,6 +18,10 @@ class WordEntry:
 class Transcript:
     words: list[WordEntry] = field(default_factory=list)
     language: str | None = None
+    # Label → {"color", "name", "confidence", "reason"}, written by the speaker
+    # step (design/speaker.py) so the colours are decided once and every
+    # reader — the ASS converter, the web legend — shows the same ones.
+    speaker_profiles: dict[str, dict] = field(default_factory=dict)
 
     def speakers(self) -> list[str]:
         return sorted({w.speaker for w in self.words})
@@ -25,6 +29,7 @@ class Transcript:
     def to_dict(self) -> dict:
         return {
             "language": self.language,
+            "speaker_profiles": self.speaker_profiles,
             "words": [
                 {
                     "text": w.text,
@@ -49,4 +54,8 @@ class Transcript:
             )
             for w in data.get("words", [])
         ]
-        return cls(words=words, language=data.get("language"))
+        return cls(
+            words=words,
+            language=data.get("language"),
+            speaker_profiles=data.get("speaker_profiles") or {},
+        )

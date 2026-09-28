@@ -27,7 +27,11 @@ def _transcript():
 
 @pytest.fixture
 def fake_media(monkeypatch):
-    """Replaces ffmpeg/yt-dlp/STT with stubs that write placeholder files."""
+    """Replaces ffmpeg/yt-dlp/STT with stubs that write placeholder files.
+
+    Returns the list of `pipeline.run` calls, for checking what it was given.
+    """
+    runs: list[dict] = []
 
     def touch(path, *_):
         open(path, "wb").close()
@@ -36,7 +40,8 @@ def fake_media(monkeypatch):
     def download(url, dest_dir):
         return touch(f"{dest_dir}/source.mp4"), "Fetched title"
 
-    def run(wav, ass, language, output_json):
+    def run(wav, ass, language, output_json, title=None):
+        runs.append({"title": title})
         transcript = _transcript()
         with open(output_json, "w", encoding="utf-8") as f:
             json.dump(transcript.to_dict(), f)
@@ -50,6 +55,7 @@ def fake_media(monkeypatch):
     monkeypatch.setattr(media, "prepare_playback", touch)
     monkeypatch.setattr(media, "extract_thumbnail", touch)
     monkeypatch.setattr("hearing_to_seeing.pipeline.run", run)
+    return runs
 
 
 @pytest.fixture
@@ -119,8 +125,13 @@ def test_youtube_uses_fetched_title(library, fake_media):
     assert meta["title"] == "Fetched title"
 
 
+def test_pipeline_gets_the_title_for_speaker_lookup(library, fake_media):
+    library.add_url("https://youtu.be/x", None)
+    assert fake_media[0]["title"] == "Fetched title"
+
+
 def test_failure_is_recorded(library, fake_media, monkeypatch):
-    def boom(*_):
+    def boom(*_, **__):
         raise RuntimeError("STT server down")
 
     monkeypatch.setattr("hearing_to_seeing.pipeline.run", boom)

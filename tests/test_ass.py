@@ -180,3 +180,12 @@ def test_generate_ass_draws_box_fill_and_pop_layers():
     assert pops[0].startswith("Dialogue: 2,") and "\\fscx150" in pops[0]  # loud
     assert "\\fscx65" in pops[1]                                            # whisper
     assert len(pops) == 2 + 2 * len("보통.")                                 # wave: 2 per character
+
+
+def test_generate_ass_uses_colours_from_speaker_profiles():
+    transcript = Transcript(
+        words=[_word("hi.", 0.0, 0.4)],
+        speaker_profiles={"SPEAKER_00": {"color": "&H00123456"}},
+    )
+    fill = next(line for line in _dialogues(generate_ass(transcript)) if ",Fill," in line)
+    assert "\\c&H00123456" in fill

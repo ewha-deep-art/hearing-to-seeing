@@ -35,3 +35,10 @@ def test_from_dict_defaults_missing_speaker_and_volume():
     assert word.speaker == "SPEAKER_00"
     assert word.volume == 0.0
     assert transcript.language is None
+
+
+def test_speaker_profiles_round_trip():
+    profiles = {"SPEAKER_00": {"color": "&H00123456", "name": "기택", "confidence": 0.9, "reason": "호명"}}
+    t = Transcript(words=[WordEntry(text="a", start=0.0, end=1.0)], speaker_profiles=profiles)
+    assert Transcript.from_dict(t.to_dict()).speaker_profiles == profiles
+    assert Transcript.from_dict({"words": []}).speaker_profiles == {}
