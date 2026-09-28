@@ -9,9 +9,27 @@ from hearing_to_seeing.design.volume import compute_font_size
 # A single Dialogue event is one on-screen subtitle. Without these limits the
 # whole transcript renders as one event that sits on screen for its full
 # duration, which is what "all the text at once" looks like.
+#
+# split_into_lines breaks the word stream into groups, in two passes:
+#
+# 1. Forced breaks (each checked word-to-word against the previous word):
+#    - speaker changes
+#    - the silence since the previous word exceeds MAX_GAP
+#    - adding the word would push the line past MAX_WIDTH display cells
+#    - the line's span would exceed MAX_DURATION seconds
+#    - the previous word ends a sentence (_TERMINATORS) -- a line always ends
+#      at a terminator, however short, so no sentence is split across the same
+#      subtitle as the one after it
+#
+# 2. Merge pass (_merge_unterminated_lines): a line that ends without a
+#    terminator only exists because one of the non-punctuation rules above cut
+#    it off mid-sentence. If the very next line is the one that finally
+#    reaches a terminator, the two are reattached into a single subtitle --
+#    but only when doing so still respects every limit from pass 1 (same
+#    speaker, gap, width, duration). A forced break whose cause would still
+#    hold true for the merged line is never undone.
 ROW_WIDTH = 42          # display cells per on-screen row
 MAX_WIDTH = 2 * ROW_WIDTH  # a subtitle may occupy at most two rows
-MIN_WIDTH_FOR_BREAK = 20  # don't split after punctuation on a near-empty line
 MAX_DURATION = 6.0      # seconds a single subtitle may stay on screen
 MAX_GAP = 0.7           # a silence this long ends the current subtitle
 HOLD = 0.3              # extra seconds the finished line lingers
@@ -23,8 +41,12 @@ _TERMINATORS = (".", "?", "!", "…")
 # TODO: 파라미터로 받거나 ffprobe로 입력 영상 해상도를 자동 감지하도록 개선 필요.
 PLAY_RES = (1920, 1080)
 
-# TODO: Default 스타일 폰트가 Arial이라 한글 자모를 그리지 못함 — 렌더 시
-#       force_style로 우회 중. 한글 지원 폰트를 기본값으로 확정 필요.
+# Pretendard also matches the font the web player preloads for JASSUB
+# (watch.js), so both rendering paths draw Hangul with the same face.
+# TODO: 폰트 선택(Pretendard 확정 여부)과 배포 방식(시스템 폰트 의존 vs 번들)은
+#       기획 미확정. CLI/render.py 경로는 시스템에 Pretendard가 설치되어 있지
+#       않으면 여전히 --force-style로 다른 폰트를 지정해야 함.
+_DEFAULT_FONT = "Pretendard"
 _HEADER = f"""\
 [Script Info]
 Title: Hearing to Seeing
@@ -37,7 +59,7 @@ YCbCr Matrix: TV.709
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,36,&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,0,0,1,3,1,2,160,160,60,1
+Style: Default,{_DEFAULT_FONT},36,&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,0,0,1,3,1,2,160,160,60,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"""
@@ -60,7 +82,7 @@ def _display_width(text: str) -> int:
     return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in text)
 
 
-def _split_into_lines(words: list[WordEntry]) -> list[list[WordEntry]]:
+def split_into_lines(words: list[WordEntry]) -> list[list[WordEntry]]:
     """Splits the word stream into one group per on-screen subtitle."""
     lines: list[list[WordEntry]] = []
     current: list[WordEntry] = []
@@ -75,7 +97,7 @@ def _split_into_lines(words: list[WordEntry]) -> list[list[WordEntry]]:
                 or word.start - prev.end > MAX_GAP
                 or width + 1 + word_width > MAX_WIDTH
                 or word.end - current[0].start > MAX_DURATION
-                or (prev.text.endswith(_TERMINATORS) and width >= MIN_WIDTH_FOR_BREAK)
+                or prev.text.endswith(_TERMINATORS)
             )
             if should_break:
                 lines.append(current)
@@ -86,7 +108,43 @@ def _split_into_lines(words: list[WordEntry]) -> list[list[WordEntry]]:
 
     if current:
         lines.append(current)
-    return lines
+    return _merge_unterminated_lines(lines)
+
+
+def _merge_unterminated_lines(lines: list[list[WordEntry]]) -> list[list[WordEntry]]:
+    """Reattaches a line cut off mid-sentence to the fragment that finishes it.
+
+    A line ends up without a sentence terminator only when something other than
+    punctuation forced the break (speaker change, silence, width, duration). If
+    the very next line is the one that finally reaches a terminator, they are
+    really one sentence split across two events -- so they're merged back into
+    one, as long as doing so still respects the same speaker/gap/width/duration
+    limits `split_into_lines` enforces on every other line.
+    """
+    merged: list[list[WordEntry]] = []
+    for line in lines:
+        if merged and _can_merge(merged[-1], line):
+            merged[-1] = merged[-1] + line
+        else:
+            merged.append(line)
+    return merged
+
+
+def _can_merge(prev_line: list[WordEntry], next_line: list[WordEntry]) -> bool:
+    if prev_line[-1].text.endswith(_TERMINATORS):
+        return False  # prev line already closes its own sentence
+    if not next_line[-1].text.endswith(_TERMINATORS):
+        return False  # only pull in a line that closes the sentence
+    if prev_line[-1].speaker != next_line[0].speaker:
+        return False
+    if next_line[0].start - prev_line[-1].end > MAX_GAP:
+        return False
+    combined_width = _display_width(" ".join(w.text for w in prev_line + next_line))
+    if combined_width > MAX_WIDTH:
+        return False
+    if next_line[-1].end - prev_line[0].start > MAX_DURATION:
+        return False
+    return True
 
 def _row_break_index(words: list[WordEntry]) -> int | None:
     """Index of the word that should start a second row, or None to keep one row.
@@ -126,13 +184,13 @@ def _render_line(words: list[WordEntry], color: str, durations: list[int]) -> st
     return "".join(chunks)
 
 
-def generate_ass(transcript: Transcript) -> str:
-    color_map = assign_speaker_colors(transcript.speakers())
-    lines = [_HEADER]
-
-    groups = [g for g in _split_into_lines(transcript.words) if g]
+def subtitle_events(
+    transcript: Transcript,
+) -> list[tuple[list[WordEntry], float, float, list[int]]]:
+    """One `(words, start, end, karaoke centiseconds)` entry per on-screen subtitle."""
+    groups = [g for g in split_into_lines(transcript.words) if g]
+    events = []
     for i, group in enumerate(groups):
-        speaker = group[0].speaker
         start = group[0].start
         durations = karaoke_durations(group)
         # Deriving the end from the karaoke sum keeps the two in step: the fill
@@ -141,12 +199,38 @@ def generate_ass(transcript: Transcript) -> str:
         if i + 1 < len(groups):
             end = min(end, groups[i + 1][0].start)
         end = max(end, start + sum(durations) / 100)
-        color = color_map.get(speaker, BASE_COLOUR)
-        text = _render_line(group, color, durations)
-        lines.append(
-            f"Dialogue: 0,{_fmt_time(start)},{_fmt_time(end)},Default,{speaker},0,0,0,,{text}"
-        )
+        events.append((group, start, end, durations))
+    return events
 
+
+def _dialogue(start: float, end: float, speaker: str, text: str) -> str:
+    return f"Dialogue: 0,{_fmt_time(start)},{_fmt_time(end)},Default,{speaker},0,0,0,,{text}"
+
+
+def generate_ass(transcript: Transcript) -> str:
+    color_map = assign_speaker_colors(transcript.speakers())
+    lines = [_HEADER]
+    for group, start, end, durations in subtitle_events(transcript):
+        speaker = group[0].speaker
+        color = color_map.get(speaker, BASE_COLOUR)
+        lines.append(_dialogue(start, end, speaker, _render_line(group, color, durations)))
+    return "\n".join(lines) + "\n"
+
+
+def generate_plain_ass(transcript: Transcript) -> str:
+    """The same subtitles as `generate_ass` in plain white at one size.
+
+    A baseline for comparison: identical line breaks and timing, with the
+    speaker colour, karaoke fill, lift and volume sizing left out.
+    """
+    lines = [_HEADER]
+    for group, start, end, _ in subtitle_events(transcript):
+        break_at = _row_break_index(group)
+        text = "".join(
+            ("\\N" if i == break_at else " ") + word.text if i else word.text
+            for i, word in enumerate(group)
+        )
+        lines.append(_dialogue(start, end, group[0].speaker, text))
     return "\n".join(lines) + "\n"
 
 
