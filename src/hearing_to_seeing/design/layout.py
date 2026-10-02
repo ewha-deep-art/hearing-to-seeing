@@ -12,11 +12,20 @@ from functools import lru_cache
 
 from PIL import ImageFont
 
-# Bundled so layout is identical on every machine. SemiBold is the face the web
-# player renders every line in (watch.js SUBTITLE_FONT_NAME), and the family
-# name the ASS styles ask for (converter/ass.py).
+# Bundled so layout is identical on every machine. NanumGothic is the family the
+# ASS styles ask for (converter/ass.py, design/font.py); the first of these that
+# exists is the one measured. (Positions are laid out by libass itself, so this
+# is only used by code that still measures text.)
 FONTS_DIR = os.path.join(os.path.dirname(__file__), "fonts")
-FONT_PATH = os.path.join(FONTS_DIR, "Pretendard-SemiBold.otf")
+_CANDIDATES = ("NanumGothic.ttf", "NanumGothic.otf")
+FONT_PATH = next(
+    (
+        p
+        for name in _CANDIDATES
+        if os.path.exists(p := os.path.join(FONTS_DIR, name))
+    ),
+    os.path.join(FONTS_DIR, _CANDIDATES[0]),
+)
 
 # Measured at the font's own unit size, so `getmetrics()` returns the ascent
 # and descent in font units.
@@ -28,8 +37,8 @@ def _em_per_ass_size() -> float:
     """How many em an ASS font size of 1 is.
 
     PIL sizes a font by its em square, but libass (like VSFilter) sizes it so
-    that ascent + descent equal `\\fs` — for Pretendard that is ~0.84 em. Without
-    this correction every measured width comes out ~19% too wide.
+    that ascent + descent equal `\\fs`. Without this correction every measured
+    width comes out about 19% too wide.
     """
     ascent, descent = ImageFont.truetype(FONT_PATH, _METRICS_SIZE).getmetrics()
     return _METRICS_SIZE / (ascent + descent)
