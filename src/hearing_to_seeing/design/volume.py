@@ -7,7 +7,7 @@ from hearing_to_seeing.schema import Transcript
 # size fixed stops the line from reflowing word by word.
 # TODO: BASE_FONT_SIZE는 임시 값 — Netflix Timed Text Style Guide, BBC Subtitle
 #       Guidelines, WCAG 등 접근성 표준 조사 후 기획서 §다음 논의 필요 사항에 따라 최종값 확정 필요.
-BASE_FONT_SIZE = 52
+BASE_FONT_SIZE = 64
 
 # Normalised volume (0–1) at or above which a word counts as shouted, and at or
 # below which it counts as whispered.

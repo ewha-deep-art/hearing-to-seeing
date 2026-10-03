@@ -70,10 +70,17 @@ PLAY_RES = (1920, 1080)
 MARGIN_H = 160
 MARGIN_V = 60
 
+# Padding (script px) of the opaque box around the text. 6 rather than the 4 it
+# once was: with whispered words narrowed by \\fscx the per-run boxes meet at
+# fractional pixels, and at 4 a hairline gap showed between them (none at 6, at
+# 1080p or when scaled down to 720p).
+BOX_PAD = 6
+
 # The base face, bundled in design/fonts/ — the render preview passes that
 # directory to libass. Per-speaker weights (design/font.py) replace it in the
 # speaker styles; this is the face of the plain baseline and the base styles.
-_DEFAULT_FONT = "NanumGothic"
+_DEFAULT_FONT, _DEFAULT_BOLD = resolve_faces([DEFAULT_WEIGHT])[DEFAULT_WEIGHT]
+_BOLD = -1 if _DEFAULT_BOLD else 0
 
 # Default is the plain baseline (`generate_plain_ass`). The dynamic subtitle is
 # three layers — Box, Fill, Pop — described in design/sync.py.
@@ -89,10 +96,10 @@ YCbCr Matrix: TV.709
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,0,0,0,0,100,100,0,0,1,3,1,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
-Style: Box,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00000000,&H00000000,&H00000000,&H00000000,0,0,0,0,100,100,0,0,3,4,0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
-Style: Fill,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
-Style: Pop,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,0,5,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Default,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,{_BOLD},0,0,0,100,100,0,0,1,3,1,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Box,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00000000,&H00000000,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,3,{BOX_PAD},0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Fill,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,1,0,0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Pop,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,1,3,0,5,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"""
@@ -110,7 +117,7 @@ def _weight_styles(faces: dict[str, tuple[str, bool]], used: list[str]) -> str:
         font, bold = faces[weight]
         b = -1 if bold else 0
         lines += [
-            f"Style: Box-{weight},{font},{BASE_FONT_SIZE},&H00000000,&H00000000,&H00000000,&H00000000,{b},0,0,0,100,100,0,0,3,4,0,2,{tail}",
+            f"Style: Box-{weight},{font},{BASE_FONT_SIZE},&H00000000,&H00000000,&H00000000,&H00000000,{b},0,0,0,100,100,0,0,3,{BOX_PAD},0,2,{tail}",
             f"Style: Fill-{weight},{font},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{b},0,0,0,100,100,0,0,1,0,0,2,{tail}",
             f"Style: Pop-{weight},{font},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{b},0,0,0,100,100,0,0,1,3,0,5,{tail}",
         ]

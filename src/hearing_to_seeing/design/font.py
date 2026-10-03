@@ -14,6 +14,7 @@ closest one that is there.
 """
 
 import os
+import struct
 import sys
 from collections import Counter
 
@@ -27,8 +28,20 @@ FONT_FAMILY = "NanumGothic"
 # Light -> thin strokes ... ExtraBold -> heavy strokes.
 WEIGHTS = ("Light", "Regular", "Bold", "ExtraBold")
 
-# One weight for every speaker (NanumGothicBold). Set to None to give each
-# speaker a weight of their own again (speaker_weights below).
+# One font file for every speaker, in `layout.FONTS_DIR`. Its family name and
+# bold flag are read from the file itself (no font library needed), because ASS
+# finds a face by that internal name -- not by the file name -- and a wrong name
+# silently falls back to a default font. Set to None to use the NanumGothic
+# weights below instead.
+FIXED_FONT_FILE: str | None = "KoPub Dotum Bold.ttf"
+
+# Used only if FIXED_FONT_FILE can't be read; KoPubDotum ships each weight as a
+# family of its own, so the weight is in the name and the Bold flag stays off.
+FIXED_FONT_FALLBACK = ("KoPubDotum Bold", False)
+
+# One weight label for every speaker. It only names the ASS styles (Fill-Bold,
+# ...); the font is the fixed file above. Set to None, together with
+# FIXED_FONT_FILE, to give each speaker a weight of their own again.
 FIXED_WEIGHT: str | None = "Bold"
 
 # The weight of a speaker who has none assigned.
@@ -50,6 +63,48 @@ FACES = {
     "Bold": ("NanumGothic", True),
     "ExtraBold": ("NanumGothic ExtraBold", False),
 }
+
+
+def read_font_face(path: str) -> tuple[str, bool]:
+    """`(ASS font name, bold flag)` of a TrueType/OpenType file, from its name table.
+
+    Reads the family (name ID 1) and style (ID 2), preferring the Windows English
+    entries. The Bold flag is on only when the style says Bold, i.e. the face is
+    the bold member of its family; a face whose family name already carries the
+    weight ("KoPubDotum Bold", style Regular) is asked for with the flag off.
+    """
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if data[:4] == b"ttcf":  # a collection: take its first font
+        base = struct.unpack(">I", data[12:16])[0]
+    else:
+        base = 0
+    (num_tables,) = struct.unpack(">H", data[base + 4:base + 6])
+    table = None
+    for i in range(num_tables):
+        tag, _, offset, _ = struct.unpack(">4sIII", data[base + 12 + 16 * i:base + 28 + 16 * i])
+        if tag == b"name":
+            table = offset
+            break
+    if table is None:
+        raise ValueError("no name table")
+    _, count, string_offset = struct.unpack(">HHH", data[table:table + 6])
+    found: dict[int, tuple[int, str]] = {}
+    for k in range(count):
+        platform, _, lang, name_id, length, off = struct.unpack(
+            ">6H", data[table + 6 + 12 * k:table + 18 + 12 * k]
+        )
+        if name_id not in (1, 2) or platform not in (1, 3):
+            continue
+        raw = data[table + string_offset + off:table + string_offset + off + length]
+        text = raw.decode("utf-16-be" if platform == 3 else "mac_roman", "ignore").strip()
+        rank = 0 if (platform == 3 and lang == 0x409) else 1 if platform == 3 else 2
+        if text and (name_id not in found or rank < found[name_id][0]):
+            found[name_id] = (rank, text)
+    if 1 not in found:
+        raise ValueError("no family name")
+    style = found.get(2, (0, "Regular"))[1].lower()
+    return found[1][1], "bold" in style
 
 
 def _weight_of_file(filename: str) -> str:
@@ -84,6 +139,15 @@ def resolve_faces(needed=WEIGHTS) -> dict[str, tuple[str, bool]]:
     Only the weights actually in use need a font file, so a folder holding just
     NanumGothicBold is fine when every speaker is Bold.
     """
+    if FIXED_FONT_FILE is not None:
+        path = os.path.join(FONTS_DIR, FIXED_FONT_FILE)
+        try:
+            face = read_font_face(path)
+        except (OSError, ValueError, struct.error) as exc:
+            print(f"font: could not read {path} ({exc}); using the name "
+                  f"{FIXED_FONT_FALLBACK[0]!r}", file=sys.stderr)
+            face = FIXED_FONT_FALLBACK
+        return {w: face for w in needed}
     present = available_weights()
     if not present:  # folder unreadable or empty: trust the names, say nothing
         return {w: FACES[w] for w in needed}

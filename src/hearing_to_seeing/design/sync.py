@@ -43,10 +43,10 @@ MAX_TRAILING_HOLD = 2.0
 #   loud    : volume LOUD_THRESHOLD → LOUD_SCALE_MIN, volume 1.0 → LOUD_SCALE_MAX
 #   whisper : volume 0.0 → WHISPER_SCALE_MIN, volume QUIET_THRESHOLD → WHISPER_SCALE_MAX
 #             (applied from the first frame of the line, never animated)
-LOUD_SCALE_MIN = 110
-LOUD_SCALE_MAX = 140
-WHISPER_SCALE_MIN = 80
-WHISPER_SCALE_MAX = 90
+LOUD_SCALE_MIN = 120
+LOUD_SCALE_MAX = 160
+WHISPER_SCALE_MIN = 65
+WHISPER_SCALE_MAX = 80
 
 # The space next to a whispered word is narrowed to that word's width scale
 # (see word_separator). Multiply it further to tighten (<1.0) or loosen (>1.0)
@@ -75,17 +75,18 @@ SCALE_MIN_TRANSITION_MS = 80
 SCALE_MAX_TRANSITION_SHARE = 0.3
 
 WAVE_RISE_PX = round(18 * BASE_FONT_SIZE / 44)  # how far each character lifts (18 px at size 44)
-WAVE_RISE_MS = 70
-WAVE_FALL_MS = 90
 
-# Each character starts rising WAVE_STAGGER ms after the previous one — well
-# before the previous one has landed (rise + fall = 160 ms), so the motions
-# overlap into a ripple. The stagger is chosen so the whole wave ends when the
-# word does, then clamped to this range; a very short word first shrinks the
-# rise/fall (never below WAVE_MIN_SHRINK of their length) to still fit.
-WAVE_STAGGER_MIN_MS = 25
-WAVE_STAGGER_MAX_MS = 55
-WAVE_MIN_SHRINK = 0.4
+# Each character of a normally spoken word gets an equal share ("slot") of the
+# time the word is spoken, and starts rising when its slot starts. A rise + fall
+# lasts as long as its slot, so in a long word the characters go up and down one
+# after another, slowly, in step with the voice. A short word has slots too brief
+# for a visible motion, so each rise + fall is kept at least WAVE_MIN_MOTION_MS
+# and the characters' motions overlap into a ripple. WAVE_MAX_MOTION_MS stops a
+# single drawn-out character from rising for seconds. The rise takes
+# WAVE_RISE_SHARE of the motion, the fall the rest.
+WAVE_MIN_MOTION_MS = 240
+WAVE_MAX_MOTION_MS = 900
+WAVE_RISE_SHARE = 0.45
 
 # Each character is its own event, so spacing comes from measured widths and can
 # look looser than libass' own. Characters are pulled this share closer to the
@@ -347,20 +348,16 @@ def wave_rise_starts(word: WordEntry) -> list[float]:
 def _wave_timing(duration_ms: int, n: int) -> tuple[float, int, int]:
     """`(stagger, rise, fall)` in ms for a wave of `n` characters in `duration_ms`.
 
-    The wave spans (n - 1) * stagger + rise + fall. The stagger is whatever makes
-    that equal the word's duration, kept within the configured range; if even the
-    minimum stagger doesn't leave room, the rise and fall are shortened.
+    The stagger is each character's share of the word's time. Rise + fall equals
+    that share (one character after the other) unless it is shorter than
+    WAVE_MIN_MOTION_MS, in which case the motions overlap, or longer than
+    WAVE_MAX_MOTION_MS, in which case the character waits for its turn.
     """
-    rise, fall = WAVE_RISE_MS, WAVE_FALL_MS
-    stagger = 0.0
-    if n > 1:
-        stagger = (duration_ms - rise - fall) / (n - 1)
-        stagger = max(WAVE_STAGGER_MIN_MS, min(WAVE_STAGGER_MAX_MS, stagger))
-    room = duration_ms - (n - 1) * stagger
-    if room < rise + fall:
-        k = max(WAVE_MIN_SHRINK, room / (rise + fall))
-        rise, fall = max(1, round(rise * k)), max(1, round(fall * k))
-    return stagger, rise, fall
+    slot = duration_ms / max(1, n)
+    motion = min(WAVE_MAX_MOTION_MS, max(WAVE_MIN_MOTION_MS, slot))
+    rise = max(1, round(motion * WAVE_RISE_SHARE))
+    fall = max(1, round(motion) - rise)
+    return slot, rise, fall
 
 
 def build_wave_events(
@@ -382,8 +379,8 @@ def build_wave_events(
     by the \\move. Measured positions can't match libass exactly; any mismatch
     showed up as a small jump when the word was handed from Fill to Pop.
     ASS allows one \\move per event, so each character is two events — the rise,
-    then the fall — back to back. Characters start `stagger` ms apart, so one
-    character's fall overlaps the next one's rise. Returns `(start, end, text)`
+    then the fall — back to back. Characters start `stagger` ms apart (one share of the word's time each): in a
+    long word one lands before the next rises, in a short one the motions overlap. Returns `(start, end, text)`
     per event.
 
     A \\move stays at its end point once it has run, so the fall event can simply
@@ -394,7 +391,7 @@ def build_wave_events(
     `color` wipes across it (\\kf). The wipe lives in the fall event — the long
     one — so it is never cut in half by the hand-over from the rise event; a
     character still rising when its share begins is wiped from the moment it
-    starts falling (at most one rise, `WAVE_RISE_MS`, late). The rise event
+    starts falling (at most one rise late). The rise event
     shows the character white, which is what the unwiped fall event shows too.
     """
     n = len(char_positions)
