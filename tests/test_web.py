@@ -27,7 +27,11 @@ def _transcript():
 
 @pytest.fixture
 def fake_media(monkeypatch):
-    """Replaces ffmpeg/yt-dlp/STT with stubs that write placeholder files."""
+    """Replaces ffmpeg/yt-dlp/STT with stubs that write placeholder files.
+
+    Returns the list of `pipeline.run` calls, for checking what it was given.
+    """
+    runs: list[dict] = []
 
     def touch(path, *_):
         open(path, "wb").close()
@@ -36,7 +40,8 @@ def fake_media(monkeypatch):
     def download(url, dest_dir):
         return touch(f"{dest_dir}/source.mp4"), "Fetched title"
 
-    def run(wav, ass, language, output_json):
+    def run(wav, ass, language, output_json, title=None):
+        runs.append({"title": title})
         transcript = _transcript()
         with open(output_json, "w", encoding="utf-8") as f:
             json.dump(transcript.to_dict(), f)
@@ -50,6 +55,7 @@ def fake_media(monkeypatch):
     monkeypatch.setattr(media, "prepare_playback", touch)
     monkeypatch.setattr(media, "extract_thumbnail", touch)
     monkeypatch.setattr("hearing_to_seeing.pipeline.run", run)
+    return runs
 
 
 @pytest.fixture
@@ -79,7 +85,8 @@ def test_speakers_are_numbered_in_label_order():
 def test_cues_match_ass_dialogue_lines():
     transcript = _transcript()
     cues = subtitles.cues(transcript)
-    dialogues = [l for l in generate_ass(transcript).splitlines() if l.startswith("Dialogue:")]
+    # One Box event per on-screen subtitle; Fill and Pop ride on top of it.
+    dialogues = [l for l in generate_ass(transcript).splitlines() if l.startswith("Dialogue: 0,")]
 
     assert len(cues) == len(dialogues)
     assert cues[0] == {"start": 0.0, "end": cues[0]["end"], "speaker": "SPEAKER_00", "text": "hello world"}
@@ -118,8 +125,13 @@ def test_youtube_uses_fetched_title(library, fake_media):
     assert meta["title"] == "Fetched title"
 
 
+def test_pipeline_gets_the_title_for_speaker_lookup(library, fake_media):
+    library.add_url("https://youtu.be/x", None)
+    assert fake_media[0]["title"] == "Fetched title"
+
+
 def test_failure_is_recorded(library, fake_media, monkeypatch):
-    def boom(*_):
+    def boom(*_, **__):
         raise RuntimeError("STT server down")
 
     monkeypatch.setattr("hearing_to_seeing.pipeline.run", boom)
@@ -212,3 +224,14 @@ def test_delete_removes_video(client, fake_media):
 def test_pages_are_served(client):
     assert "영상 추가" in client.get("/").text
     assert client.get("/static/watch.js").status_code == 200
+
+
+def test_player_draws_subtitles_in_the_bundled_font(client):
+    from hearing_to_seeing.design.layout import FONT_FILE, FONT_NAME, FONTS_DIR
+
+    font = client.get("/api/subtitle-font")
+    assert font.status_code == 200
+    with open(f"{FONTS_DIR}/{FONT_FILE}", "rb") as f:
+        assert font.content == f.read()
+    # libass in the player finds the face by the name the ASS styles use.
+    assert f'const SUBTITLE_FONT_NAME = "{FONT_NAME}";' in client.get("/static/watch.js").text

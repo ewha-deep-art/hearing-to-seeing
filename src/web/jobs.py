@@ -164,7 +164,12 @@ class Library:
             media.extract_thumbnail(path(PLAYBACK), path(THUMBNAIL), info["duration"])
 
         with self._timed_step(video_id, "transcribing", timings):
-            transcript = pipeline.run(path(AUDIO), path(ASS), meta["language"], path(TRANSCRIPT))
+            # The title lets the speaker step look up the work's characters
+            # (when GEMINI_API_KEY is set) — alongside STT, inside pipeline.run.
+            transcript = pipeline.run(
+                path(AUDIO), path(ASS), meta["language"], path(TRANSCRIPT),
+                title=self.get(video_id)["title"],
+            )
 
         with self._timed_step(video_id, "finishing", timings):
             with open(path(PLAIN_ASS), "w", encoding="utf-8") as f:

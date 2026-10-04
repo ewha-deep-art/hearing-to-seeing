@@ -5,13 +5,14 @@ import { STEPS, api, el, formatTime, icon, isPending, statusLabel } from "/stati
 // abslink/w3c, and the worker handshake then fails). Static assets stay on jsDelivr.
 const JASSUB_MODULE = "https://esm.sh/jassub@2.5.16";
 const JASSUB_ASSETS = "https://cdn.jsdelivr.net/npm/jassub@2.5.16/dist";
-// One Hangul-capable face for every subtitle. The ASS style names Arial,
-// which has no Hangul; with local font lookup off, libass falls back to this
-// default for every glyph. The name must be the font's own family name, and
-// the font is preloaded because every line needs it — loaded lazily, the
-// first frame after a paused seek renders blank.
-const SUBTITLE_FONT_NAME = "Pretendard SemiBold";
-const SUBTITLE_FONT = "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-SemiBold.woff2";
+// The font the ASS styles name, served from the bundled file
+// (design/layout.py), so subtitles look exactly as the pipeline made them.
+// libass finds it by the family name inside the file, which must equal
+// layout.FONT_NAME; it is also the default, so nothing falls back to another
+// face. Preloaded because every line needs it — loaded lazily, the first frame
+// after a paused seek renders blank.
+const SUBTITLE_FONT_NAME = "KoPubDotum Bold";
+const SUBTITLE_FONT = "/api/subtitle-font";
 const SUB_MODES = ["kinetic", "plain", "off"];
 const SUB_MODE_LABELS = { kinetic: "키네틱 자막", plain: "일반 자막", off: "자막 끔" };
 
@@ -115,7 +116,7 @@ async function setupSubtitles() {
       workerUrl: new URL("/static/jassub-worker.js", location.href).href,
       wasmUrl: `${JASSUB_ASSETS}/wasm/jassub-worker.wasm`,
       modernWasmUrl: `${JASSUB_ASSETS}/wasm/jassub-worker-modern.wasm`,
-      fonts: [SUBTITLE_FONT],
+      fonts: [new URL(SUBTITLE_FONT, location.href).href],
       defaultFont: SUBTITLE_FONT_NAME,
       queryFonts: false,
     });

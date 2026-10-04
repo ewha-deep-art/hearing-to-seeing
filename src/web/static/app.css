@@ -157,9 +157,6 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
   border-radius: inherit; transform: translateZ(0);
 }
-/* Subtitles step up out of the way while the control bar is showing. */
-.player canvas.JASSUB { transition: transform 0.2s; }
-.player:not(.idle) canvas.JASSUB { transform: translateY(-52px); }
 .player:fullscreen { border-radius: 0; aspect-ratio: auto; }
 .player.hide-cursor { cursor: none; }
 
@@ -293,5 +290,4 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
   .volume input { display: none; }
   .sub-mode button { padding: 3px 8px; font-size: 12px; white-space: nowrap; }
   .big-play { width: 56px; height: 56px; }
-  .player:not(.idle) canvas.JASSUB { transform: translateY(-36px); }
 }

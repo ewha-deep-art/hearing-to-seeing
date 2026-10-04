@@ -9,11 +9,13 @@ from hearing_to_seeing.converter.ass import (
     generate_plain_ass,
     split_into_lines,
 )
+from hearing_to_seeing.design.layout import FONT_NAME
+from hearing_to_seeing.design.volume import loud_scale, whisper_scale
 from hearing_to_seeing.schema import Transcript, WordEntry
 
 
-def _word(text, start, end, speaker="SPEAKER_00"):
-    return WordEntry(text=text, start=start, end=end, speaker=speaker)
+def _word(text, start, end, speaker="SPEAKER_00", volume=0.5):
+    return WordEntry(text=text, start=start, end=end, speaker=speaker, volume=volume)
 
 
 def testsplit_into_lines_keeps_short_line_together():
@@ -131,11 +133,54 @@ def test_plain_ass_matches_kinetic_timing_without_effects():
         _word("world", 0.4, 0.8, speaker="SPEAKER_00"),
         _word("bye", 1.0, 1.3, speaker="SPEAKER_01"),
     ])
-    kinetic = _dialogues(generate_ass(transcript))
+    kinetic = [line for line in _dialogues(generate_ass(transcript)) if ",Box," in line]
     plain = _dialogues(generate_plain_ass(transcript))
 
     assert len(plain) == len(kinetic) == 2
     for k, p in zip(kinetic, plain):
-        assert k.split(",", 9)[:9] == p.split(",", 9)[:9]
+        k_fields, p_fields = k.split(",", 9), p.split(",", 9)
+        assert k_fields[:3] + k_fields[4:9] == p_fields[:3] + p_fields[4:9]  # all but the style
     assert plain[0].endswith(",hello world")
     assert "{" not in "".join(plain)
+
+
+def test_generate_ass_draws_box_fill_and_pop_layers():
+    transcript = Transcript(words=[
+        _word("크게", 0.0, 0.4, volume=1.0),
+        _word("작게", 0.4, 0.8, volume=0.0),
+        _word("보통.", 0.8, 1.2, volume=0.5),
+    ])
+    lines = _dialogues(generate_ass(transcript))
+    styles = [line.split(",")[3] for line in lines]
+    assert styles[:2] == ["Box", "Fill"]
+    pops = [line for line in lines if ",Pop," in line]
+    assert pops[0].startswith("Dialogue: 2,") and f"\\fscx{loud_scale(1.0)}" in pops[0]  # loud
+    assert f"\\fscx{whisper_scale(0.0)}" in pops[1]                                       # whisper
+    assert len(pops) == 2 + 2 * len("보통.")                                 # wave: 2 per character
+
+
+def test_generate_ass_uses_colours_from_speaker_profiles():
+    transcript = Transcript(
+        words=[_word("hi.", 0.0, 0.4)],
+        speaker_profiles={"SPEAKER_00": {"color": "&H00123456"}},
+    )
+    pops = [line for line in _dialogues(generate_ass(transcript)) if ",Pop," in line]
+    assert pops and all("\\c&H00123456" in line for line in pops[1::2])  # every fall event
+
+
+def test_generate_ass_draws_every_style_in_the_bundled_font():
+    header = generate_ass(Transcript(words=[_word("hi.", 0.0, 0.4)])).split("[Events]")[0]
+    styles = [line for line in header.splitlines() if line.startswith("Style:")]
+    assert [line.split(",")[0] for line in styles] == [
+        "Style: Default", "Style: Box", "Style: Fill", "Style: Pop",
+    ]
+    assert all(line.split(",")[1] == FONT_NAME for line in styles)
+
+
+def test_whispered_word_keeps_a_narrowed_placeholder_in_box_and_fill():
+    transcript = Transcript(words=[_word("작게", 0.0, 0.4, volume=0.0), _word("말해.", 0.4, 0.8)])
+    lines = _dialogues(generate_ass(transcript))
+    box, fill = lines[0], lines[1]
+    narrow = f"\\fscx{whisper_scale(0.0)}"
+    assert f"{{{narrow}}}작게{{\\fscx100}}" in box
+    assert f"\\alpha&HFF&{narrow}}}작게" in fill  # hidden from the first frame

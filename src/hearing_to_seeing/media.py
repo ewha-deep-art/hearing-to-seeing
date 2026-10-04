@@ -36,7 +36,13 @@ def download_youtube(url: str, dest_dir: str) -> tuple[str, str | None]:
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
+        # Error messages end up in the web UI; keep terminal colour codes out.
+        "color": {"stdout": "no_color", "stderr": "no_color"},
         "ffmpeg_location": tool("ffmpeg"),
+        # YouTube hides formats behind a JS challenge; without a runtime many
+        # videos fail as "not available". yt-dlp only tries deno by default,
+        # so allow every runtime it supports (the solver is yt-dlp-ejs).
+        "js_runtimes": {"deno": {}, "node": {}, "bun": {}, "quickjs": {}},
     }
     with YoutubeDL(options) as ydl:
         info = ydl.extract_info(url, download=True)
