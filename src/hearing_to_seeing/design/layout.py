@@ -1,59 +1,55 @@
-"""Measuring text in the subtitle font, so words can be placed by coordinate.
+"""Where the effects meet: the font, its size, and the spacing between words.
 
-The pop and wave effects (sync.py) move single words and characters, which ASS
-can only do with a Dialogue event of their own positioned by `\\pos`/`\\move`.
-Those coordinates have to land exactly where libass draws the same word in the
-flowing line underneath, so the widths come from the real font file rather
-than a character count.
+Each effect module owns one signal — sync.py (timing: fill wipe, wave motion),
+volume.py (size), speaker.py (colour). Anything that depends on more than one
+of them, but not on the ASS file format itself, lives here; the rest of the
+assembly is converter/ass.py.
 """
 
 import os
-from functools import lru_cache
 
-from PIL import ImageFont
+from hearing_to_seeing.design.volume import width_scale
+from hearing_to_seeing.schema import WordEntry
 
-# Bundled so layout is identical on every machine. NanumGothic is the family the
-# ASS styles ask for (converter/ass.py, design/font.py); the first of these that
-# exists is the one measured. (Positions are laid out by libass itself, so this
-# is only used by code that still measures text.)
+# The one font every subtitle is drawn in, bundled so it looks the same on
+# every machine; the preview renderer hands this folder to libass (render.py).
+# ASS finds a face by a family name stored inside the file, not by the file
+# name, and a wrong name silently falls back to some other font. This file
+# lists itself as "KoPubDotum" and "KoPubDotum Bold" (style Bold), so the
+# styles ask for the latter with the Bold flag on (`fc-scan` shows the names).
 FONTS_DIR = os.path.join(os.path.dirname(__file__), "fonts")
-_CANDIDATES = ("NanumGothic.ttf", "NanumGothic.otf")
-FONT_PATH = next(
-    (
-        p
-        for name in _CANDIDATES
-        if os.path.exists(p := os.path.join(FONTS_DIR, name))
-    ),
-    os.path.join(FONTS_DIR, _CANDIDATES[0]),
-)
+FONT_FILE = "KoPub Dotum Bold.ttf"
+FONT_NAME = "KoPubDotum Bold"
+FONT_BOLD = True
 
-# Measured at the font's own unit size, so `getmetrics()` returns the ascent
-# and descent in font units.
-_METRICS_SIZE = 2048
+# Every word is drawn at one size; loudness shows as a change of scale on top
+# of it instead (volume.py). Keeping the size fixed stops the line from
+# reflowing word by word.
+# TODO: BASE_FONT_SIZE는 임시 값 — Netflix Timed Text Style Guide, BBC Subtitle
+#       Guidelines, WCAG 등 접근성 표준 조사 후 기획서 §다음 논의 필요 사항에 따라 최종값 확정 필요.
+BASE_FONT_SIZE = 64
+
+# The space next to a whispered word is narrowed to that word's width scale
+# (see space_scale). Multiply it further to tighten (<1.0) or loosen (>1.0)
+# the gaps around whispers; 1.0 = same scale as the whisper itself.
+WHISPER_SPACE_FACTOR = 1.0
+
+# Every space in the Box / Fill / Pop lines is narrowed to this share of its
+# normal width (1.0 = untouched). Applied on top of the whisper narrowing above.
+SPACE_TIGHTNESS = 0.92
 
 
-@lru_cache(maxsize=1)
-def _em_per_ass_size() -> float:
-    """How many em an ASS font size of 1 is.
+def space_scale(prev: WordEntry, nxt: WordEntry) -> int:
+    """Width (percent) of the space between two words.
 
-    PIL sizes a font by its em square, but libass (like VSFilter) sizes it so
-    that ascent + descent equal `\\fs`. Without this correction every measured
-    width comes out about 19% too wide.
+    A whispered word is narrowed (volume.width_scale), but a plain space stays
+    at 100%, so the gaps around small words looked wider than the words
+    themselves. The space therefore takes the smaller neighbour's scale (whisper
+    next to normal -> the whisper's; two whispers -> the smaller one), times
+    SPACE_TIGHTNESS.
     """
-    ascent, descent = ImageFont.truetype(FONT_PATH, _METRICS_SIZE).getmetrics()
-    return _METRICS_SIZE / (ascent + descent)
-
-
-@lru_cache(maxsize=32)
-def _get_font(em_px: int) -> "ImageFont.FreeTypeFont":
-    return ImageFont.truetype(FONT_PATH, em_px)
-
-
-def text_width(text: str, size: float) -> float:
-    """Advance width of `text` at ASS font size `size`, in script pixels.
-
-    The font is loaded 4x oversize and scaled down, so rounding the pixel size
-    to an integer costs a quarter pixel of accuracy rather than a whole one.
-    """
-    em_px = max(1, round(size * _em_per_ass_size() * 4))
-    return _get_font(em_px).getlength(text) / 4
+    pct = round(
+        min(width_scale(prev.volume), width_scale(nxt.volume)) * 100
+        * WHISPER_SPACE_FACTOR * SPACE_TIGHTNESS
+    )
+    return min(100, pct)

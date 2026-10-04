@@ -6,6 +6,16 @@
 
 이 프로젝트는 패키지 관리에 [`uv`](https://docs.astral.sh/uv/)를 사용합니다 (Python 3.12).
 
+그 외에 **ffmpeg**와, YouTube 링크를 받기 위한 **JS 런타임**(Deno, 또는 Node.js 20+)이 필요합니다.
+
+```bash
+# ffmpeg (ffprobe 포함)
+sudo apt install ffmpeg
+
+# Deno (Node.js 20+가 이미 있으면 생략)
+curl -fsSL https://deno.land/install.sh | sh
+```
+
 ```bash
 # 의존성 설치
 uv sync

@@ -224,3 +224,14 @@ def test_delete_removes_video(client, fake_media):
 def test_pages_are_served(client):
     assert "영상 추가" in client.get("/").text
     assert client.get("/static/watch.js").status_code == 200
+
+
+def test_player_draws_subtitles_in_the_bundled_font(client):
+    from hearing_to_seeing.design.layout import FONT_FILE, FONT_NAME, FONTS_DIR
+
+    font = client.get("/api/subtitle-font")
+    assert font.status_code == 200
+    with open(f"{FONTS_DIR}/{FONT_FILE}", "rb") as f:
+        assert font.content == f.read()
+    # libass in the player finds the face by the name the ASS styles use.
+    assert f'const SUBTITLE_FONT_NAME = "{FONT_NAME}";' in client.get("/static/watch.js").text

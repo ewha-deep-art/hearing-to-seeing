@@ -3,18 +3,14 @@ from hearing_to_seeing.converter.ass import (
     MAX_GAP,
     MAX_WIDTH,
     ROW_WIDTH,
-    MARGIN_H,
-    MARGIN_V,
-    PLAY_RES,
-    _compute_word_layout,
     _merge_unterminated_lines,
     _row_break_index,
     generate_ass,
     generate_plain_ass,
     split_into_lines,
 )
-from hearing_to_seeing.design.layout import text_width
-from hearing_to_seeing.design.volume import BASE_FONT_SIZE
+from hearing_to_seeing.design.layout import FONT_NAME
+from hearing_to_seeing.design.volume import loud_scale, whisper_scale
 from hearing_to_seeing.schema import Transcript, WordEntry
 
 
@@ -148,25 +144,6 @@ def test_plain_ass_matches_kinetic_timing_without_effects():
     assert "{" not in "".join(plain)
 
 
-def test_layout_centres_a_single_row_above_the_bottom_margin():
-    words = [_word("안녕", 0.0, 0.3), _word("하세요", 0.3, 0.6)]
-    layout = _compute_word_layout(words, None)
-    width = text_width("안녕 하세요", BASE_FONT_SIZE)
-    centre = PLAY_RES[0] / 2
-    assert abs(layout[0][0] - (centre - width / 2)) < 0.01
-    assert layout[1][0] > layout[0][0] + text_width("안녕", BASE_FONT_SIZE)  # past the space
-    assert layout[0][1] == layout[1][1] == PLAY_RES[1] - MARGIN_V - BASE_FONT_SIZE / 2
-
-
-def test_layout_stacks_two_rows_each_centred_on_its_own_width():
-    words = [_word("a" * 15, i, i + 1) for i in range(4)]
-    layout = _compute_word_layout(words, 2)
-    top, bottom = layout[0][1], layout[2][1]
-    assert bottom - top == BASE_FONT_SIZE
-    assert layout[0][0] == layout[2][0]  # identical rows start at the same x
-    assert MARGIN_H < layout[0][0]
-
-
 def test_generate_ass_draws_box_fill_and_pop_layers():
     transcript = Transcript(words=[
         _word("크게", 0.0, 0.4, volume=1.0),
@@ -177,8 +154,8 @@ def test_generate_ass_draws_box_fill_and_pop_layers():
     styles = [line.split(",")[3] for line in lines]
     assert styles[:2] == ["Box", "Fill"]
     pops = [line for line in lines if ",Pop," in line]
-    assert pops[0].startswith("Dialogue: 2,") and "\\fscx150" in pops[0]  # loud
-    assert "\\fscx65" in pops[1]                                            # whisper
+    assert pops[0].startswith("Dialogue: 2,") and f"\\fscx{loud_scale(1.0)}" in pops[0]  # loud
+    assert f"\\fscx{whisper_scale(0.0)}" in pops[1]                                       # whisper
     assert len(pops) == 2 + 2 * len("보통.")                                 # wave: 2 per character
 
 
@@ -187,5 +164,23 @@ def test_generate_ass_uses_colours_from_speaker_profiles():
         words=[_word("hi.", 0.0, 0.4)],
         speaker_profiles={"SPEAKER_00": {"color": "&H00123456"}},
     )
-    fill = next(line for line in _dialogues(generate_ass(transcript)) if ",Fill," in line)
-    assert "\\c&H00123456" in fill
+    pops = [line for line in _dialogues(generate_ass(transcript)) if ",Pop," in line]
+    assert pops and all("\\c&H00123456" in line for line in pops[1::2])  # every fall event
+
+
+def test_generate_ass_draws_every_style_in_the_bundled_font():
+    header = generate_ass(Transcript(words=[_word("hi.", 0.0, 0.4)])).split("[Events]")[0]
+    styles = [line for line in header.splitlines() if line.startswith("Style:")]
+    assert [line.split(",")[0] for line in styles] == [
+        "Style: Default", "Style: Box", "Style: Fill", "Style: Pop",
+    ]
+    assert all(line.split(",")[1] == FONT_NAME for line in styles)
+
+
+def test_whispered_word_keeps_a_narrowed_placeholder_in_box_and_fill():
+    transcript = Transcript(words=[_word("작게", 0.0, 0.4, volume=0.0), _word("말해.", 0.4, 0.8)])
+    lines = _dialogues(generate_ass(transcript))
+    box, fill = lines[0], lines[1]
+    narrow = f"\\fscx{whisper_scale(0.0)}"
+    assert f"{{{narrow}}}작게{{\\fscx100}}" in box
+    assert f"\\alpha&HFF&{narrow}}}작게" in fill  # hidden from the first frame

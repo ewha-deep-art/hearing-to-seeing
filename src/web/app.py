@@ -10,6 +10,7 @@ from fastapi import FastAPI, Form, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from hearing_to_seeing.design.layout import FONT_FILE, FONTS_DIR
 from web import jobs, subtitles
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
@@ -87,6 +88,12 @@ def create_app(library: jobs.Library | None = None) -> FastAPI:
         if meta["status"] in jobs.PENDING_STATES:
             raise HTTPException(409, "처리 중인 영상은 삭제할 수 없습니다.")
         library.delete(video_id)
+
+    @app.get("/api/subtitle-font")
+    def subtitle_font():
+        # The one font the ASS styles name (design/layout.py), so the player
+        # draws the subtitles exactly as the preview renderer does.
+        return FileResponse(os.path.join(FONTS_DIR, FONT_FILE), media_type="font/ttf")
 
     @app.get("/api/videos/{video_id}/media")
     def video_media(video_id: str):

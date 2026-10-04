@@ -1,33 +1,26 @@
 import unicodedata
-from functools import lru_cache
 
 from hearing_to_seeing.schema import Transcript, WordEntry
-from hearing_to_seeing.design.font import (
-    DEFAULT_WEIGHT,
-    resolve_faces,
-    speaker_weights,
-)
-from hearing_to_seeing.design.layout import text_width
+from hearing_to_seeing.design.layout import BASE_FONT_SIZE, FONT_BOLD, FONT_NAME, space_scale
 from hearing_to_seeing.design.speaker import BASE_COLOUR, speaker_colors
 from hearing_to_seeing.design.sync import (
-    WaveLineContext,
-    WordLineContext,
-    build_fill_text,
-    build_loud_event_text,
-    build_wave_events,
-    space_scale,
-    width_scale,
-    word_separator,
-    build_whisper_event_text,
-    whisper_scale,
+    fall_move,
+    hand_over_ms,
+    hide_tag,
     karaoke_durations,
+    rise_move,
     spoken_end,
+    wave_chars,
+    wave_hand_over_ms,
+    wipe_tags,
 )
-from hearing_to_seeing.design.volume import BASE_FONT_SIZE, classify_volume
-
-# Layout measures the same prefixes over and over (every word of every line, and
-# repeated words across the transcript), so measure each distinct string once.
-_text_width = lru_cache(maxsize=None)(text_width)
+from hearing_to_seeing.design.volume import (
+    classify_volume,
+    loud_tags,
+    narrow_tag,
+    whisper_lift,
+    whisper_tags,
+)
 
 # --- Subtitle line segmentation ------------------------------------------------
 # A single Dialogue event is one on-screen subtitle. Without these limits the
@@ -65,8 +58,8 @@ _TERMINATORS = (".", "?", "!", "…")
 # TODO: 파라미터로 받거나 ffprobe로 입력 영상 해상도를 자동 감지하도록 개선 필요.
 PLAY_RES = (1920, 1080)
 
-# Horizontal and bottom margins, shared by the styles and by
-# `_compute_word_layout`, which has to reproduce where libass puts each row.
+# Horizontal and bottom margins of every style; Pop events are anchored on the
+# same bottom centre (`_ANCHOR`).
 MARGIN_H = 160
 MARGIN_V = 60
 
@@ -76,14 +69,20 @@ MARGIN_V = 60
 # 1080p or when scaled down to 720p).
 BOX_PAD = 6
 
-# The base face, bundled in design/fonts/ — the render preview passes that
-# directory to libass. Per-speaker weights (design/font.py) replace it in the
-# speaker styles; this is the face of the plain baseline and the base styles.
-_DEFAULT_FONT, _DEFAULT_BOLD = resolve_faces([DEFAULT_WEIGHT])[DEFAULT_WEIGHT]
-_BOLD = -1 if _DEFAULT_BOLD else 0
+# The one bundled face (design/layout.py) for every style.
+_BOLD = -1 if FONT_BOLD else 0
 
 # Default is the plain baseline (`generate_plain_ass`). The dynamic subtitle is
-# three layers — Box, Fill, Pop — described in design/sync.py.
+# drawn as three stacked layers of Dialogue events:
+#   0. Box  — the whole line in an opaque black box, so it reads over any video.
+#   1. Fill — the whole line again, white until a word is said, then hidden
+#             for good (`_fill_text`).
+#   2. Pop  — one event per word (two per character for a waved word) that
+#             draws it from then until the line ends, carrying the effects:
+#             size from volume.py, fill wipe and wave from sync.py, colour from
+#             speaker.py (`_pop_events`).
+# ASS moves and scales apply to a whole event, which is why layer 2 splits
+# words out instead of animating inside the line.
 _HEADER = f"""\
 [Script Info]
 Title: Hearing to Seeing
@@ -96,37 +95,13 @@ YCbCr Matrix: TV.709
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,{_BOLD},0,0,0,100,100,0,0,1,3,1,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
-Style: Box,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00000000,&H00000000,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,3,{BOX_PAD},0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
-Style: Fill,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,1,0,0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
-Style: Pop,{_DEFAULT_FONT},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,1,3,0,5,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Default,{FONT_NAME},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&HA0000000,{_BOLD},0,0,0,100,100,0,0,1,3,1,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Box,{FONT_NAME},{BASE_FONT_SIZE},&H00000000,&H00000000,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,3,{BOX_PAD},0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Fill,{FONT_NAME},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,1,0,0,2,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
+Style: Pop,{FONT_NAME},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{_BOLD},0,0,0,100,100,0,0,1,3,0,5,{MARGIN_H},{MARGIN_H},{MARGIN_V},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"""
-
-
-def _weight_styles(faces: dict[str, tuple[str, bool]], used: list[str]) -> str:
-    """Box / Fill / Pop styles for every weight in `used`, named e.g. `Fill-Bold`.
-
-    They repeat the three base styles with only the face changed, so a speaker's
-    weight is the style its events are in; no font tag is needed in the text.
-    """
-    tail = f"{MARGIN_H},{MARGIN_H},{MARGIN_V},1"
-    lines = []
-    for weight in used:
-        font, bold = faces[weight]
-        b = -1 if bold else 0
-        lines += [
-            f"Style: Box-{weight},{font},{BASE_FONT_SIZE},&H00000000,&H00000000,&H00000000,&H00000000,{b},0,0,0,100,100,0,0,3,{BOX_PAD},0,2,{tail}",
-            f"Style: Fill-{weight},{font},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{b},0,0,0,100,100,0,0,1,0,0,2,{tail}",
-            f"Style: Pop-{weight},{font},{BASE_FONT_SIZE},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,{b},0,0,0,100,100,0,0,1,3,0,5,{tail}",
-        ]
-    return "\n".join(lines)
-
-
-def _header_with_weights(faces: dict[str, tuple[str, bool]], used: list[str]) -> str:
-    head, events = _HEADER.split("\n\n[Events]", 1)
-    return f"{head}\n{_weight_styles(faces, used)}\n\n[Events]{events}"
 
 
 def _fmt_time(seconds: float) -> str:
@@ -238,174 +213,181 @@ def _rows(words: list[WordEntry], break_at: int | None) -> list[list[WordEntry]]
     return [words[:break_at], words[break_at:]]
 
 
-def _width_scale(word: WordEntry) -> float:
-    """Horizontal scale of `word` in the Box and Fill lines (whispers are narrowed)."""
-    return width_scale(word)
+# The `\an2` anchor of a whole line: bottom centre, where the Box and Fill styles
+# put it through their margins.
+_ANCHOR = (PLAY_RES[0] // 2, PLAY_RES[1] - MARGIN_V)
+
+# What a word looks like before it is said (the styles' SecondaryColour too).
+_WHITE = "&H00FFFFFF&"
 
 
-def _compute_word_layout(
-    words: list[WordEntry], break_at: int | None,
-) -> list[tuple[float, float]]:
-    """(left x, centre y) of every word, where libass draws it in the Fill line.
+def _separator(words: list[WordEntry], i: int, break_at: int | None) -> str:
+    """What goes before word `i`: nothing, a row break, or a (narrowed) space.
 
-    Each row is centred between the margins on its own width, and rows stack
-    upwards from the bottom margin one font height apart — libass sizes a font
-    so its ascent + descent equal the font size, which is also its line height.
-    Offsets are measured on the joined prefix rather than summed per word, so
-    kerning across a word boundary is counted the way libass counts it. A row
-    that holds a whispered word is instead summed word by word, each word at its
-    narrowed width (the Box and Fill lines scale it with \\fscx), so kerning
-    across its boundaries is not counted there.
+    \\fscx is reset right after a narrowed space, so the next word is unaffected.
     """
-    rows = _rows(words, break_at)
-    centre_x = MARGIN_H + (PLAY_RES[0] - 2 * MARGIN_H) / 2
-    bottom_y = PLAY_RES[1] - MARGIN_V - BASE_FONT_SIZE / 2
-
-    layout = []
-    for r, row in enumerate(rows):
-        cy = bottom_y - (len(rows) - 1 - r) * BASE_FONT_SIZE
-        texts = [w.text for w in row]
-        scales = [_width_scale(w) for w in row]
-        if all(sc == 1.0 for sc in scales):
-            left = centre_x - _text_width(" ".join(texts), BASE_FONT_SIZE) / 2
-            prefix = ""
-            for t in texts:
-                layout.append((left + _text_width(prefix, BASE_FONT_SIZE), cy))
-                prefix += t + " "
-            continue
-
-        # Each space is narrowed the same way word_separator narrows it in the
-        # Box/Fill lines, so Pop words land where libass puts the placeholders.
-        space = _text_width(" ", BASE_FONT_SIZE)
-        widths = [_text_width(t, BASE_FONT_SIZE) * sc for t, sc in zip(texts, scales)]
-        gaps = [
-            space * space_scale(row[j], row[j + 1]) / 100
-            for j in range(len(row) - 1)
-        ]
-        x = centre_x - (sum(widths) + sum(gaps)) / 2
-        for j, wd in enumerate(widths):
-            layout.append((x, cy))
-            x += wd + (gaps[j] if j < len(gaps) else 0)
-    return layout
+    if i == 0:
+        return ""
+    if i == break_at:
+        return "\\N"
+    pct = space_scale(words[i - 1], words[i])
+    return " " if pct >= 100 else f"{{\\fscx{pct}}} {{\\fscx100}}"
 
 
-def _char_positions(word: WordEntry, left_x: float, cy: float) -> list[tuple[str, float, float]]:
-    """(character, centre x, centre y) for each character of `word`."""
-    text = word.text
-    # Edge i is where character i starts; measuring each prefix once gives both
-    # the start and the end of every character.
-    edges = [left_x + _text_width(text[:i], BASE_FONT_SIZE) for i in range(len(text) + 1)]
-    return [(ch, (edges[i] + edges[i + 1]) / 2, cy) for i, ch in enumerate(text)]
+def _narrowed(word: WordEntry) -> str:
+    """`word` taking up only the width volume.py leaves it (whispers are narrower)."""
+    tag = narrow_tag(word.volume)
+    return f"{{{tag}}}{word.text}{{\\fscx100}}" if tag else word.text
 
 
 def _box_text(
     words: list[WordEntry], break_at: int | None, narrow_whispers: bool = False,
 ) -> str:
-    """The line as plain text for the Box layer (or the plain baseline).
+    """Layer 0: the line as plain text in an opaque box (or the plain baseline).
 
-    With `narrow_whispers` a whispered word is narrowed with \\fscx, matching its
-    placeholder in the Fill layer, so the box is as wide as the visible text.
+    With `narrow_whispers` every word and space takes the width it has in the
+    Fill layer, so the box is as wide as the visible text.
     """
-    def piece(w: WordEntry) -> str:
-        if narrow_whispers and classify_volume(w.volume) == "whisper":
-            return f"{{\\fscx{whisper_scale(w.volume)}}}{w.text}{{\\fscx100}}"
-        return w.text
-
-    def sep(i: int) -> str:
-        if i == break_at:
-            return "\\N"
-        return word_separator(words[i - 1], words[i]) if narrow_whispers else " "
-
-    return "".join(sep(i) + piece(w) if i else piece(w) for i, w in enumerate(words))
+    if not narrow_whispers:
+        return "".join(
+            ("\\N" if i == break_at else " ") + w.text if i else w.text
+            for i, w in enumerate(words)
+        )
+    return "".join(_separator(words, i, break_at) + _narrowed(w) for i, w in enumerate(words))
 
 
-def _separator(words: list[WordEntry], i: int, break_at: int | None) -> str:
-    """What goes before word `i`: nothing, a row break, or a (scaled) space."""
-    if i == 0:
+def _fill_text(words: list[WordEntry], break_at: int | None) -> str:
+    """Layer 1: white before a word is said, hidden from the moment it is.
+
+    Once hidden a word is never shown again here: the Pop layer keeps drawing
+    it until the line ends, so the same glyphs are never handed back and forth
+    between two layers (that is what made words twitch). A waved word is
+    handed over character by character, as each one starts to rise.
+
+    A whispered word is hidden from the very first frame: the Pop layer draws
+    it, already small, for the whole line. It stays here as an invisible
+    placeholder of the same narrowed width, so the line leaves no gap around it.
+    """
+    if not words:
         return ""
-    if i == break_at:
-        return "\\N"
-    return word_separator(words[i - 1], words[i])
+    line_start = words[0].start
+    head = f"\\fs{BASE_FONT_SIZE}\\c{_WHITE}\\alpha&H00&"
+    parts = []
+    for i, word in enumerate(words):
+        parts.append(_separator(words, i, break_at))
+        kind = classify_volume(word.volume)
+        if kind == "whisper":
+            parts.append(
+                f"{{\\fs{BASE_FONT_SIZE}\\alpha&HFF&{narrow_tag(word.volume)}}}"
+                f"{word.text}{{\\fscx100}}"
+            )
+        elif kind == "normal":
+            for ch, at in zip(word.text, wave_hand_over_ms(word, line_start)):
+                parts.append(f"{{{head}{hide_tag(at)}}}{ch}")
+        else:
+            parts.append(f"{{{head}{hide_tag(hand_over_ms(word, line_start))}}}{word.text}")
+    return "".join(parts)
 
 
 def _invisible_pieces(words: list[WordEntry], break_at: int | None) -> list[str]:
-    """Each word as it appears in the Fill layout, with the separator before it."""
-    pieces = []
-    for i, w in enumerate(words):
-        sep = _separator(words, i, break_at)
-        if classify_volume(w.volume) == "whisper":
-            body = f"{{\\fscx{whisper_scale(w.volume)}}}{w.text}{{\\fscx100}}"
-        else:
-            body = w.text
-        pieces.append(sep + body)
-    return pieces
+    """Each word as it takes up room in the Fill line, with the separator before it."""
+    return [_separator(words, i, break_at) + _narrowed(w) for i, w in enumerate(words)]
 
 
-def _wave_context(
+def _word_event_text(
     words: list[WordEntry], break_at: int | None, index: int,
-) -> WaveLineContext:
-    """Per-character before/after text so libass lays a wave character out itself."""
-    pieces = _invisible_pieces(words, break_at)
-    sep = _separator(words, index, break_at)
-    text = words[index].text
-    before_words = "".join(pieces[:index]) + sep
-    after_words = "".join(pieces[index + 1:])
-    before = [before_words + text[:i] for i in range(len(text))]
-    after = [text[i + 1:] + after_words for i in range(len(text))]
-    anchor = (PLAY_RES[0] // 2, PLAY_RES[1] - MARGIN_V)
-    return WaveLineContext(anchor, before, after)
+    head: str, tags: str, lead: str, sweep: str,
+) -> str:
+    """The whole line with only `words[index]` visible, laid out by libass.
 
-
-def _word_context(
-    words: list[WordEntry], break_at: int | None, index: int,
-) -> WordLineContext:
-    """Line text before/after word `index` so libass lays a whole word out itself."""
+    Every other word is invisible, so libass puts the visible one at the very
+    pixel the Fill layer drew it at (same font, same kerning, same rounding) —
+    nothing is measured. `head` positions the line (\\pos or \\move), `tags`
+    are the word's size tags, `lead`/`sweep` its fill wipe. Because the
+    invisible line is re-centred as the word's width changes, a horizontal
+    \\fscx growth stays centred on the word; vertically it grows from the
+    baseline.
+    """
     pieces = _invisible_pieces(words, break_at)
     before = "".join(pieces[:index]) + _separator(words, index, break_at)
     after = "".join(pieces[index + 1:])
-    return WordLineContext((PLAY_RES[0] // 2, PLAY_RES[1] - MARGIN_V), before, after)
+    return (
+        f"{{{head}\\fs{BASE_FONT_SIZE}\\alpha&HFF&}}{before}"
+        f"{{\\alpha&H00&{tags}{lead}}}{{{sweep}}}{words[index].text}"
+        f"{{\\alpha&HFF&\\fscx100\\fscy100}}{after}"
+    )
+
+
+def _wave_events(
+    words: list[WordEntry], break_at: int | None, index: int, color: str, line_end: float,
+) -> list[tuple[float, float, str]]:
+    """Layer 2, normally spoken word: its characters lift and land in a ripple.
+
+    Each event carries the whole line with one character visible (see
+    `_word_event_text`), moved by sync.py's wave. ASS allows one \\move per
+    event, so each character is two events — the rise, white, then the fall,
+    in which it is wiped into `color`. A \\move stays at its end point, so the
+    fall event simply lasts until the line ends.
+    """
+    word = words[index]
+    pieces = _invisible_pieces(words, break_at)
+    before_word = "".join(pieces[:index]) + _separator(words, index, break_at)
+    after_word = "".join(pieces[index + 1:])
+    end = spoken_end(word)
+
+    events = []
+    for i, c in enumerate(wave_chars(word)):
+        before = before_word + word.text[:i]
+        after = word.text[i + 1:] + after_word
+        ch = word.text[i]
+        events.append((
+            c.rise_start, c.rise_end,
+            f"{{\\an2{rise_move(_ANCHOR, c.rise_ms)}\\fs{BASE_FONT_SIZE}\\alpha&HFF&}}{before}"
+            f"{{\\alpha&H00&\\c{_WHITE}}}{ch}{{\\alpha&HFF&}}{after}",
+        ))
+        lead, sweep = wipe_tags(c.rise_end, c.wipe_start, c.wipe_end)
+        events.append((
+            c.rise_end, max(c.rise_end + c.fall_ms / 1000, end, line_end),
+            f"{{\\an2{fall_move(_ANCHOR, c.fall_ms)}\\fs{BASE_FONT_SIZE}\\alpha&HFF&}}{before}"
+            f"{{\\alpha&H00&\\c{color}{lead}}}{{{sweep}}}{ch}{{\\alpha&HFF&}}{after}",
+        ))
+    return events
 
 
 def _pop_events(
-    word: WordEntry, color: str, left_x: float, cy: float,
-    line_start: float, line_end: float,
-    context: "WaveLineContext | WordLineContext | None" = None,
+    words: list[WordEntry], break_at: int | None, index: int,
+    color: str, line_start: float, line_end: float,
 ) -> list[tuple[float, float, str]]:
-    """Layer-2 events for one word, chosen by how loudly it was said.
+    """Layer-2 events for one word: how loudly it was said picks the motion.
 
-    Every event lasts until `line_end` (the end of the whole subtitle). The Fill
-    layer hides the word the moment it is said and never shows it again, so the
-    Pop layer must keep drawing it — handing the same glyphs back and forth
-    between two layers made words visibly twitch.
+      loud    → grows (more when louder), holds, then returns (volume.py)
+      whisper → small from the first frame of the line, never animated (volume.py)
+      normal  → its characters ripple up and down (sync.py)
 
-    A whispered word is the exception on the start side: its event begins with
+    Each is wiped into the speaker's `color` while it is said (sync.py). Every
+    event lasts until `line_end`: the Fill layer hides the word the moment it
+    is said and never shows it again. A whispered word's event also starts with
     the line (`line_start`), so it is small before it is even said.
     """
-    category = classify_volume(word.volume)
-    if category == "normal":
-        # With a line context libass places every character itself, so only the
-        # characters are needed -- not their measured positions.
-        chars = (
-            [(ch, 0.0, 0.0) for ch in word.text]
-            if context is not None
-            else _char_positions(word, left_x, cy)
-        )
-        return build_wave_events(
-            word, color, chars, hold_until=line_end, line_context=context,
-        )
+    word = words[index]
+    kind = classify_volume(word.volume)
+    if kind == "normal":
+        return _wave_events(words, break_at, index, color, line_end)
 
-    cx = (
-        0.0 if context is not None
-        else left_x + _text_width(word.text, BASE_FONT_SIZE) * _width_scale(word) / 2
-    )
     end = max(line_end, spoken_end(word))
-    if category == "whisper":
-        return [(
-            line_start, end,
-            build_whisper_event_text(word, color, cx, cy, line_start, context),
-        )]
-    return [(word.start, end, build_loud_event_text(word, color, cx, cy, context))]
+    if kind == "whisper":
+        x, y = _ANCHOR
+        # The line is bottom-anchored, so the shrunk word would sit on the
+        # baseline; shift the whole (otherwise invisible) line up to centre it.
+        head = f"\\an2\\pos({x},{y - whisper_lift(word.volume, BASE_FONT_SIZE)})"
+        lead, sweep = wipe_tags(line_start, word.start, spoken_end(word))
+        tags = f"\\c{color}{whisper_tags(word.volume)}"
+        return [(line_start, end, _word_event_text(words, break_at, index, head, tags, lead, sweep))]
 
+    head = f"\\an2\\pos({_ANCHOR[0]},{_ANCHOR[1]})"
+    lead, sweep = wipe_tags(word.start, word.start, spoken_end(word))
+    tags = f"\\c{color}{loud_tags(word.volume, spoken_end(word) - word.start)}"
+    return [(word.start, end, _word_event_text(words, break_at, index, head, tags, lead, sweep))]
 
 def subtitle_events(
     transcript: Transcript,
@@ -438,37 +420,16 @@ def _dialogue(
 
 def generate_ass(transcript: Transcript) -> str:
     color_map = speaker_colors(transcript)
-    weights = speaker_weights(transcript)
-    used = sorted(set(weights.values()) | {DEFAULT_WEIGHT})
-    lines = [_header_with_weights(resolve_faces(used), used)]
+    lines = [_HEADER]
     for group, start, end, _ in subtitle_events(transcript):
         speaker = group[0].speaker
         color = color_map.get(speaker, BASE_COLOUR)
         break_at = _row_break_index(group)
-        weight = weights.get(speaker, DEFAULT_WEIGHT)
-
-        lines.append(
-            _dialogue(start, end, speaker, _box_text(group, break_at, True), f"Box-{weight}", 0)
-        )
-        lines.append(
-            _dialogue(
-                start, end, speaker, build_fill_text(group, break_at), f"Fill-{weight}", 1,
-            )
-        )
-        for idx, word in enumerate(group):
-            # Every word is laid out by libass inside the invisible line, not
-            # by measured coordinates, so no word can drift from the Fill layer
-            # (and no font has to be measured: `_compute_word_layout` is only
-            # kept for a `_pop_events` call without a context).
-            context = (
-                _wave_context(group, break_at, idx)
-                if classify_volume(word.volume) == "normal"
-                else _word_context(group, break_at, idx)
-            )
-            for w_start, w_end, text in _pop_events(
-                word, color, 0.0, 0.0, start, end, context,
-            ):
-                lines.append(_dialogue(w_start, w_end, speaker, text, f"Pop-{weight}", 2))
+        lines.append(_dialogue(start, end, speaker, _box_text(group, break_at, True), "Box", 0))
+        lines.append(_dialogue(start, end, speaker, _fill_text(group, break_at), "Fill", 1))
+        for idx in range(len(group)):
+            for w_start, w_end, text in _pop_events(group, break_at, idx, color, start, end):
+                lines.append(_dialogue(w_start, w_end, speaker, text, "Pop", 2))
     return "\n".join(lines) + "\n"
 
 
