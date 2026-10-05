@@ -19,6 +19,8 @@ from hearing_to_seeing.design.volume import (
     loud_tags,
     narrow_tag,
     whisper_lift,
+    whisper_phases,
+    whisper_return_tags,
     whisper_tags,
 )
 
@@ -235,7 +237,7 @@ def _separator(words: list[WordEntry], i: int, break_at: int | None) -> str:
 
 
 def _narrowed(word: WordEntry) -> str:
-    """`word` taking up only the width volume.py leaves it (whispers are narrower)."""
+    """`word` taking up the width volume.py leaves it (all words keep their full width)."""
     tag = narrow_tag(word.volume)
     return f"{{{tag}}}{word.text}{{\\fscx100}}" if tag else word.text
 
@@ -264,9 +266,11 @@ def _fill_text(words: list[WordEntry], break_at: int | None) -> str:
     between two layers (that is what made words twitch). A waved word is
     handed over character by character, as each one starts to rise.
 
-    A whispered word is hidden from the very first frame: the Pop layer draws
-    it, already small, for the whole line. It stays here as an invisible
-    placeholder of the same narrowed width, so the line leaves no gap around it.
+    A whispered word is handed over like a shouted one, at the moment it is
+    said: until then it is drawn here at full size and full width like every
+    other word, and the Pop layer then shrinks it about its own centre and
+    returns it. The placeholder keeps its full width, so the box does not
+    change size.
     """
     if not words:
         return ""
@@ -275,16 +279,10 @@ def _fill_text(words: list[WordEntry], break_at: int | None) -> str:
     parts = []
     for i, word in enumerate(words):
         parts.append(_separator(words, i, break_at))
-        kind = classify_volume(word.volume)
-        if kind == "whisper":
-            parts.append(
-                f"{{\\fs{BASE_FONT_SIZE}\\alpha&HFF&{narrow_tag(word.volume)}}}"
-                f"{word.text}{{\\fscx100}}"
-            )
-        elif kind == "normal":
+        if classify_volume(word.volume) == "normal":
             for ch, at in zip(word.text, wave_hand_over_ms(word, line_start)):
                 parts.append(f"{{{head}{hide_tag(at)}}}{ch}")
-        else:
+        else:  # loud and whisper: the whole word is handed over when it is said
             parts.append(f"{{{head}{hide_tag(hand_over_ms(word, line_start))}}}{word.text}")
     return "".join(parts)
 
@@ -361,13 +359,12 @@ def _pop_events(
     """Layer-2 events for one word: how loudly it was said picks the motion.
 
       loud    → grows (more when louder), holds, then returns (volume.py)
-      whisper → small from the first frame of the line, never animated (volume.py)
+      whisper → shrinks about its own centre, holds, then returns (volume.py)
       normal  → its characters ripple up and down (sync.py)
 
     Each is wiped into the speaker's `color` while it is said (sync.py). Every
     event lasts until `line_end`: the Fill layer hides the word the moment it
-    is said and never shows it again. A whispered word's event also starts with
-    the line (`line_start`), so it is small before it is even said.
+    is said and never shows it again.
     """
     word = words[index]
     kind = classify_volume(word.volume)
@@ -377,12 +374,29 @@ def _pop_events(
     end = max(line_end, spoken_end(word))
     if kind == "whisper":
         x, y = _ANCHOR
-        # The line is bottom-anchored, so the shrunk word would sit on the
-        # baseline; shift the whole (otherwise invisible) line up to centre it.
-        head = f"\\an2\\pos({x},{y - whisper_lift(word.volume, BASE_FONT_SIZE)})"
-        lead, sweep = wipe_tags(line_start, word.start, spoken_end(word))
-        tags = f"\\c{color}{whisper_tags(word.volume)}"
-        return [(line_start, end, _word_event_text(words, break_at, index, head, tags, lead, sweep))]
+        spoken = spoken_end(word) - word.start
+        in_ms, back_ms, out_ms = whisper_phases(spoken)
+        back_at = word.start + back_ms / 1000
+        # The line is bottom-anchored, so a shrinking word would sink towards
+        # the baseline; the whole (otherwise invisible) line is raised by the
+        # same linear ramp as the shrink, so the word scales about its centre.
+        # ASS allows one \\move per event, so the word is two events back to
+        # back: shrink + hold (lifted), then return (lowered again).
+        lift = whisper_lift(word.volume, BASE_FONT_SIZE)
+        head_in = f"\\an2\\move({x},{y},{x},{y - lift},0,{in_ms})"
+        head_out = f"\\an2\\move({x},{y - lift},{x},{y},0,{out_ms})"
+        # The wipe has to be finished when the second event takes over (it
+        # cannot be resumed half way), so it runs until the return starts.
+        lead, sweep = wipe_tags(word.start, word.start, back_at)
+        shrink = _word_event_text(
+            words, break_at, index, head_in,
+            f"\\c{color}{whisper_tags(word.volume, spoken)}", lead, sweep,
+        )
+        restore = _word_event_text(
+            words, break_at, index, head_out,
+            f"\\c{color}{whisper_return_tags(word.volume, spoken)}", "", "",
+        )
+        return [(word.start, back_at, shrink), (back_at, end, restore)]
 
     head = f"\\an2\\pos({_ANCHOR[0]},{_ANCHOR[1]})"
     lead, sweep = wipe_tags(word.start, word.start, spoken_end(word))
@@ -449,4 +463,4 @@ def generate_plain_ass(transcript: Transcript) -> str:
 def write_ass(transcript: Transcript, output_path: str) -> None:
     content = generate_ass(transcript)
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(content)
+        f.write(content)

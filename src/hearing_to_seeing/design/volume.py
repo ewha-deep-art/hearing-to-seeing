@@ -2,8 +2,9 @@
 
 Measures each word's volume, sorts it into loud / whisper / normal, and turns
 that into a scale: a shouted word quickly grows, holds and returns; a whispered
-one is small for the whole line. The font size itself never changes
-(layout.BASE_FONT_SIZE) — only this scale on top of it.
+one does the opposite — it quickly shrinks as it is said, holds, and returns to
+full size. The font size itself never changes (layout.BASE_FONT_SIZE) — only
+this scale on top of it.
 """
 
 import numpy as np
@@ -19,7 +20,7 @@ QUIET_THRESHOLD = 0.3
 # Peak size (percent) is interpolated from the word's volume:
 #   loud    : volume LOUD_THRESHOLD → LOUD_SCALE_MIN, volume 1.0 → LOUD_SCALE_MAX
 #   whisper : volume 0.0 → WHISPER_SCALE_MIN, volume QUIET_THRESHOLD → WHISPER_SCALE_MAX
-#             (applied from the first frame of the line, never animated)
+#             (reached as the word is said, held, then back to 100%)
 LOUD_SCALE_MIN = 120
 LOUD_SCALE_MAX = 160
 WHISPER_SCALE_MIN = 65
@@ -27,13 +28,15 @@ WHISPER_SCALE_MAX = 80
 
 # A whispered word is shrunk in both directions. Laid out by libass it would sit
 # on the baseline; raising it by this share of the height it lost
-# (font size * (1 - scale)) puts it back at the vertical centre of the row.
+# (font size * (1 - scale)) keeps it centred on the row's vertical centre. The
+# raise follows the shrink and the return, so the word scales about its own
+# centre point.
 # 0.0 = on the baseline, ~0.3 = centred (half of ascent - descent over the font
 # size, which is about 0.6 for most fonts).
 WHISPER_V_CENTER = 0.3
 
-# A shouted word has three phases within the time it is said:
-#   grow (short) → hold at the scaled size (long) → return to 100% (short)
+# A shouted or whispered word has three phases within the time it is said:
+#   grow/shrink (short) → hold at the scaled size (long) → return to 100% (short)
 # Each transition takes this share of the word's duration, but never less than
 # SCALE_MIN_TRANSITION_MS (unless that would exceed SCALE_MAX_TRANSITION_SHARE).
 # Whatever is left over is the hold.
@@ -107,12 +110,13 @@ def whisper_scale(volume: float) -> int:
 def width_scale(volume: float) -> float:
     """Horizontal scale (1.0 = normal) a word takes up in the line.
 
-    A whispered word stays small for the whole line, so the line keeps only
-    that much room for it; a shouted word grows over its neighbours and gives
-    its room back, so it keeps its normal width.
+    Always 1.0: the line, and the black box behind it, keep the room every word
+    has at full size. A whispered word shrinks inside that room about its own
+    centre, so it leaves equal margins on both sides instead of pulling the
+    words around it closer, then returns to full size; a shouted word grows over
+    its neighbours and gives the room back. Kept as a function so layout.py's
+    spacing keeps one place to ask.
     """
-    if classify_volume(volume) == "whisper":
-        return whisper_scale(volume) / 100
     return 1.0
 
 
@@ -145,10 +149,37 @@ def loud_tags(volume: float, spoken_seconds: float) -> str:
     )
 
 
-def whisper_tags(volume: float) -> str:
-    """A whispered word's size, held unchanged from the first frame."""
+def whisper_phases(spoken_seconds: float) -> tuple[int, int, int]:
+    """`(shrink_ms, return_start_ms, return_ms)` of a whispered word.
+
+    All counted from the moment the word is said: it shrinks during the first
+    `shrink_ms`, holds until `return_start_ms`, then takes `return_ms` to get
+    back to full size (the same phases as a shouted word, see `loud_tags`).
+    """
+    duration_ms = max(3, round(spoken_seconds * 1000))
+    in_ms = _transition_ms(duration_ms, SCALE_IN_RATIO)
+    out_ms = _transition_ms(duration_ms, SCALE_OUT_RATIO)
+    return in_ms, duration_ms - out_ms, out_ms
+
+
+def whisper_tags(volume: float, spoken_seconds: float) -> str:
+    """First part of a whispered word: shrink to `whisper_scale`, then hold.
+
+    `\\t` times count from the event start, which is when the word is said. The
+    return to 100% is a second event (`whisper_return_tags`): ASS allows only one
+    `\\move`, and the word has to be lifted while it shrinks and lowered again
+    while it returns.
+    """
     scale = whisper_scale(volume)
-    return f"\\fscx{scale}\\fscy{scale}"
+    in_ms = whisper_phases(spoken_seconds)[0]
+    return f"\\t(0,{in_ms},\\fscx{scale}\\fscy{scale})"
+
+
+def whisper_return_tags(volume: float, spoken_seconds: float) -> str:
+    """Second part: start at `whisper_scale`, return to 100%, stay there."""
+    scale = whisper_scale(volume)
+    out_ms = whisper_phases(spoken_seconds)[2]
+    return f"\\fscx{scale}\\fscy{scale}\\t(0,{out_ms},\\fscx100\\fscy100)"
 
 
 def whisper_lift(volume: float, font_size: float) -> int:
