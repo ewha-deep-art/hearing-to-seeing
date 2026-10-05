@@ -8,6 +8,7 @@ from hearing_to_seeing.converter.ass import (
     generate_ass,
     generate_plain_ass,
     split_into_lines,
+    subtitle_events,
 )
 from hearing_to_seeing.design.layout import FONT_NAME
 from hearing_to_seeing.design.volume import loud_scale, whisper_scale
@@ -156,7 +157,7 @@ def test_generate_ass_draws_box_fill_and_pop_layers():
     pops = [line for line in lines if ",Pop," in line]
     assert pops[0].startswith("Dialogue: 2,") and f"\\fscx{loud_scale(1.0)}" in pops[0]  # loud
     assert f"\\fscx{whisper_scale(0.0)}" in pops[1]                                       # whisper
-    assert len(pops) == 2 + 2 * len("보통.")                                 # wave: 2 per character
+    assert len(pops) == 1 + 2 + 2 * len("보통")  # loud: 1, whisper: shrink + return, wave: 2 per character
 
 
 def test_generate_ass_uses_colours_from_speaker_profiles():
@@ -177,10 +178,32 @@ def test_generate_ass_draws_every_style_in_the_bundled_font():
     assert all(line.split(",")[1] == FONT_NAME for line in styles)
 
 
-def test_whispered_word_keeps_a_narrowed_placeholder_in_box_and_fill():
+def test_whispered_word_keeps_its_full_width_and_shrinks_then_returns():
     transcript = Transcript(words=[_word("작게", 0.0, 0.4, volume=0.0), _word("말해.", 0.4, 0.8)])
     lines = _dialogues(generate_ass(transcript))
     box, fill = lines[0], lines[1]
-    narrow = f"\\fscx{whisper_scale(0.0)}"
-    assert f"{{{narrow}}}작게{{\\fscx100}}" in box
-    assert f"\\alpha&HFF&{narrow}}}작게" in fill  # hidden from the first frame
+    assert box.endswith(",작게{\\fscx92} {\\fscx100}말해")  # no narrowing: the box keeps its size
+    assert "\\t(0,1,\\alpha&HFF&)}작게" in fill               # white until said, then handed over
+    shrink, restore = [line for line in lines if ",Pop," in line][:2]  # the whisper's two events
+    scale = whisper_scale(0.0)
+    assert f"\\t(0,80,\\fscx{scale}\\fscy{scale})" in shrink
+    assert f"\\fscx{scale}\\fscy{scale}\\t(0,80,\\fscx100\\fscy100)" in restore
+    assert shrink.split(",")[2] == restore.split(",")[1]       # the return picks up where the shrink ends
+
+
+def test_subtitle_events_drop_the_full_stop_but_still_break_on_it():
+    words = [
+        _word("바뀌었습니다.", 0.0, 0.5),
+        _word("정말요?", 0.6, 1.0),
+        _word("글쎄...", 1.1, 1.5),
+        _word("3.5배.", 1.6, 2.0),
+    ]
+    texts = [[w.text for w in g] for g, *_ in subtitle_events(Transcript(words=words))]
+    assert texts == [["바뀌었습니다"], ["정말요?"], ["글쎄..."], ["3.5배"]]
+    assert words[0].text == "바뀌었습니다."  # the transcript itself is untouched
+
+
+def test_generate_ass_draws_no_full_stop():
+    ass = generate_ass(Transcript(words=[_word("바뀌었습니다.", 0.0, 0.5)]))
+    assert "바뀌었습니다." not in ass
+    assert "바뀌었습니다" in ass

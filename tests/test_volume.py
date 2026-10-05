@@ -15,6 +15,8 @@ from hearing_to_seeing.design.volume import (
     narrow_tag,
     normalize,
     whisper_lift,
+    whisper_phases,
+    whisper_return_tags,
     whisper_scale,
     whisper_tags,
     width_scale,
@@ -57,11 +59,9 @@ def test_louder_words_grow_bigger_and_quieter_ones_shrink_more():
     assert WHISPER_SCALE_MIN == whisper_scale(0.0) < whisper_scale(QUIET_THRESHOLD) == WHISPER_SCALE_MAX
 
 
-def test_only_whispers_give_up_width_in_the_line():
-    assert width_scale(0.0) == WHISPER_SCALE_MIN / 100
-    assert narrow_tag(0.0) == f"\\fscx{WHISPER_SCALE_MIN}"
-    assert width_scale(0.5) == width_scale(1.0) == 1.0
-    assert narrow_tag(0.5) == narrow_tag(1.0) == ""
+def test_no_word_gives_up_width_in_the_line():
+    assert width_scale(0.0) == width_scale(0.5) == width_scale(1.0) == 1.0
+    assert narrow_tag(0.0) == narrow_tag(0.5) == narrow_tag(1.0) == ""
 
 
 def test_loud_word_grows_holds_and_returns_within_its_spoken_time():
@@ -72,6 +72,13 @@ def test_loud_word_grows_holds_and_returns_within_its_spoken_time():
     )
 
 
-def test_whisper_is_a_fixed_size_lifted_to_mid_row():
-    assert whisper_tags(0.0) == f"\\fscx{WHISPER_SCALE_MIN}\\fscy{WHISPER_SCALE_MIN}"
+def test_whisper_shrinks_holds_and_returns_within_its_spoken_time():
+    assert whisper_phases(1.0) == (200, 800, 200)
+    assert whisper_tags(0.0, 1.0) == f"\\t(0,200,\\fscx{WHISPER_SCALE_MIN}\\fscy{WHISPER_SCALE_MIN})"
+    assert whisper_return_tags(0.0, 1.0) == (
+        f"\\fscx{WHISPER_SCALE_MIN}\\fscy{WHISPER_SCALE_MIN}\\t(0,200,\\fscx100\\fscy100)"
+    )
+
+
+def test_whisper_is_lifted_to_mid_row():
     assert whisper_lift(0.0, 100) == round(100 * (1 - WHISPER_SCALE_MIN / 100) * WHISPER_V_CENTER)

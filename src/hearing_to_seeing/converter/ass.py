@@ -1,4 +1,5 @@
 import unicodedata
+from dataclasses import replace
 
 from hearing_to_seeing.schema import Transcript, WordEntry
 from hearing_to_seeing.design.layout import BASE_FONT_SIZE, FONT_BOLD, FONT_NAME, space_scale
@@ -47,6 +48,9 @@ from hearing_to_seeing.design.volume import (
 #    but only when doing so still respects every limit from pass 1 (same
 #    speaker, gap, width, duration). A forced break whose cause would still
 #    hold true for the merged line is never undone.
+#
+# A sentence-ending full stop only decides line breaks: it is dropped from the
+# drawn text (`_display_word`), so `바뀌었습니다.` shows as `바뀌었습니다`.
 ROW_WIDTH = 42          # display cells per on-screen row
 MAX_WIDTH = 2 * ROW_WIDTH  # a subtitle may occupy at most two rows
 MAX_DURATION = 6.0      # seconds a single subtitle may stay on screen
@@ -403,11 +407,22 @@ def _pop_events(
     tags = f"\\c{color}{loud_tags(word.volume, spoken_end(word) - word.start)}"
     return [(word.start, end, _word_event_text(words, break_at, index, head, tags, lead, sweep))]
 
+def _display_word(word: WordEntry) -> WordEntry:
+    """`word` as drawn: one trailing full stop removed (an ellipsis `...` is kept)."""
+    if word.text.endswith(".") and not word.text.endswith(".."):
+        return replace(word, text=word.text[:-1])
+    return word
+
+
 def subtitle_events(
     transcript: Transcript,
 ) -> list[tuple[list[WordEntry], float, float, list[int]]]:
     """One `(words, start, end, karaoke centiseconds)` entry per on-screen subtitle."""
-    groups = [g for g in split_into_lines(transcript.words) if g]
+    groups = [
+        [w for w in map(_display_word, g) if w.text]
+        for g in split_into_lines(transcript.words)
+    ]
+    groups = [g for g in groups if g]
     events = []
     for i, group in enumerate(groups):
         start = group[0].start
@@ -463,4 +478,4 @@ def generate_plain_ass(transcript: Transcript) -> str:
 def write_ass(transcript: Transcript, output_path: str) -> None:
     content = generate_ass(transcript)
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(content)
+        f.write(content)
