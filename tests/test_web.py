@@ -40,8 +40,8 @@ def fake_media(monkeypatch):
     def download(url, dest_dir):
         return touch(f"{dest_dir}/source.mp4"), "Fetched title"
 
-    def run(wav, ass, language, output_json, title=None):
-        runs.append({"title": title})
+    def run(wav, ass, language, output_json, title=None, media_path=None):
+        runs.append({"title": title, "media_path": media_path})
         transcript = _transcript()
         with open(output_json, "w", encoding="utf-8") as f:
             json.dump(transcript.to_dict(), f)
@@ -128,6 +128,11 @@ def test_youtube_uses_fetched_title(library, fake_media):
 def test_pipeline_gets_the_title_for_speaker_lookup(library, fake_media):
     library.add_url("https://youtu.be/x", None)
     assert fake_media[0]["title"] == "Fetched title"
+
+
+def test_pipeline_gets_the_source_video_for_the_review(library, fake_media):
+    library.add_url("https://youtu.be/x", None)
+    assert fake_media[0]["media_path"].endswith("source.mp4")
 
 
 def test_failure_is_recorded(library, fake_media, monkeypatch):

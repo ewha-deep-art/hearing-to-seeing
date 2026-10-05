@@ -32,6 +32,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--language", default=None, help="spoken language code (default: none)",
     )
+    parser.add_argument(
+        "--speakers", type=int, default=None, metavar="N",
+        help="number of speakers, if known; passed to diarization as the exact count "
+             "(default: detected)",
+    )
+    parser.add_argument(
+        "--video", default=None, metavar="PATH",
+        help="the source video, for the model to check speakers against what is on "
+             "screen (needs GEMINI_API_KEY; default: it listens to the WAV)",
+    )
 
     return parser
 
@@ -39,9 +49,10 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
-    if not os.path.isfile(args.media):
-        print(f"media file not found: {args.media}", file=sys.stderr)
-        return 2
+    for path in filter(None, [args.media, args.video]):
+        if not os.path.isfile(path):
+            print(f"media file not found: {path}", file=sys.stderr)
+            return 2
 
     output_ass = args.output or _default_output(args.media, ".ass")
     # `--json` doubles as a flag and an option: True means "yes, at the default path".
@@ -58,7 +69,10 @@ def main(argv: list[str] | None = None) -> int:
     from hearing_to_seeing.stt import STTRequestError
 
     try:
-        transcript = pipeline.run(args.media, output_ass, args.language, output_json)
+        transcript = pipeline.run(
+            args.media, output_ass, args.language, output_json,
+            num_speakers=args.speakers, media_path=args.video,
+        )
     except STTRequestError as exc:
         print(exc, file=sys.stderr)
         return 1

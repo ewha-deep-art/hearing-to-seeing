@@ -1,8 +1,8 @@
-"""The three questions the speaker-colour step asks the model.
+"""The questions the pipeline asks the model.
 
 Each is a (SYSTEM, PROMPT, SCHEMA) triple for `llm.ask()`; PROMPT is filled in
 with `str.format`. The answers are plain dicts shaped by SCHEMA and are read
-directly by `design/speaker.py`.
+directly by `pipeline.py` (1–3) and `review.py` (4).
 """
 
 # --- 1. clip title → work -----------------------------------------------------
@@ -31,7 +31,7 @@ TITLE_SCHEMA = {
 # --- 2. documents → cast, with a subtitle colour per character ----------------
 # One request for the whole cast, so the model can keep the colours apart the
 # way a designer picks a palette rather than one colour at a time. The model
-# never sees OKLCH: it proposes sRGB and speaker.py keeps only the hue.
+# never sees OKLCH: it proposes sRGB and pipeline.py keeps only the hue.
 
 CAST_SYSTEM = """\
 당신은 영화·드라마 등장인물 조사 도구이자 자막 색채 전문가다. 배우가 아니라 **극중 인물**을
@@ -141,5 +141,75 @@ SPEAKERS_SCHEMA = {
         },
     },
     "required": ["speakers"],
+    "additionalProperties": False,
+}
+
+# --- 4. the clip itself → who speaks each utterance, which disputed reading ----
+# Asked with the video (or the audio) attached. The model only chooses: a name
+# per utterance and an option per disputed spot, never new text. Measured on
+# the test clips (docs/STT_TUNING.md, 4차): flash-lite answers every spot with
+# a junk option, so this question has no fallback model; and in English the
+# model leaves more spots alone than with the same instructions in Korean,
+# which overruled the vote more often and more often wrongly.
+
+REVIEW_SYSTEM = (
+    "You check Korean subtitles of a Korean-dubbed video clip against the clip itself. "
+    "The subtitles come from speech recognition. Speaker labels (SPEAKER_xx) come from "
+    "automatic diarization and are often wrong."
+)
+
+REVIEW_PROMPT = """\
+Task 1, speakers: for EVERY utterance id, name the character actually speaking it. {how} \
+Use the cast names below; for an unnamed character use 손님1, 손님2, … and keep the same \
+number for the same character throughout. Several utterances in a row may belong to \
+different characters even when they share a SPEAKER label.
+{text_task}
+Cast: {cast}
+
+Utterances:
+{utterances}"""
+
+REVIEW_HOW = {
+    "video": "Judge by whose mouth moves on screen and by the voice, not by the story.",
+    "audio": "Judge by the voice and the dialogue.",
+}
+
+REVIEW_TEXT_TASK = """
+Task 2, disputed words: ⟨dN @t: 1) … | 2) …⟩ marks a spot (t seconds into the clip) where \
+several recognition passes disagree. Option 1 is the current reading, ×k is how many passes \
+read it, (없음) means no word there. Report a spot only when you clearly hear an option \
+other than 1; skip spots where option 1 is right or you are unsure. Never answer with text \
+that is not one of the options.
+"""
+
+REVIEW_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "utterances": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "u1, u2, …"},
+                    "speaker": {"type": "string", "description": "the speaking character"},
+                },
+                "required": ["id", "speaker"],
+                "additionalProperties": False,
+            },
+        },
+        "corrections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "d0, d1, …"},
+                    "option": {"type": "integer", "description": "the chosen option (2 or more)"},
+                },
+                "required": ["id", "option"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["utterances", "corrections"],
     "additionalProperties": False,
 }

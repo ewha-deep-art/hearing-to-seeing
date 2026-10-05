@@ -162,7 +162,7 @@ def test_generate_ass_draws_box_fill_and_pop_layers():
 def test_generate_ass_uses_colours_from_speaker_profiles():
     transcript = Transcript(
         words=[_word("hi.", 0.0, 0.4)],
-        speaker_profiles={"SPEAKER_00": {"color": "&H00123456"}},
+        speaker_profiles={"SPEAKER_00": {"color": "#563412"}},
     )
     pops = [line for line in _dialogues(generate_ass(transcript)) if ",Pop," in line]
     assert pops and all("\\c&H00123456" in line for line in pops[1::2])  # every fall event

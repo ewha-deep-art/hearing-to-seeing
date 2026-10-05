@@ -34,6 +34,10 @@ def download_youtube(url: str, dest_dir: str) -> tuple[str, str | None]:
         "merge_output_format": "mp4",
         "outtmpl": os.path.join(dest_dir, "source.%(ext)s"),
         "noplaylist": True,
+        # Some videos (e.g. channel uploads restricted on the web player) come
+        # back "not available" from the default clients; the android client
+        # still serves them.
+        "extractor_args": {"youtube": {"player_client": ["default", "android"]}},
         "quiet": True,
         "no_warnings": True,
         # Error messages end up in the web UI; keep terminal colour codes out.
