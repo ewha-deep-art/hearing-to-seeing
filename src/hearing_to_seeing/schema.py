@@ -18,9 +18,9 @@ class WordEntry:
 class Transcript:
     words: list[WordEntry] = field(default_factory=list)
     language: str | None = None
-    # Label → {"color", "name", "confidence", "reason"}, written by the speaker
-    # step (design/speaker.py) so the colours are decided once and every
-    # reader — the ASS converter, the web legend — shows the same ones.
+    # Label → {"color" (#RRGGBB), "name", "confidence", "reason"}, decided by
+    # the pipeline (pipeline.assign_speaker_colors) so every reader — the ASS
+    # converter via design/speaker.py, the web legend — shows the same ones.
     speaker_profiles: dict[str, dict] = field(default_factory=dict)
 
     def speakers(self) -> list[str]:

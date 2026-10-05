@@ -165,10 +165,11 @@ class Library:
 
         with self._timed_step(video_id, "transcribing", timings):
             # The title lets the speaker step look up the work's characters
-            # (when GEMINI_API_KEY is set) — alongside STT, inside pipeline.run.
+            # (when GEMINI_API_KEY is set) — alongside STT, inside pipeline.run;
+            # the source video lets the review see who is speaking.
             transcript = pipeline.run(
                 path(AUDIO), path(ASS), meta["language"], path(TRANSCRIPT),
-                title=self.get(video_id)["title"],
+                title=self.get(video_id)["title"], media_path=source_path,
             )
 
         with self._timed_step(video_id, "finishing", timings):

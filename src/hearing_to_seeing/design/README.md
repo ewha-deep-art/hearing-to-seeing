@@ -48,14 +48,16 @@
 
 화자마다 색 하나. 단어는 말하기 전에는 흰색이고, 말하는 동안 화자 색으로 채워진다(채우기는 `sync.py`).
 
+화자 이름과 색은 **파이프라인([`pipeline.py`](../pipeline.py))이 정해** 중간 JSON의 `speaker_profiles`(`#RRGGBB`)에 넣는다. `speaker.py`는 그 값을 읽어 ASS 색(`&H00BBGGRR`)으로 바꾸는 일만 한다. 아래는 `pipeline.py`가 색을 정하는 방식이다.
+
 - **색 공간:** OKLCH, 밝기 `LIGHTNESS` 0.75로 고정하고 hue만 바꾼다. 어떤 색이든 같은 밝기로 읽힌다.
-- **배정:** `GEMINI_API_KEY`가 있으면 작품 제목 → 위키 검색 → 인물표·인물별 색 → 대사로 화자 ↔ 인물 추론 순서로 정한다.
-  상세: [`docs/PIPELINE.md`](../../../docs/PIPELINE.md).
+- **배정:** `GEMINI_API_KEY`가 있으면 작품 제목 → 위키 검색 → 인물표·인물별 색 → 영상 검토(실패 시 대사)로 화자 ↔ 인물 추론 순서로 정한다.
+  상세: [`knowledge/README.md`](../knowledge/README.md).
   - 인물과 매칭된 화자(신뢰도 `MIN_CONFIDENCE` 0.7 이상)는 진한 색(최대 채도의 95%)을 쓴다.
   - 매칭되지 않은 화자는 흐린 색(32%)을 쓴다. 매칭된 화자가 하나도 없으면 모두 진한 색이다.
   - 화자끼리 hue는 최소 `MIN_HUE_GAP` 40° 떨어뜨린다. 화자가 많으면 이 간격을 자동으로 줄인다.
 - **폴백:** 키가 없거나 어느 단계든 실패하면 화자마다 색상환에 균등하게 배치한다.
-- 결과는 `transcript.speaker_profiles`에 저장되고, ASS 변환과 웹 범례가 같은 값을 읽는다.
+- 결과는 `transcript.speaker_profiles`에 `#RRGGBB`로 저장되고, ASS 변환(`speaker.py`를 거쳐)과 웹 범례가 같은 값을 읽는다.
 
 ---
 
