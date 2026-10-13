@@ -1,71 +1,139 @@
-"""Locating and invoking the ffmpeg toolchain.
+"""Getting media in and out of the shapes the pipeline and the browser need.
 
-Both the volume step (which decodes audio to PCM) and the preview renderer
-shell out to ffmpeg, so the binary lookup and the decode live here rather
-than in either caller. Set H2S_FFMPEG / H2S_FFPROBE to use binaries that are
-not on PATH.
+The pipeline reads WAV only, and a browser plays H.264/AAC mp4 reliably, so each
+source is split into both: `audio.wav` for STT and volume, `media.mp4` for the
+player.
 """
 
-import io
+import json
 import os
-import shutil
-import subprocess
 
-import numpy as np
+from hearing_to_seeing.render import run_tool, tool
 
+# Codecs every mainstream browser decodes inside an mp4 without re-encoding.
+_PLAYABLE_VIDEO = {"h264"}
+_PLAYABLE_AUDIO = {"aac", "mp3"}
 
-class MediaToolError(RuntimeError):
-    pass
-
-
-def tool(name: str) -> str:
-    """Returns the path to an ffmpeg-family binary."""
-    override = os.environ.get(f"H2S_{name.upper()}")
-    if override:
-        return override
-    # ffprobe normally ships beside ffmpeg, so an ffmpeg override locates it too.
-    ffmpeg_override = os.environ.get("H2S_FFMPEG")
-    if ffmpeg_override:
-        sibling = os.path.join(os.path.dirname(ffmpeg_override), name)
-        if os.path.exists(sibling):
-            return sibling
-    found = shutil.which(name)
-    if not found:
-        raise MediaToolError(
-            f"{name} not found on PATH. Install ffmpeg, or set H2S_{name.upper()} "
-            "to the binary's path."
-        )
-    return found
+# A player needs a frame to show; audio-only sources get a black 16:9 still.
+AUDIO_ONLY_SIZE = (1280, 720)
 
 
-def run(cmd: list[str]) -> bytes:
-    """Runs a command, raising MediaToolError with stderr on failure."""
-    proc = subprocess.run(cmd, capture_output=True)
-    if proc.returncode != 0:
-        raise MediaToolError(
-            f"{os.path.basename(cmd[0])} failed:\n{proc.stderr.decode(errors='replace')}"
-        )
-    return proc.stdout
+def download_youtube(url: str, dest_dir: str) -> tuple[str, str | None]:
+    """Downloads `url` as an mp4 into `dest_dir`; returns `(path, title)`.
 
-
-def decode_audio(media_path: str, sample_rate: int = 16000) -> tuple[int, np.ndarray]:
-    """Decodes `media_path` to mono PCM for the volume step.
-
-    16 kHz matches what WhisperX's `load_audio` uses for STT, so the volume
-    step and the STT path share one decode rate instead of running the audio
-    through ffmpeg twice at different rates for no benefit to the RMS calc.
-
-    Returns the sample rate reported by the WAV header alongside the samples,
-    so callers index by time without assuming the requested rate held.
+    Video is requested alongside audio because the player shows it, and H.264
+    is preferred so the file usually plays without a transcode.
     """
-    # scipy arrives as a whisperx dependency and is only needed here, so the
-    # import stays local rather than loading it for every media.py caller.
-    from scipy.io import wavfile
+    from yt_dlp import YoutubeDL
 
-    out = run([
-        tool("ffmpeg"), "-i", media_path,
-        "-f", "wav", "-ac", "1", "-ar", str(sample_rate),
-        "-loglevel", "quiet", "pipe:1",
+    options = {
+        "format": (
+            "bv*[vcodec^=avc1][height<=1080]+ba[ext=m4a]"
+            "/b[ext=mp4][height<=1080]/bv*[height<=1080]+ba/b"
+        ),
+        "merge_output_format": "mp4",
+        "outtmpl": os.path.join(dest_dir, "source.%(ext)s"),
+        "noplaylist": True,
+        # Some videos (e.g. channel uploads restricted on the web player) come
+        # back "not available" from the default clients; the android client
+        # still serves them.
+        "extractor_args": {"youtube": {"player_client": ["default", "android"]}},
+        "quiet": True,
+        "no_warnings": True,
+        # Error messages end up in the web UI; keep terminal colour codes out.
+        "color": {"stdout": "no_color", "stderr": "no_color"},
+        "ffmpeg_location": tool("ffmpeg"),
+        # YouTube hides formats behind a JS challenge; without a runtime many
+        # videos fail as "not available". yt-dlp only tries deno by default,
+        # so allow every runtime it supports (the solver is yt-dlp-ejs).
+        "js_runtimes": {"deno": {}, "node": {}, "bun": {}, "quickjs": {}},
+    }
+    with YoutubeDL(options) as ydl:
+        info = ydl.extract_info(url, download=True)
+        path = info.get("requested_downloads", [{}])[0].get("filepath") or ydl.prepare_filename(info)
+    return path, info.get("title")
+
+
+def probe(media_path: str) -> dict:
+    """Duration and first video/audio codec names, as reported by ffprobe."""
+    out = run_tool([
+        tool("ffprobe"), "-v", "error",
+        "-show_entries", "format=duration:stream=codec_type,codec_name:stream_disposition=attached_pic",
+        "-of", "json",
+        media_path,
     ])
-    rate, audio_data = wavfile.read(io.BytesIO(out))
-    return rate, audio_data
+    data = json.loads(out or b"{}")
+    codecs: dict[str, str] = {}
+    for stream in data.get("streams", []):
+        # Cover art embedded in an mp3 shows up as a one-frame video stream.
+        if stream.get("disposition", {}).get("attached_pic"):
+            continue
+        codecs.setdefault(stream.get("codec_type"), stream.get("codec_name"))
+    duration = data.get("format", {}).get("duration")
+    return {
+        "duration": float(duration) if duration else None,
+        "video": codecs.get("video"),
+        "audio": codecs.get("audio"),
+    }
+
+
+def extract_wav(media_path: str, wav_path: str) -> str:
+    """Mono 16 kHz PCM — what WhisperX resamples to anyway, at a fraction of the upload."""
+    run_tool([
+        tool("ffmpeg"), "-y", "-loglevel", "error",
+        "-i", media_path,
+        "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le",
+        wav_path,
+    ])
+    return wav_path
+
+
+def prepare_playback(media_path: str, output_path: str) -> str:
+    """Writes a browser-playable, seekable mp4 of `media_path` to `output_path`.
+
+    Streams already in browser codecs are copied as-is; anything else is
+    re-encoded. `+faststart` puts the index up front so playback and seeking
+    start before the whole file has loaded.
+    """
+    info = probe(media_path)
+    cmd = [tool("ffmpeg"), "-y", "-loglevel", "error"]
+
+    if info["video"] is None:
+        width, height = AUDIO_ONLY_SIZE
+        cmd += [
+            "-f", "lavfi", "-i", f"color=c=black:s={width}x{height}:r=1",
+            "-i", media_path,
+            "-map", "0:v:0", "-map", "1:a:0",
+            "-c:v", "libx264", "-tune", "stillimage", "-pix_fmt", "yuv420p",
+            "-shortest",
+        ]
+        cmd += _audio_args(info["audio"])
+    else:
+        cmd += ["-i", media_path, "-map", "0:v:0", "-map", "0:a:0?"]
+        if info["video"] in _PLAYABLE_VIDEO:
+            cmd += ["-c:v", "copy"]
+        else:
+            cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p"]
+        cmd += _audio_args(info["audio"])
+
+    cmd += ["-movflags", "+faststart", output_path]
+    run_tool(cmd)
+    return output_path
+
+
+def _audio_args(codec: str | None) -> list[str]:
+    if codec in _PLAYABLE_AUDIO:
+        return ["-c:a", "copy"]
+    return ["-c:a", "aac", "-b:a", "192k"]
+
+
+def extract_thumbnail(media_path: str, output_path: str, duration: float | None) -> str:
+    """One frame a little way in, past the black lead-in most videos open on."""
+    at = min(1.0, duration / 2) if duration else 0.0
+    run_tool([
+        tool("ffmpeg"), "-y", "-loglevel", "error",
+        "-ss", f"{at:.2f}", "-i", media_path,
+        "-frames:v", "1", "-vf", "scale=640:-2", "-q:v", "4",
+        output_path,
+    ])
+    return output_path

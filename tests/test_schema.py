@@ -34,39 +34,11 @@ def test_from_dict_defaults_missing_speaker_and_volume():
     word = transcript.words[0]
     assert word.speaker == "SPEAKER_00"
     assert word.volume == 0.0
-    assert transcript.language == "ko"
+    assert transcript.language is None
 
 
-def test_from_char_timestamps_splits_on_whitespace():
-    data = {
-        "characters": [
-            {"char": "h", "start": 0.0, "end": 0.1},
-            {"char": "i", "start": 0.1, "end": 0.2},
-            {"char": " ", "start": 0.2, "end": 0.25},
-            {"char": "u", "start": 0.25, "end": 0.35},
-        ]
-    }
-    transcript = Transcript.from_char_timestamps(data)
-    assert [w.text for w in transcript.words] == ["hi", "u"]
-    assert transcript.words[0].start == 0.0
-    assert transcript.words[0].end == 0.2
-    # No speaker/volume info in this format — both fall back to defaults.
-    assert transcript.words[0].speaker == "SPEAKER_00"
-    assert transcript.words[0].volume == 0.0
-
-
-def test_from_char_timestamps_splits_on_large_gap_without_whitespace():
-    # Two "words" glued together because the export dropped the boundary space,
-    # but the silence between them is long enough to still tell them apart.
-    data = {
-        "characters": [
-            {"char": "a", "start": 0.0, "end": 0.1},
-            {"char": "b", "start": 1.0, "end": 1.1},
-        ]
-    }
-    transcript = Transcript.from_char_timestamps(data)
-    assert [w.text for w in transcript.words] == ["a", "b"]
-
-
-def test_from_char_timestamps_empty_input():
-    assert Transcript.from_char_timestamps({"characters": []}).words == []
+def test_speaker_profiles_round_trip():
+    profiles = {"SPEAKER_00": {"color": "&H00123456", "name": "기택", "confidence": 0.9, "reason": "호명"}}
+    t = Transcript(words=[WordEntry(text="a", start=0.0, end=1.0)], speaker_profiles=profiles)
+    assert Transcript.from_dict(t.to_dict()).speaker_profiles == profiles
+    assert Transcript.from_dict({"words": []}).speaker_profiles == {}

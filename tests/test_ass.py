@@ -2,60 +2,115 @@ from hearing_to_seeing.converter.ass import (
     MAX_DURATION,
     MAX_GAP,
     MAX_WIDTH,
-    MIN_WIDTH_FOR_BREAK,
     ROW_WIDTH,
+    _merge_unterminated_lines,
     _row_break_index,
-    _split_into_lines,
+    generate_ass,
+    generate_plain_ass,
+    split_into_lines,
+    subtitle_events,
 )
-from hearing_to_seeing.schema import WordEntry
+from hearing_to_seeing.design.layout import FONT_NAME
+from hearing_to_seeing.design.volume import loud_scale, whisper_scale
+from hearing_to_seeing.schema import Transcript, WordEntry
 
 
-def _word(text, start, end, speaker="SPEAKER_00"):
-    return WordEntry(text=text, start=start, end=end, speaker=speaker)
+def _word(text, start, end, speaker="SPEAKER_00", volume=0.5):
+    return WordEntry(text=text, start=start, end=end, speaker=speaker, volume=volume)
 
 
-def test_split_into_lines_keeps_short_line_together():
+def testsplit_into_lines_keeps_short_line_together():
     words = [_word("hi", 0.0, 0.3), _word("there", 0.3, 0.6)]
-    assert _split_into_lines(words) == [words]
+    assert split_into_lines(words) == [words]
 
 
-def test_split_into_lines_breaks_on_speaker_change():
+def testsplit_into_lines_breaks_on_speaker_change():
     words = [
         _word("a", 0.0, 0.3, speaker="SPEAKER_00"),
         _word("b", 0.3, 0.6, speaker="SPEAKER_01"),
     ]
-    lines = _split_into_lines(words)
+    lines = split_into_lines(words)
     assert lines == [[words[0]], [words[1]]]
 
 
-def test_split_into_lines_breaks_on_long_silence():
+def testsplit_into_lines_breaks_on_long_silence():
     words = [_word("a", 0.0, 0.3), _word("b", 0.3 + MAX_GAP + 0.1, 1.0)]
-    lines = _split_into_lines(words)
+    lines = split_into_lines(words)
     assert lines == [[words[0]], [words[1]]]
 
 
-def test_split_into_lines_breaks_when_width_exceeds_max():
+def testsplit_into_lines_breaks_when_width_exceeds_max():
     words = [_word("a" * 50, 0.0, 1.0), _word("b" * 50, 1.0, 2.0)]
-    lines = _split_into_lines(words)
+    lines = split_into_lines(words)
     assert lines == [[words[0]], [words[1]]]
 
 
-def test_split_into_lines_breaks_on_long_duration():
+def testsplit_into_lines_breaks_on_long_duration():
     words = [_word("a", 0.0, 1.0), _word("b", 1.0, MAX_DURATION + 1.0)]
-    lines = _split_into_lines(words)
+    lines = split_into_lines(words)
     assert lines == [[words[0]], [words[1]]]
 
 
-def test_split_into_lines_breaks_after_terminator_once_line_is_long_enough():
-    long_sentence = "a" * MIN_WIDTH_FOR_BREAK + "."
-    words = [_word(long_sentence, 0.0, 1.0), _word("next", 1.0, 1.3)]
-    lines = _split_into_lines(words)
-    assert lines == [[words[0]], [words[1]]]
-
-
-def test_split_into_lines_does_not_break_on_terminator_when_line_is_short():
+def testsplit_into_lines_breaks_after_terminator_regardless_of_line_length():
     words = [_word("a.", 0.0, 0.3), _word("next", 0.3, 0.6)]
-    assert _split_into_lines(words) == [words]
+    lines = split_into_lines(words)
+    assert lines == [[words[0]], [words[1]]]
+
+
+def test_merge_unterminated_lines_reattaches_fragment_that_stays_within_limits():
+    # A line without a terminator only exists because some other rule (speaker
+    # change, silence, width, duration) forced it apart from what follows. This
+    # exercises the merge in isolation, since split_into_lines can only ever
+    # produce such a fragment when one of those limits was actually crossed --
+    # here the two lines are constructed directly to check the merge condition
+    # on its own, independent of how the split happened.
+    a = [_word("a", 0.0, 0.3)]
+    b = [_word("b.", 0.3, 0.6)]
+    assert _merge_unterminated_lines([a, b]) == [a + b]
+
+
+def test_merge_unterminated_lines_keeps_lines_separate_when_prev_ends_a_sentence():
+    a = [_word("a.", 0.0, 0.3)]
+    b = [_word("b.", 0.3, 0.6)]
+    assert _merge_unterminated_lines([a, b]) == [a, b]
+
+
+def test_merge_unterminated_lines_keeps_lines_separate_when_next_has_no_terminator():
+    a = [_word("a", 0.0, 0.3)]
+    b = [_word("b", 0.3, 0.6)]
+    assert _merge_unterminated_lines([a, b]) == [a, b]
+
+
+def test_merge_unterminated_lines_respects_speaker_change():
+    a = [_word("a", 0.0, 0.3, speaker="SPEAKER_00")]
+    b = [_word("b.", 0.3, 0.6, speaker="SPEAKER_01")]
+    assert _merge_unterminated_lines([a, b]) == [a, b]
+
+
+def test_merge_unterminated_lines_respects_max_gap():
+    a = [_word("a", 0.0, 0.3)]
+    b = [_word("b.", 0.3 + MAX_GAP + 0.1, 1.0)]
+    assert _merge_unterminated_lines([a, b]) == [a, b]
+
+
+def test_merge_unterminated_lines_respects_max_width():
+    a = [_word("a" * 50, 0.0, 0.3)]
+    b = [_word("b" * 50 + ".", 0.3, 0.6)]
+    assert _merge_unterminated_lines([a, b]) == [a, b]
+
+
+def test_merge_unterminated_lines_respects_max_duration():
+    a = [_word("a", 0.0, 0.3)]
+    b = [_word("b.", 0.3, MAX_DURATION + 1.0)]
+    assert _merge_unterminated_lines([a, b]) == [a, b]
+
+
+def testsplit_into_lines_does_not_split_a_sentence_that_never_breaks():
+    # No speaker change, no silence, fits the width/duration budget, and no
+    # terminator until the very end -- one group, nothing for the merge pass
+    # to do.
+    words = [_word("a", 0.0, 0.3), _word("b.", 0.3, 0.6)]
+    assert split_into_lines(words) == [words]
 
 
 def test_row_break_index_none_when_line_fits_one_row():
@@ -67,3 +122,88 @@ def test_row_break_index_picks_most_balanced_split():
     words = [_word("a" * 15, i, i + 1) for i in range(4)]
     assert sum(len(w.text) for w in words) + len(words) - 1 > ROW_WIDTH
     assert _row_break_index(words) == 2
+
+
+def _dialogues(ass: str) -> list[str]:
+    return [line for line in ass.splitlines() if line.startswith("Dialogue:")]
+
+
+def test_plain_ass_matches_kinetic_timing_without_effects():
+    transcript = Transcript(words=[
+        _word("hello", 0.0, 0.4, speaker="SPEAKER_00"),
+        _word("world", 0.4, 0.8, speaker="SPEAKER_00"),
+        _word("bye", 1.0, 1.3, speaker="SPEAKER_01"),
+    ])
+    kinetic = [line for line in _dialogues(generate_ass(transcript)) if ",Box," in line]
+    plain = _dialogues(generate_plain_ass(transcript))
+
+    assert len(plain) == len(kinetic) == 2
+    for k, p in zip(kinetic, plain):
+        k_fields, p_fields = k.split(",", 9), p.split(",", 9)
+        assert k_fields[:3] + k_fields[4:9] == p_fields[:3] + p_fields[4:9]  # all but the style
+    assert plain[0].endswith(",hello world")
+    assert "{" not in "".join(plain)
+
+
+def test_generate_ass_draws_box_fill_and_pop_layers():
+    transcript = Transcript(words=[
+        _word("크게", 0.0, 0.4, volume=1.0),
+        _word("작게", 0.4, 0.8, volume=0.0),
+        _word("보통.", 0.8, 1.2, volume=0.5),
+    ])
+    lines = _dialogues(generate_ass(transcript))
+    styles = [line.split(",")[3] for line in lines]
+    assert styles[:2] == ["Box", "Fill"]
+    pops = [line for line in lines if ",Pop," in line]
+    assert pops[0].startswith("Dialogue: 2,") and f"\\fscx{loud_scale(1.0)}" in pops[0]  # loud
+    assert f"\\fscx{whisper_scale(0.0)}" in pops[1]                                       # whisper
+    assert len(pops) == 1 + 2 + 2 * len("보통")  # loud: 1, whisper: shrink + return, wave: 2 per character
+
+
+def test_generate_ass_uses_colours_from_speaker_profiles():
+    transcript = Transcript(
+        words=[_word("hi.", 0.0, 0.4)],
+        speaker_profiles={"SPEAKER_00": {"color": "#563412"}},
+    )
+    pops = [line for line in _dialogues(generate_ass(transcript)) if ",Pop," in line]
+    assert pops and all("\\c&H00123456" in line for line in pops[1::2])  # every fall event
+
+
+def test_generate_ass_draws_every_style_in_the_bundled_font():
+    header = generate_ass(Transcript(words=[_word("hi.", 0.0, 0.4)])).split("[Events]")[0]
+    styles = [line for line in header.splitlines() if line.startswith("Style:")]
+    assert [line.split(",")[0] for line in styles] == [
+        "Style: Default", "Style: Box", "Style: Fill", "Style: Pop",
+    ]
+    assert all(line.split(",")[1] == FONT_NAME for line in styles)
+
+
+def test_whispered_word_keeps_its_full_width_and_shrinks_then_returns():
+    transcript = Transcript(words=[_word("작게", 0.0, 0.4, volume=0.0), _word("말해.", 0.4, 0.8)])
+    lines = _dialogues(generate_ass(transcript))
+    box, fill = lines[0], lines[1]
+    assert box.endswith(",작게{\\fscx92} {\\fscx100}말해")  # no narrowing: the box keeps its size
+    assert "\\t(0,1,\\alpha&HFF&)}작게" in fill               # white until said, then handed over
+    shrink, restore = [line for line in lines if ",Pop," in line][:2]  # the whisper's two events
+    scale = whisper_scale(0.0)
+    assert f"\\t(0,80,\\fscx{scale}\\fscy{scale})" in shrink
+    assert f"\\fscx{scale}\\fscy{scale}\\t(0,80,\\fscx100\\fscy100)" in restore
+    assert shrink.split(",")[2] == restore.split(",")[1]       # the return picks up where the shrink ends
+
+
+def test_subtitle_events_drop_the_full_stop_but_still_break_on_it():
+    words = [
+        _word("바뀌었습니다.", 0.0, 0.5),
+        _word("정말요?", 0.6, 1.0),
+        _word("글쎄...", 1.1, 1.5),
+        _word("3.5배.", 1.6, 2.0),
+    ]
+    texts = [[w.text for w in g] for g, *_ in subtitle_events(Transcript(words=words))]
+    assert texts == [["바뀌었습니다"], ["정말요?"], ["글쎄..."], ["3.5배"]]
+    assert words[0].text == "바뀌었습니다."  # the transcript itself is untouched
+
+
+def test_generate_ass_draws_no_full_stop():
+    ass = generate_ass(Transcript(words=[_word("바뀌었습니다.", 0.0, 0.5)]))
+    assert "바뀌었습니다." not in ass
+    assert "바뀌었습니다" in ass

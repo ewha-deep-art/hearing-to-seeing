@@ -1,74 +1,171 @@
+"""Word timing → motion in step with the voice.
+
+Two effects follow the moment each word is said:
+  - fill: every word is wiped karaoke-style from white (the style's
+    SecondaryColour) into its colour (\\c, the PrimaryColour) with \\kf over
+    the time it is said — a whole-word wipe, or one character after another
+    for a waved word.
+  - wave: the characters of a word lift and land one after another in a ripple
+    that fits inside the word's spoken time.
+
+Which words wave, and the colour they fill into, are decided elsewhere
+(volume.py, speaker.py); converter/ass.py puts the pieces together.
+"""
+
+from typing import NamedTuple
+
+from hearing_to_seeing.design.layout import BASE_FONT_SIZE
 from hearing_to_seeing.schema import WordEntry
 
-# The last word of a line has no successor to bound it, so its own duration
-# decides how long the fill runs. Forced aligners routinely stretch the final
-# character of an utterance across the silence that follows it, which would
-# otherwise leave one word creeping across the screen for tens of seconds.
+# Forced aligners routinely stretch the final character of an utterance across
+# the silence that follows it. Capping how long a word counts as "being said"
+# keeps such a word from animating (or hiding its fill) for tens of seconds.
 MAX_TRAILING_HOLD = 2.0
 
-# --- "위로 뜨는" 효과 ---------------------------------------------------------
-# 기획서 §4는 발화 시점에 해당 단어가 살짝 위로 뜨는 효과를 요구한다. ASS에서
-# 위치 이동 태그(\pos, \move)는 Dialogue 이벤트 전체에만 걸리므로 한 줄 안의 한
-# 단어만 실제로 옮기려면 단어마다 이벤트를 쪼개고 글꼴 메트릭으로 x 좌표를 직접
-# 계산해야 한다. 대신 한 이벤트 안에서 처리 가능한 두 신호로 부양감을 만든다:
-#   * \fscy — 글자가 베이스라인 위로 자란다. 세로만 늘리므로 뒤따르는 단어가
-#             가로로 밀리지 않는다 (\fs나 \fscx를 쓰면 줄 전체가 흔들린다).
-#   * \shad — 그림자가 글자에서 멀어지며 떠오른 높이를 암시한다.
-# TODO: 기획서가 말하는 "위치 이동"은 아직 근사치 — 실제 좌표 이동은 단어별
-#       Dialogue 이벤트 분할과 글꼴 메트릭 기반 x 좌표 계산이 필요함. 현재 연출로
-#       충분한지 사용자 검증 후 결정.
-LIFT_SCALE = 110        # \fscy at the peak, percent
-LIFT_SHADOW = 4         # \shad at the peak, pixels
-BASE_SHADOW = 1         # \shad in the Default style — where the fall lands
-LIFT_RISE = 0.12        # seconds to reach the peak
-LIFT_FALL = 0.20        # seconds to settle back
+WAVE_RISE_PX = round(18 * BASE_FONT_SIZE / 44)  # how far each character lifts (18 px at size 44)
+
+# Each character of a waved word gets an equal share ("slot") of the time the
+# word is spoken, and starts rising when its slot starts. A rise + fall lasts
+# as long as its slot, so in a long word the characters go up and down one
+# after another, slowly, in step with the voice. A short word has slots too
+# brief for a visible motion, so each rise + fall is kept at least
+# WAVE_MIN_MOTION_MS and the characters' motions overlap into a ripple.
+# WAVE_MAX_MOTION_MS stops a single drawn-out character from rising for
+# seconds. The rise takes WAVE_RISE_SHARE of the motion, the fall the rest.
+WAVE_MIN_MOTION_MS = 240
+WAVE_MAX_MOTION_MS = 900
+WAVE_RISE_SHARE = 0.45
 
 
 def seconds_to_centiseconds(seconds: float) -> int:
     return max(1, round(seconds * 100))
 
 
-def karaoke_durations(words: list[WordEntry]) -> list[int]:
-    """Per-word karaoke durations (centiseconds) that span the whole line.
+def spoken_end(word: WordEntry) -> float:
+    """When `word` stops being said, with an aligner-stretched tail cut off."""
+    return min(word.end, word.start + MAX_TRAILING_HOLD)
 
-    A word's \\k value must cover the silence that follows it, not just its own
-    utterance — ASS advances the fill by the sum of the \\k values, so dropping
-    the inter-word gaps makes the animation race ahead of the audio. Each word
-    therefore holds until the next word begins; the last word uses its own
-    duration.
+
+def karaoke_durations(words: list[WordEntry]) -> list[int]:
+    """Per-word durations (centiseconds) that span the whole line.
+
+    Each word holds until the next word begins, so the sum is the time from the
+    first word's start to the last word's (capped) end — the span the line
+    needs to stay on screen for every effect to finish.
     """
     durations = []
     for i, word in enumerate(words):
         if i + 1 < len(words):
             span = words[i + 1].start - word.start
         else:
-            span = min(word.duration, MAX_TRAILING_HOLD)
+            span = spoken_end(word) - word.start
         durations.append(seconds_to_centiseconds(span))
     return durations
 
 
-def lift_tags(durations: list[int]) -> list[str]:
-    """Per-word \\t transforms that lift each word as the karaoke fill reaches it.
+# --- fill ------------------------------------------------------------------------
 
-    `durations` is what `karaoke_durations()` returned for the same line, so the
-    lift runs off the karaoke clock itself and cannot drift away from the \\kf
-    fill that triggers it: \\t offsets are milliseconds from the Dialogue event
-    start, which is exactly where that clock starts.
+def wipe_tags(event_start: float, wipe_start: float, wipe_end: float) -> tuple[str, str]:
+    """`(lead, sweep)` karaoke tags that wipe a text from `wipe_start` to `wipe_end`.
 
-    A word too short for the full rise-and-fall gets a proportionally quicker
-    animation, so it is back down before the next word takes off instead of
-    leaving a run of words hanging at once.
+    Karaoke times count from the event start, so an empty `\\k` (`lead`, ""
+    when there is nothing to wait for) first holds the wipe back until
+    `wipe_start`; `sweep` is the `\\kf` that then runs it.
     """
-    tags: list[str] = []
-    offset_ms = 0
-    for cs in durations:
-        span_ms = cs * 10
-        rise = min(round(LIFT_RISE * 1000), max(1, span_ms // 3))
-        fall = min(round(LIFT_FALL * 1000), span_ms - rise)
-        peak = offset_ms + rise
-        tags.append(
-            f"\\t({offset_ms},{peak},\\fscy{LIFT_SCALE}\\shad{LIFT_SHADOW})"
-            f"\\t({peak},{peak + fall},\\fscy100\\shad{BASE_SHADOW})"
-        )
-        offset_ms += span_ms
-    return tags
+    lead_cs = round((wipe_start - event_start) * 100)
+    lead = f"\\k{lead_cs}" if lead_cs > 0 else ""
+    return lead, f"\\kf{seconds_to_centiseconds(wipe_end - wipe_start)}"
+
+
+def hide_tag(at_ms: int) -> str:
+    """Makes text vanish `at_ms` after the event start (the Fill layer hand-over)."""
+    return f"\\t({at_ms},{at_ms + 1},\\alpha&HFF&)"
+
+
+def hand_over_ms(word: WordEntry, line_start: float) -> int:
+    """When (ms into the line) a word moves from the Fill layer to its own event."""
+    return round((word.start - line_start) * 1000)
+
+
+def wave_hand_over_ms(word: WordEntry, line_start: float) -> list[int]:
+    """`hand_over_ms` for each character of a waved word.
+
+    The characters start one after another; hiding the whole word at its start
+    made the ones that hadn't started yet vanish for a few frames. Each is
+    handed over at its own start instead, on the same centisecond grid its
+    event starts on (the hide ends exactly then), so there is neither a gap nor
+    a double draw.
+    """
+    return [
+        max(0, (round(c.rise_start * 100) - round(line_start * 100)) * 10 - 1)
+        for c in wave_chars(word)
+    ]
+
+
+# --- wave --------------------------------------------------------------------------
+
+class WaveChar(NamedTuple):
+    """One character's motion and wipe, in seconds (durations in ms)."""
+    rise_start: float
+    rise_end: float
+    rise_ms: int
+    fall_ms: int
+    wipe_start: float
+    wipe_end: float
+
+
+def _wave_timing(duration_ms: int, n: int) -> tuple[float, int, int]:
+    """`(stagger, rise, fall)` in ms for a wave of `n` characters in `duration_ms`.
+
+    The stagger is each character's share of the word's time. Rise + fall equals
+    that share (one character after the other) unless it is shorter than
+    WAVE_MIN_MOTION_MS, in which case the motions overlap, or longer than
+    WAVE_MAX_MOTION_MS, in which case the character waits for its turn.
+    """
+    slot = duration_ms / max(1, n)
+    motion = min(WAVE_MAX_MOTION_MS, max(WAVE_MIN_MOTION_MS, slot))
+    rise = max(1, round(motion * WAVE_RISE_SHARE))
+    fall = max(1, round(motion) - rise)
+    return slot, rise, fall
+
+
+def wave_chars(word: WordEntry) -> list[WaveChar]:
+    """How each character of `word` lifts, lands and fills.
+
+    Characters start `stagger` ms apart (one share of the word's time each): in
+    a long word one lands before the next rises, in a short one the motions
+    overlap. Each character also gets an equal share of the spoken time in
+    which it is wiped. The wipe belongs to the fall — the long part, which
+    keeps the character resting in place afterwards — so it is never cut in
+    half by the hand-over from rise to fall; a character still rising when its
+    share begins is wiped from the moment it starts falling (at most one rise
+    late).
+    """
+    n = len(word.text)
+    if n == 0:
+        return []
+    end = spoken_end(word)
+    duration_ms = max(1, round((end - word.start) * 1000))
+    stagger, rise_ms, fall_ms = _wave_timing(duration_ms, n)
+    slot = (end - word.start) / n
+
+    chars = []
+    for i in range(n):
+        rise_start = word.start + i * stagger / 1000
+        rise_end = rise_start + rise_ms / 1000
+        wipe_start = max(word.start + i * slot, rise_end)
+        wipe_end = max(word.start + (i + 1) * slot, wipe_start)
+        chars.append(WaveChar(rise_start, rise_end, rise_ms, fall_ms, wipe_start, wipe_end))
+    return chars
+
+
+def rise_move(anchor: tuple[int, int], ms: int) -> str:
+    """`\\move` that lifts an event anchored at `anchor` by WAVE_RISE_PX."""
+    x, y = anchor
+    return f"\\move({x},{y},{x},{y - WAVE_RISE_PX},0,{ms})"
+
+
+def fall_move(anchor: tuple[int, int], ms: int) -> str:
+    """`\\move` that lands a lifted event back on `anchor` (and stays there)."""
+    x, y = anchor
+    return f"\\move({x},{y - WAVE_RISE_PX},{x},{y},0,{ms})"

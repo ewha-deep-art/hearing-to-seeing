@@ -1,25 +1,41 @@
-# TODO: 색상 배정 방식 최종 미확정 — 단순 팔레트 순서 배정(현재) vs RAG 기반
-#       (인물 정보 → LLM 색상 결정). 기획서 §다음 논의 필요 사항 참조.
-# Wong colorblind-friendly palette in ASS BGR hex format (&HAABBGGRR&).
-# ASS stores colours byte-reversed relative to RGB, so #E69F00 → &H00009FE6.
-_PALETTE = [
-    "&H00009FE6",  # Orange        #E69F00
-    "&H00E9B456",  # Sky Blue      #56B4E9
-    "&H00739E00",  # Bluish Green  #009E73
-    "&H0042E4F0",  # Yellow        #F0E442
-    "&H00B27200",  # Blue          #0072B2
-    "&H00005ED5",  # Vermillion    #D55E00
-    "&H00A779CC",  # Reddish Purple #CC79A7
-]
+"""Speaker colours, as the ASS file draws them.
 
-# Colour every word starts out in, before the karaoke fill reaches it.
+Who each speaker is and what colour they get is decided by the pipeline
+(`pipeline.assign_speaker_colors`) and stored in the transcript's
+`speaker_profiles` as `#RRGGBB`. This module only reads those values and
+turns them into ASS colours, so the ASS converter and the web legend show
+the same ones.
+"""
+
+import re
+
+from hearing_to_seeing.schema import Transcript
+
+# Colour every word starts out in, before it is spoken — and the colour of a
+# speaker the profiles say nothing about. The pipeline gives every speaker a
+# colour with chroma, so none collides with it.
 BASE_COLOUR = "&H00FFFFFF"  # white
 
 
-def assign_speaker_colors(speakers: list[str]) -> dict[str, str]:
-    # TODO: 화자가 알파벳순(SPEAKER_00, SPEAKER_01, …)으로 정렬되어 색상이
-    #       WhisperX 라벨 순서에 의존함. 대화 첫 등장 순서 기반 배정 방식 검토 필요.
+def hex_to_ass(value: str | None) -> str:
+    """`#RRGGBB` → ASS `&H00BBGGRR`; BASE_COLOUR if it is not a colour.
+
+    An ASS colour (`&H…`, as older transcripts stored it) is passed through.
+    """
+    value = (value or "").strip()
+    if value.upper().startswith("&H"):
+        return value
+    match = re.fullmatch(r"#?([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})", value)
+    if not match:
+        return BASE_COLOUR
+    r, g, b = (digits.upper() for digits in match.groups())
+    return f"&H00{b}{g}{r}"
+
+
+def speaker_colors(transcript: Transcript) -> dict[str, str]:
+    """Label → ASS colour, for every speaker in the transcript."""
+    profiles = transcript.speaker_profiles
     return {
-        speaker: _PALETTE[i % len(_PALETTE)]
-        for i, speaker in enumerate(sorted(set(speakers)))
+        label: hex_to_ass((profiles.get(label) or {}).get("color"))
+        for label in transcript.speakers()
     }

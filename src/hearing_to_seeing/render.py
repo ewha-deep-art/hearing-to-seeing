@@ -10,15 +10,51 @@ variable to point at a specific binary instead.
 """
 
 import os
+import shutil
+import subprocess
 
 from hearing_to_seeing.converter.ass import PLAY_RES
-from hearing_to_seeing.media import MediaToolError, run as run_tool, tool
+from hearing_to_seeing.design.layout import FONTS_DIR
 
 # An audio-only source gets a canvas the size of the script's own coordinate
 # space, so the subtitle layout renders at the scale it was designed for.
 DEFAULT_RESOLUTION = PLAY_RES
 DEFAULT_FPS = 24
 DEFAULT_BACKGROUND = "black"
+
+
+class MediaToolError(RuntimeError):
+    pass
+
+
+def tool(name: str) -> str:
+    """Returns the path to an ffmpeg-family binary."""
+    override = os.environ.get(f"H2S_{name.upper()}")
+    if override:
+        return override
+    # ffprobe normally ships beside ffmpeg, so an ffmpeg override locates it too.
+    ffmpeg_override = os.environ.get("H2S_FFMPEG")
+    if ffmpeg_override:
+        sibling = os.path.join(os.path.dirname(ffmpeg_override), name)
+        if os.path.exists(sibling):
+            return sibling
+    found = shutil.which(name)
+    if not found:
+        raise MediaToolError(
+            f"{name} not found on PATH. Install ffmpeg, or set H2S_{name.upper()} "
+            "to the binary's path."
+        )
+    return found
+
+
+def run_tool(cmd: list[str]) -> bytes:
+    """Runs a command, raising MediaToolError with stderr on failure."""
+    proc = subprocess.run(cmd, capture_output=True)
+    if proc.returncode != 0:
+        raise MediaToolError(
+            f"{os.path.basename(cmd[0])} failed:\n{proc.stderr.decode(errors='replace')}"
+        )
+    return proc.stdout
 
 
 def has_video_stream(media_path: str) -> bool:
@@ -52,7 +88,7 @@ def build_render_command(
     resolution: tuple[int, int] = DEFAULT_RESOLUTION,
     fps: int = DEFAULT_FPS,
     background: str = DEFAULT_BACKGROUND,
-    fonts_dir: str | None = None,
+    fonts_dir: str | None = FONTS_DIR,
     force_style: str | None = None,
 ) -> list[str]:
     width, height = resolution
@@ -96,7 +132,7 @@ def render(
     resolution: tuple[int, int] = DEFAULT_RESOLUTION,
     fps: int = DEFAULT_FPS,
     background: str = DEFAULT_BACKGROUND,
-    fonts_dir: str | None = None,
+    fonts_dir: str | None = FONTS_DIR,
     force_style: str | None = None,
 ) -> str:
     """Burns `ass_path` onto `media_path` and writes an mp4 to `output_path`."""
@@ -120,7 +156,7 @@ def main(argv: list[str] | None = None) -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        prog="python -m web.render",
+        prog="python -m hearing_to_seeing.render",
         description="Burn an ASS subtitle file onto its source media as an mp4.",
     )
     parser.add_argument("media", help="source mp3 or mp4")
@@ -132,7 +168,8 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--fps", type=int, default=DEFAULT_FPS)
     parser.add_argument("--background", default=DEFAULT_BACKGROUND)
-    parser.add_argument("--fonts-dir", default=None, help="extra font directory for libass")
+    parser.add_argument("--fonts-dir", default=FONTS_DIR,
+                        help="font directory for libass (default: the bundled subtitle font)")
     parser.add_argument(
         "--force-style", default=None,
         help="ASS style overrides, e.g. \"FontName=Noto Sans KR\"",

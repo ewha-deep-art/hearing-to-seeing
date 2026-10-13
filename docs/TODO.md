@@ -5,29 +5,20 @@
 
 ---
 
-## design/speaker.py — 화자 색상 매핑
+## pipeline.py — 화자 색상 매핑
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 1 | [speaker.py:1](../src/hearing_to_seeing/design/speaker.py#L1) | **색상 배정 방식 미확정.** 현재는 단순 팔레트 순서 배정 방식 사용 중. 기획서에서 RAG 기반(인물 정보 → LLM 색상 결정) 방식이 대안으로 제시되었으나 최종 결정이 없음. | 기획서 §다음 논의 필요 사항 |
-| 2 | [speaker.py:20](../src/hearing_to_seeing/design/speaker.py#L20) | **색상이 라벨 정렬 순서 기준으로 배정됨.** 화자가 알파벳순(`SPEAKER_00`, `SPEAKER_01`, …)으로 정렬되어 대화 등장 순서와 색상이 자연스럽게 대응되지 않을 수 있음. 첫 등장 순서 기반 배정 방식 검토 필요. | — |
+| 1 | [pipeline.py](../src/hearing_to_seeing/pipeline.py) | **RAG 기반 색상 배정 구현됨 — 값 검증 필요.** 영상 제목 → 작품명 → 위키 검색 → 인물표·인물별 색 → 대사 기반 화자→인물 추론 → OKLCH 색상환 배정 (상세: [knowledge/README.md](../src/hearing_to_seeing/knowledge/README.md)). 웹 작업에서 `GEMINI_API_KEY`가 있으면 STT와 병렬로 자동 실행되고, 없거나 실패하면 균등 배치로 폴백. 남은 결정: (1) `MIN_CONFIDENCE`(0.7)·`LIGHTNESS`(0.75)·채도 비율은 경험값 — 실제 영상 위 가독성·매핑 정확도 측정 후 조정. (2) 확인 UI(인물명·색상 수정, 화자 병합)와 수동 매핑 미구현. (3) Gemini 무료 티어가 수요 폭주(503)일 때 SDK 재시도로 수 분이 걸릴 수 있음 — 영상 검토·화자 추론은 STT 이후 직렬 단계라 작업 시간이 그만큼 늘어남. | 기획서 §다음 논의 필요 사항 |
 
 ---
 
-## design/volume.py — 진폭 → 글자 크기
+## design/volume.py — 음량 → 크기
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 3 | [volume.py:5](../src/hearing_to_seeing/design/volume.py#L5) | **`FONT_SIZE_MIN`/`FONT_SIZE_MAX` 값 미확정.** 현재 값(24/48)은 접근성 표준을 근거로 설정된 것이 아님. Netflix Timed Text Style Guide, BBC Subtitle Guidelines, WCAG 등을 조사한 후 최종 값 확정 필요. | 기획서 §다음 논의 필요 사항 (표준 자막 크기 기준 조사) |
-| 4 | [volume.py:18](../src/hearing_to_seeing/design/volume.py#L18) | **전체 정규화로 인한 국소 음량 대비 손실.** 속삭이는 장면과 소리치는 장면 모두 동일한 `FONT_SIZE_MIN`–`FONT_SIZE_MAX` 범위에 매핑됨. 장면별 또는 화자별 정규화 방식 검토 필요. | 기획서 §4 (크기 — 음량 강조) |
-
----
-
-## design/sync.py — 단어 단위 싱크
-
-| # | 파일 | 설명 | 기획서 참조 |
-|---|------|------|------------|
-| 5 | [sync.py:17](../src/hearing_to_seeing/design/sync.py#L17) | **위로 뜨는 효과가 실제 위치 이동이 아님.** ASS의 `\move`/`\pos`는 Dialogue 이벤트 전체에만 적용되므로, 한 줄 안의 단어 하나를 옮기려면 단어별 이벤트 분할과 글꼴 메트릭 기반 x 좌표 계산이 필요함. 현재는 `\t`로 `\fscy`(위로 자람) + `\shad`(그림자 이격)를 애니메이션해 부양감만 근사함. 사용자 검증 후 실제 좌표 이동 구현 여부 결정. | 기획서 §4 (싱크 — 위치 이동) |
+| 2 | [volume.py](../src/hearing_to_seeing/design/volume.py) | **`BASE_FONT_SIZE`(64, [layout.py](../src/hearing_to_seeing/design/layout.py))·분류 임계값 미확정.** 기본 글자 크기는 고정이고, 정규화 음량을 `LOUD_THRESHOLD`(0.7)/`QUIET_THRESHOLD`(0.3)로 loud/whisper/normal 세 단계로 나눠 loud=확대 후 복귀, whisper=작게 고정으로 표현함. 글자 크기와 임계값 모두 접근성 표준·사용자 검증에 근거하지 않은 값. | 기획서 §다음 논의 필요 사항 (표준 자막 크기 기준 조사) |
+| 3 | [volume.py](../src/hearing_to_seeing/design/volume.py) | **전체 min-max 정규화 + 고정 임계값 조합이 한쪽으로 쏠림.** 튀는 단어 하나가 최댓값을 차지하면 나머지가 모두 낮게 눌림 — 실제 라이브러리 영상(검사외전 클립)에서 443단어 중 434개가 whisper로 분류됨(정규화 음량 중앙값 0.12). 백분위 기반 정규화, 장면별/화자별 정규화 등 검토 필요. | 기획서 §4 (크기 — 음량 강조) |
 
 ---
 
@@ -35,8 +26,7 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 6 | [ass.py:23](../src/hearing_to_seeing/converter/ass.py#L23) | **해상도 1920×1080 고정.** `PLAY_RES` 상수로 모아 두어 프리뷰 렌더러와는 일치하지만 여전히 하드코딩임. 파라미터로 받거나 `ffprobe`로 입력 영상 해상도를 자동 감지하도록 개선 필요. | — |
-| 7 | [ass.py:26](../src/hearing_to_seeing/converter/ass.py#L26) | **Default 스타일 폰트가 한글 미지원.** `[V4+ Styles]`의 폰트가 Arial이라 한글 자모를 그리지 못하며, 현재는 렌더 시 `--force-style "FontName=…"`로 우회 중. 한글 지원 폰트를 기본값으로 확정하고 배포 방식(시스템 폰트 의존 vs 번들) 결정 필요. | 기획서 §10 (자막 서식의 가독성) |
+| 4 | [ass.py](../src/hearing_to_seeing/converter/ass.py) | **해상도 1920×1080 고정.** `PLAY_RES` 상수로 모아 두어 프리뷰 렌더러와는 일치하지만 여전히 하드코딩임. 파라미터로 받거나 `ffprobe`로 입력 영상 해상도를 자동 감지하도록 개선 필요. | — |
 
 ---
 
@@ -44,23 +34,31 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 8 | [stt.py](../src/hearing_to_seeing/stt.py) | **정확도 테스트 후 개선 필요.** 실제 음성으로 STT·화자 분리 정확도를 측정한 뒤 개선 방향 결정. | 기획서 §10 (STT·화자 분리 정확도) |
+| 5 | [stt.py](../src/hearing_to_seeing/stt.py) | **디코딩 옵션 일부만 동작.** 다중 패스 병합(세 모델 5패스)·후처리로 CER 12.1% → 6.1%(4개 평균, 영상 검토 포함), 클립 1은 사람 검수 참조 대조 2.1%·화자 99%, 단어 시작 95%가 ±0.2초 안 ([STT_TUNING.md](STT_TUNING.md)). 남은 것: (1) 서버 수정 후 `initial_prompt`·`beam_size`는 동작하지만 `temperatures`·`hotwords`·`repetition_penalty`는 적용되지 않음(WhisperX 배치 디코딩 한계로 추정) — 반복 루프를 디코더에서 막으려면 서버에 temperature fallback 경로가 필요. 인물표 `initial_prompt`는 4개 클립으로 재측정 후 채택 여부 결정. (2) 화자 분리: 서버만으로는 클립 1에서 91%(`num_speakers=6`, pyannote 3.1 한계). Gemini 영상 검토([review.py](../src/hearing_to_seeing/review.py))로 99%가 되지만 키·한도(모델당 하루 20회)가 있을 때만 — 한도가 차면 91%로 돌아감. 유료 티어 전환이나 서버 `community-1`이 대안. (3) 사람이 검수한 참조는 클립 1(`human`)뿐. 검토 모델 `gemini-3.5-flash`가 클립 2–4에서 단어를 많이(10·43·16곳) 고치는데, 이게 맞는지는 Gemini 참조로만 쟀음 → 클립 2–4 중 하나를 사람이 검수해 확인 필요. 검토는 temperature 0에서도 결과가 매번 조금씩 다름. | 기획서 §10 (STT·화자 분리 정확도) |
 
 ---
 
-## pipeline.py — 전체 파이프라인 오케스트레이션
+## 웹 화면
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 9 | [pipeline.py:74](../src/hearing_to_seeing/pipeline.py#L74) | **화자 라벨 수동 보정 기능 도입 여부 미확정.** 기획서 §10에서 화자 오분류 리스크 대응방안으로 제시되었으나, 색상 배정 방식(TODO #1)과 마찬가지로 넣을지 말지 자체가 아직 결정되지 않음. | 기획서 §10 (화자 분리 정확도) |
+| 6 | [src/web/](../src/web/) | **웹 UI 구현 완료.** 브라우저에서 입력·결과 확인이 가능한 웹 화면 구현됨 (유튜브 링크 입력 포함 — `yt-dlp`로 영상까지 함께 받아 오므로 별도 다운로드 불필요). 후속 개선 사항은 아래 TODO #10 참조. | — |
 
 ---
 
-## cli.py / pipeline.py — `from-json` 임시 경로
+## converter/ass.py — 대사 라인 분할 (미확정 기획)
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 10 | [pipeline.py:30](../src/hearing_to_seeing/pipeline.py#L30), [cli.py:52](../src/hearing_to_seeing/cli.py#L52) | **`from-json`(`run_from_json`)은 GPU 없는 환경을 위한 임시 우회 경로.** STT·정렬·화자 분리(WhisperX, GPU 필요)를 건너뛰고 외부에서 만든 transcript JSON을 읽어 나머지 파이프라인만 로컬에서 돌린다. GPU 환경 구성(WhisperX 의존성, CUDA 등)을 마치고 `run` 경로가 로컬에서 정상 동작하는 것을 확인하면, `from-json` 서브커맨드와 `run_from_json` 관련 코드를 제거해야 한다. | — |
+| 7 | [ass.py](../src/hearing_to_seeing/converter/ass.py) | **줄 분할 기준값 미확정.** `split_into_lines`가 (1) 화자 전환, (2) 직전 단어와의 침묵이 `MAX_GAP`(0.7초) 초과, (3) 누적 폭이 `MAX_WIDTH`(전각 기준 42자 × 2행) 초과, (4) 자막 노출 시간이 `MAX_DURATION`(6초) 초과, (5) 직전 단어가 문장 종결부호(`.?!…`)로 끝남 — 이 다섯 조건 중 하나를 만나면 새 자막(Dialogue)을 시작함. 이후 `_merge_unterminated_lines`가 종결부호 없이(즉 화자 전환/침묵/폭/길이 때문에) 끊긴 줄을, 위 다섯 제약을 다시 만족하는 한도 내에서 문장을 마저 끝내는 다음 줄과 재병합함. 한 화면에 두 줄까지 허용하며, `_row_break_index`가 폭이 `ROW_WIDTH`(21자 상당)를 넘을 때 글자 수가 가장 균등하게 갈리는 지점에서 개행함. **현재 값(`MAX_GAP`/`MAX_WIDTH`/`MAX_DURATION`/`ROW_WIDTH`)은 임의로 설정된 것으로, 접근성 표준이나 사용자 검증에 근거하지 않음.** 실사용 테스트 결과에 따라 기준값 및 분할 로직 자체(예: 문장 단위 대신 구/절 단위 분할 등) 재검토 필요. | — |
+
+---
+
+## 웹 화면 — 실사용 테스트 피드백 반영 (미확정 기획)
+
+| # | 파일 | 설명 | 기획서 참조 |
+|---|------|------|------------|
+| 8 | [src/web/](../src/web/) | **웹 UI 실사용 테스트 진행 중.** 기본 구현(업로드 → 파이프라인 실행 → 결과 확인/재생 흐름)은 완료됨. 실사용 테스트를 진행하면서 문구, 레이아웃, 디자인 등 세부 사항에 대한 수정 필요성이 확인됨 — 구체적인 개선 항목은 테스트 피드백을 취합한 후 정리 예정. | — |
 
 ---
 
@@ -68,8 +66,9 @@
 
 코드 문제가 아닌 구현에 영향을 미치는 미결 제품 결정 사항:
 
-- **색상 배정 방식** — 단순 팔레트 배정 vs RAG 기반 LLM 색상 결정 최종 확정 필요 (TODO #1 선행 조건).
-- **글자 크기 범위** — 접근성 표준 자막 크기 지침 조사 후 `FONT_SIZE_MIN`/`FONT_SIZE_MAX` 최종값 확정 (TODO #3 선행 조건).
-- **화자 라벨 수동 보정 기능 도입 여부** — 화자 오분류 리스크 대응방안으로 기획서에 제시되었으나 실제로 넣을지 자체가 미결정 (TODO #9 선행 조건).
+- **색상 배정 방식** — RAG 기반으로 구현됨. 임계값·밝기·채도 등 세부 값과 확인 UI 여부 확정 필요 (TODO #1 선행 조건).
+- **글자 크기·음량 분류 기준** — 접근성 표준 자막 크기 지침 조사 후 `BASE_FONT_SIZE`와 loud/whisper 임계값 확정 (TODO #2 선행 조건).
+- **대사 라인 분할 기준** — `MAX_GAP`/`MAX_WIDTH`/`MAX_DURATION`/`ROW_WIDTH` 등 분할 기준값과 분할 방식 자체를 실사용 테스트를 통해 확정 (TODO #7 선행 조건).
+- **웹 화면 문구·디자인** — 실사용 테스트 피드백을 바탕으로 문구, 레이아웃, 디자인 확정 (TODO #8 선행 조건).
 - **사용자 검증** — 청각장애인 대상 인터뷰·테스트 세션을 통해 색상·싱크·크기 효과의 실효성 검증 일정 수립 (모든 UX 튜닝의 선행 조건).
 

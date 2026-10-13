@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hearing to Seeing</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="/"><span class="logo-mark">H→S</span>Hearing to Seeing</a>
+    <button class="btn btn-primary" id="add-open" type="button"></button>
+  </header>
+
+  <main class="library">
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>
+      <h2>아직 영상이 없습니다</h2>
+      <p>YouTube 링크를 붙여 넣으면<br>화자·타이밍·음량이 보이는 자막과 함께 볼 수 있습니다.</p>
+    </div>
+  </main>
+
+  <dialog id="add-dialog">
+    <form class="dialog-inner" id="add-form" method="dialog">
+      <h2>영상 추가</h2>
+      <div class="field">
+        <label for="url-input">YouTube 링크</label>
+        <input id="url-input" name="url" type="url" required placeholder="https://www.youtube.com/watch?v=…">
+      </div>
+
+      <div class="field">
+        <label for="title-input">제목 (선택)</label>
+        <input id="title-input" name="title" type="text" placeholder="비워 두면 영상 제목을 사용">
+      </div>
+
+      <p class="form-error" id="form-error" hidden></p>
+
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="add-cancel">취소</button>
+        <button class="btn btn-primary" type="submit" id="add-submit">추가</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="/static/library.js"></script>
+</body>
+</html>
