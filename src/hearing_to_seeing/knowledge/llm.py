@@ -9,12 +9,9 @@ lets the caller skip the lookup up front instead of failing mid-run.
 import json
 import os
 import sys
+import threading
 import time
 from functools import lru_cache
-
-from dotenv import load_dotenv
-
-load_dotenv()
 
 API_KEY_VAR = "GEMINI_API_KEY"
 # ~30 s per call on the free tier. H2S_LLM_MODEL overrides it.
@@ -26,9 +23,10 @@ FALLBACK_MODEL = "gemini-3.5-flash-lite"
 MAX_TOKENS = 16000
 REQUEST_TIMEOUT_MS = 180_000
 # Server trouble (5xx) usually clears in seconds, so the SDK retries it
-# briefly. A 429 is a quota, not worth waiting on: it goes to the fallback.
+# briefly. 429 (quota) and 503 (overloaded) go straight to the fallback: a
+# retried 503 kept the cast lookup waiting minutes before it got there.
 RETRY_ATTEMPTS = 4
-RETRY_STATUS_CODES = [500, 502, 503, 504]
+RETRY_STATUS_CODES = [500, 502, 504]
 # How often to check whether an uploaded video is ready to be asked about.
 UPLOAD_POLL_SECONDS = 2.0
 
@@ -37,8 +35,18 @@ def configured() -> bool:
     return bool(os.environ.get(API_KEY_VAR))
 
 
-@lru_cache(maxsize=1)
+# The cast lookup and the review upload ask for the client at once; built
+# twice, the copy the cache drops closes itself (`Client.__del__`) mid-request.
+_CLIENT_LOCK = threading.Lock()
+
+
 def _client():
+    with _CLIENT_LOCK:
+        return _new_client()
+
+
+@lru_cache(maxsize=1)
+def _new_client():
     # Imported lazily so a run without a key never pays for the SDK.
     from google import genai
     from google.genai import types
@@ -94,6 +102,7 @@ def ask(
     temperature: float | None = None,
     max_tokens: int = MAX_TOKENS,
     thinking_level: str | None = None,
+    timeout_ms: int | None = None,
 ) -> dict:
     """Asks `prompt` and returns an answer that satisfies `schema`.
 
@@ -102,7 +111,8 @@ def ask(
     lighter model answers badly. `media_path` (video or audio) is uploaded, sent at low
     resolution ahead of the prompt, and deleted afterwards; `media`, a file
     `upload` already put up, stands in for that upload. Any other failure
-    (bad key, blocked prompt, …) raises.
+    (bad key, blocked prompt, …) raises. With `timeout_ms`, each model gets
+    one try of at most that long instead of the SDK's retries.
     """
     from google.genai import errors, types
 
@@ -116,6 +126,10 @@ def ask(
         thinking_config=(
             types.ThinkingConfig(thinking_level=types.ThinkingLevel(thinking_level.upper()))
             if thinking_level else None
+        ),
+        http_options=(
+            types.HttpOptions(timeout=timeout_ms, retry_options=types.HttpRetryOptions(attempts=1))
+            if timeout_ms else None
         ),
     )
     media = media or (upload(media_path) if media_path else None)

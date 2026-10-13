@@ -45,6 +45,9 @@ REVIEW_MODEL = os.environ.get("H2S_REVIEW_MODEL", "gemini-3.5-flash")
 # the low level (99 %), so a clip with no cast is asked about speakers only.
 NO_CAST_THINKING = "low"
 MAX_TOKENS = 16_000
+# Overloaded, the model has held a review for ten minutes across the SDK's
+# retries before failing; the plain vote is ready, so one try this long.
+TIMEOUT_MS = 120_000
 
 # Utterances are cut wherever the label changes, at a pause this long, and
 # after a sentence ends. Cut that finely, labelling every utterance right
@@ -191,7 +194,7 @@ def review_transcript(
     try:
         answer = llm.ask(prompts.REVIEW_SYSTEM, prompt, prompts.REVIEW_SCHEMA, model=REVIEW_MODEL,
                          media_path=media_path, media=uploaded, fallback=False, temperature=0,
-                         max_tokens=MAX_TOKENS,
+                         max_tokens=MAX_TOKENS, timeout_ms=TIMEOUT_MS,
                          thinking_level=None if characters else NO_CAST_THINKING)
     except Exception as exc:  # network, quota, bad key — anything
         print(f"! 검토 실패, 다수결 결과 사용: {exc}", file=sys.stderr, flush=True)
