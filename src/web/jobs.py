@@ -1,11 +1,12 @@
-"""The video library on disk, and the background work that fills it.
+"""The video library, and the background work that fills it.
 
-Each video lives in its own directory under the library root; `meta.json`
-there is the single record of its state, so the library survives a restart
-and listing it is a directory scan.
+Each video's record (its state and, once ready, its transcript) is a row in
+the Supabase `videos` table, so the library survives a restart. Its media —
+the playback video and thumbnail — live in its own directory under the
+library root.
 """
 
-import json
+import glob
 import os
 import re
 import shutil
@@ -15,9 +16,9 @@ import uuid
 from concurrent.futures import Executor, ThreadPoolExecutor
 from contextlib import contextmanager
 
-from hearing_to_seeing.converter.ass import generate_plain_ass
 from hearing_to_seeing.render import MediaToolError
 from hearing_to_seeing import media
+from web.db import SupabaseStore
 
 DEFAULT_LIBRARY_DIR = os.path.join("data", "output", "library")
 
@@ -26,14 +27,12 @@ ID_RE = re.compile(r"^[0-9a-f]{12}$")
 # The only language the web app transcribes; the CLI still takes any.
 LANGUAGE = "ko"
 
-# Files inside a video's directory.
+# Files inside a video's directory. The audio and the downloaded source are
+# only needed while the video is processed.
 AUDIO = "audio.wav"
+SOURCE = "source.*"
 PLAYBACK = "media.mp4"
 THUMBNAIL = "thumb.jpg"
-ASS = "subtitles.ass"
-PLAIN_ASS = "subtitles.plain.ass"
-TRANSCRIPT = "transcript.json"
-META = "meta.json"
 
 # In order; the page shows the current one while a video is processing.
 PENDING_STATES = ("queued", "downloading", "preparing", "transcribing", "finishing")
@@ -42,11 +41,17 @@ ERROR = "error"
 
 
 class Library:
-    def __init__(self, root: str | None = None, executor: Executor | None = None):
+    def __init__(
+        self,
+        root: str | None = None,
+        executor: Executor | None = None,
+        store: SupabaseStore | None = None,
+    ):
         self.root = os.path.abspath(
             root or os.environ.get("H2S_LIBRARY_DIR") or DEFAULT_LIBRARY_DIR
         )
         os.makedirs(self.root, exist_ok=True)
+        self.store = store or SupabaseStore()
         # One at a time: STT runs on a remote server at roughly real-time
         # speed, so parallel jobs would only compete for it.
         self.executor = executor or ThreadPoolExecutor(max_workers=1)
@@ -60,35 +65,26 @@ class Library:
         return os.path.join(self.root, video_id, name)
 
     def get(self, video_id: str) -> dict:
-        try:
-            with open(self.path(video_id, META), encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            raise KeyError(video_id) from None
+        self.path(video_id)  # rejects malformed ids before they reach the query
+        meta = self.store.get(video_id)
+        if meta is None:
+            raise KeyError(video_id)
+        return meta
 
     def list(self) -> list[dict]:
-        videos = []
-        for name in os.listdir(self.root):
-            if ID_RE.match(name):
-                try:
-                    videos.append(self.get(name))
-                except (KeyError, json.JSONDecodeError):
-                    continue
-        return sorted(videos, key=lambda v: v["created_at"], reverse=True)
+        return self.store.list()
 
     def update(self, video_id: str, **fields) -> dict:
         with self._lock:
             meta = self.get(video_id)
             meta.update(fields)
-            tmp = self.path(video_id, META + ".tmp")
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(meta, f, ensure_ascii=False, indent=2)
-            os.replace(tmp, self.path(video_id, META))
+            self.store.update_meta(video_id, meta)
             return meta
 
     def delete(self, video_id: str) -> None:
         self.get(video_id)
-        shutil.rmtree(self.path(video_id))
+        self.store.delete(video_id)
+        shutil.rmtree(self.path(video_id), ignore_errors=True)
 
     def _create(self, **fields) -> str:
         video_id = uuid.uuid4().hex[:12]
@@ -106,8 +102,7 @@ class Library:
             "timings": {},
             **fields,
         }
-        with open(self.path(video_id, META), "w", encoding="utf-8") as f:
-            json.dump(meta, f, ensure_ascii=False, indent=2)
+        self.store.insert(meta)
         return video_id
 
     def recover(self) -> None:
@@ -130,6 +125,12 @@ class Library:
             self._run_steps(video_id)
         except Exception as exc:  # surfaced on the page, not lost in a thread
             self.update(video_id, status=ERROR, error=str(exc) or type(exc).__name__)
+        finally:
+            for file in [self.path(video_id, AUDIO), *glob.glob(self.path(video_id, SOURCE))]:
+                try:
+                    os.remove(file)
+                except FileNotFoundError:
+                    pass
 
     @contextmanager
     def _timed_step(self, video_id: str, name: str, timings: dict[str, float]):
@@ -168,18 +169,21 @@ class Library:
             # (when GEMINI_API_KEY is set) — alongside STT, inside pipeline.run;
             # the source video lets the review see who is speaking.
             transcript = pipeline.run(
-                path(AUDIO), path(ASS), meta["language"], path(TRANSCRIPT),
+                path(AUDIO), None, meta["language"],
                 title=self.get(video_id)["title"], media_path=source_path,
             )
 
         with self._timed_step(video_id, "finishing", timings):
-            with open(path(PLAIN_ASS), "w", encoding="utf-8") as f:
-                f.write(generate_plain_ass(transcript))
+            # The ASS files are generated from the transcript when requested.
+            self.store.set_transcript(video_id, transcript.to_dict())
 
         self.update(video_id, status=READY, error=None)
 
     def transcript(self, video_id: str):
         from hearing_to_seeing.schema import Transcript
 
-        with open(self.path(video_id, TRANSCRIPT), encoding="utf-8") as f:
-            return Transcript.from_dict(json.load(f))
+        self.get(video_id)
+        data = self.store.get_transcript(video_id)
+        if data is None:
+            raise KeyError(video_id)
+        return Transcript.from_dict(data)

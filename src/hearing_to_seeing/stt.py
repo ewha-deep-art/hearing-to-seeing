@@ -17,7 +17,6 @@ from typing import Callable, NamedTuple
 from urllib.parse import urljoin
 
 import requests
-from dotenv import load_dotenv
 
 from hearing_to_seeing.schema import Transcript, WordEntry
 
@@ -135,7 +134,6 @@ def _request(
 
 def _loaded_model() -> str | None:
     """The Whisper model the server holds now (it keeps one), if it says."""
-    load_dotenv()
     try:
         response = requests.get(urljoin(os.environ["WHISPERX_API_URL"], "health"), timeout=HEALTH_TIMEOUT)
         return response.json()["loaded_model"]["model"]
@@ -156,7 +154,6 @@ def _detect_language(wav: bytes) -> str | None:
 
 
 def _post(wav: bytes, data: dict) -> dict:
-    load_dotenv()
     api_key = os.environ.get("WHISPERX_API_KEY")
     if not api_key:
         raise STTRequestError("WHISPERX_API_KEY is not set (see .env.example).")
