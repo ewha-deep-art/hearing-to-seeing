@@ -1,6 +1,9 @@
-"""Transcript views for the player page: speaker colours and the script panel."""
+"""Transcript views for the player page: speaker colours, the script panel and
+the subtitle files."""
 
-from hearing_to_seeing.converter.ass import subtitle_events
+import json
+
+from hearing_to_seeing.converter.ass import generate_ass, generate_plain_ass, subtitle_events
 from hearing_to_seeing.design.speaker import speaker_colors
 from hearing_to_seeing.schema import Transcript
 
@@ -32,3 +35,15 @@ def cues(transcript: Transcript) -> list[dict]:
         }
         for words, start, end, _ in subtitle_events(transcript)
     ]
+
+
+def export(transcript: Transcript, kind: str) -> tuple[str, str, str]:
+    """The transcript as a file: (content, filename suffix, media type)."""
+    if kind == "ass":
+        return generate_ass(transcript), ".ass", "text/plain; charset=utf-8"
+    if kind == "plain":
+        return generate_plain_ass(transcript), ".plain.ass", "text/plain; charset=utf-8"
+    if kind == "json":
+        content = json.dumps(transcript.to_dict(), ensure_ascii=False, indent=2)
+        return content, ".json", "application/json"
+    raise KeyError(kind)

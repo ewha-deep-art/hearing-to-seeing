@@ -468,7 +468,7 @@ def decode_audio(wav_path: str) -> tuple[int, np.ndarray]:
 
 def run(
     wav_path: str,
-    output_ass: str,
+    output_ass: str | None,
     language: str | None = None,
     output_json: str | None = None,
     title: str | None = None,
@@ -507,5 +507,6 @@ def run(
         with open(output_json, "w", encoding="utf-8") as f:
             json.dump(transcript.to_dict(), f, ensure_ascii=False, indent=2)
 
-    write_ass(transcript, output_ass)
+    if output_ass:
+        write_ass(transcript, output_ass)
     return transcript

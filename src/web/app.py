@@ -5,22 +5,16 @@ Run with `uv run hearing-to-seeing-web`.
 
 import os
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from hearing_to_seeing.design.layout import FONT_FILE, FONTS_DIR
 from web import jobs, subtitles
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-
-# kind → (file in the video directory, download filename suffix, media type)
-_FILES = {
-    "ass": (jobs.ASS, ".ass", "text/plain; charset=utf-8"),
-    "plain": (jobs.PLAIN_ASS, ".plain.ass", "text/plain; charset=utf-8"),
-    "json": (jobs.TRANSCRIPT, ".json", "application/json"),
-}
 
 
 def create_app(library: jobs.Library | None = None) -> FastAPI:
@@ -106,14 +100,19 @@ def create_app(library: jobs.Library | None = None) -> FastAPI:
 
     @app.get("/api/videos/{video_id}/files/{kind}")
     def video_file(video_id: str, kind: str, download: bool = False):
-        if kind not in _FILES:
-            raise HTTPException(404, "알 수 없는 파일 종류입니다.")
-        name, suffix, media_type = _FILES[kind]
-        path = _file(video_id, name)
-        if not download:
-            return FileResponse(path, media_type=media_type)
-        title = _meta(video_id)["title"] or video_id
-        return FileResponse(path, media_type=media_type, filename=title + suffix)
+        meta = _meta(video_id)
+        if meta["status"] != jobs.READY:
+            raise HTTPException(404, "파일이 아직 준비되지 않았습니다.")
+        transcript = library.transcript(video_id)
+        try:
+            content, suffix, media_type = subtitles.export(transcript, kind)
+        except KeyError:
+            raise HTTPException(404, "알 수 없는 파일 종류입니다.") from None
+        headers = {}
+        if download:
+            filename = quote((meta["title"] or video_id) + suffix)
+            headers["Content-Disposition"] = f"attachment; filename*=utf-8''{filename}"
+        return Response(content, media_type=media_type, headers=headers)
 
     return app
 

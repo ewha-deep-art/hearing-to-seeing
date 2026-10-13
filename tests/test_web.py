@@ -1,4 +1,5 @@
-import json
+import copy
+import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,6 +16,37 @@ class InlineExecutor:
 
     def submit(self, fn, *args):
         fn(*args)
+
+
+class MemoryStore:
+    """The `videos` table in a dict, so the tests run without Supabase."""
+
+    def __init__(self):
+        self.rows: dict[str, dict] = {}
+
+    def get(self, video_id):
+        row = self.rows.get(video_id)
+        return copy.deepcopy(row["meta"]) if row else None
+
+    def list(self):
+        rows = sorted(self.rows.values(), key=lambda r: r["meta"]["created_at"], reverse=True)
+        return [copy.deepcopy(r["meta"]) for r in rows]
+
+    def insert(self, meta):
+        self.rows[meta["id"]] = {"meta": copy.deepcopy(meta), "transcript": None}
+
+    def update_meta(self, video_id, meta):
+        self.rows[video_id]["meta"] = copy.deepcopy(meta)
+
+    def set_transcript(self, video_id, transcript):
+        self.rows[video_id]["transcript"] = copy.deepcopy(transcript)
+
+    def get_transcript(self, video_id):
+        row = self.rows.get(video_id)
+        return copy.deepcopy(row["transcript"]) if row else None
+
+    def delete(self, video_id):
+        del self.rows[video_id]
 
 
 def _transcript():
@@ -40,14 +72,9 @@ def fake_media(monkeypatch):
     def download(url, dest_dir):
         return touch(f"{dest_dir}/source.mp4"), "Fetched title"
 
-    def run(wav, ass, language, output_json, title=None, media_path=None):
-        runs.append({"title": title, "media_path": media_path})
-        transcript = _transcript()
-        with open(output_json, "w", encoding="utf-8") as f:
-            json.dump(transcript.to_dict(), f)
-        with open(ass, "w", encoding="utf-8") as f:
-            f.write(generate_ass(transcript))
-        return transcript
+    def run(wav, ass, language, title=None, media_path=None):
+        runs.append({"ass": ass, "title": title, "media_path": media_path})
+        return _transcript()
 
     monkeypatch.setattr(media, "download_youtube", download)
     monkeypatch.setattr(media, "probe", lambda _: {"duration": 1.3, "video": "h264", "audio": "aac"})
@@ -60,7 +87,7 @@ def fake_media(monkeypatch):
 
 @pytest.fixture
 def library(tmp_path):
-    return jobs.Library(str(tmp_path), executor=InlineExecutor())
+    return jobs.Library(str(tmp_path), executor=InlineExecutor(), store=MemoryStore())
 
 
 @pytest.fixture
@@ -105,8 +132,19 @@ def test_url_runs_to_ready(library, fake_media):
     assert meta["title"] == "clip"
     assert meta["language"] == "ko"
     assert meta["duration"] == 1.3
-    with open(library.path(video_id, jobs.PLAIN_ASS), encoding="utf-8") as f:
-        assert "\\kf" not in f.read()
+    assert library.transcript(video_id).to_dict() == _transcript().to_dict()
+
+
+def test_only_playback_media_stays_on_disk(library, fake_media):
+    video_id = library.add_url("https://youtu.be/x", "clip")
+    assert fake_media[0]["ass"] is None
+    assert os.listdir(library.path(video_id)) == [jobs.PLAYBACK]  # no audio or source
+
+
+def test_failed_job_drops_working_files(library, fake_media, monkeypatch):
+    monkeypatch.setattr("hearing_to_seeing.pipeline.run", lambda *_, **__: 1 / 0)
+    video_id = library.add_url("https://youtu.be/x", "clip")
+    assert os.listdir(library.path(video_id)) == [jobs.PLAYBACK]  # no audio or source
 
 
 def test_url_run_records_step_timings(library, fake_media):
@@ -153,10 +191,11 @@ def test_source_without_audio_fails(library, fake_media, monkeypatch):
 
 
 def test_recover_marks_unfinished_jobs_failed(tmp_path):
-    lib = jobs.Library(str(tmp_path), executor=InlineExecutor())
-    video_id = lib._create(status="transcribing")
-    lib.recover()
-    assert lib.get(video_id)["status"] == jobs.ERROR
+    store = MemoryStore()
+    video_id = jobs.Library(str(tmp_path), store=store)._create(status="transcribing")
+    restarted = jobs.Library(str(tmp_path), executor=InlineExecutor(), store=store)
+    restarted.recover()
+    assert restarted.get(video_id)["status"] == jobs.ERROR
 
 
 def test_path_rejects_ids_outside_the_library(library):
@@ -206,8 +245,27 @@ def test_subtitle_download_is_an_attachment(client, fake_media):
     download = client.get(f"/api/videos/{video_id}/files/plain?download=1")
     assert "attachment" in download.headers["content-disposition"]
     assert "talk.plain.ass" in download.headers["content-disposition"]
+    assert "\\kf" not in download.text
+
+    transcript = client.get(f"/api/videos/{video_id}/files/json").json()
+    assert transcript == _transcript().to_dict()
 
     assert client.get(f"/api/videos/{video_id}/files/exe").status_code == 404
+
+
+def test_subtitle_download_keeps_a_korean_title(client, fake_media):
+    video_id = client.post(
+        "/api/videos", data={"url": "https://youtu.be/x", "title": "대화"}
+    ).json()["id"]
+    download = client.get(f"/api/videos/{video_id}/files/ass?download=1")
+    assert download.headers["content-disposition"] == (
+        "attachment; filename*=utf-8''%EB%8C%80%ED%99%94.ass"
+    )
+
+
+def test_files_wait_for_the_transcript(client, library):
+    video_id = library._create()
+    assert client.get(f"/api/videos/{video_id}/files/ass").status_code == 404
 
 
 def test_media_supports_range_requests(client, fake_media, library):
