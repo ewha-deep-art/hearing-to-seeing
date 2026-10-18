@@ -9,36 +9,39 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="logo" href="/"><span class="logo-mark">H→S</span>Hearing to Seeing</a>
+    <a class="logo" href="/"><span class="logo-mark">H→S</span><span class="logo-text">Hearing to Seeing</span></a>
+    <form class="search" id="search" role="search">
+      <input id="search-input" name="q" type="search" autocomplete="off"
+             placeholder="제목, 인물, 대사로 검색" aria-label="검색">
+    </form>
     <button class="btn btn-primary" id="add-open" type="button"></button>
   </header>
 
   <main class="library">
+    <nav class="genres" id="genres" aria-label="장르"></nav>
+
+    <h2 class="section-title" id="results-title" hidden></h2>
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty" hidden>
-      <h2>아직 영상이 없습니다</h2>
-      <p>YouTube 링크를 붙여 넣으면<br>화자·타이밍·음량이 보이는 자막과 함께 볼 수 있습니다.</p>
+      <h2 id="empty-title"></h2>
+      <p id="empty-text"></p>
     </div>
   </main>
 
   <dialog id="add-dialog">
     <form class="dialog-inner" id="add-form" method="dialog">
-      <h2>영상 추가</h2>
+      <h2>자막 만들기</h2>
       <div class="field">
         <label for="url-input">YouTube 링크</label>
         <input id="url-input" name="url" type="url" required placeholder="https://www.youtube.com/watch?v=…">
       </div>
-
-      <div class="field">
-        <label for="title-input">제목 (선택)</label>
-        <input id="title-input" name="title" type="text" placeholder="비워 두면 영상 제목을 사용">
-      </div>
+      <p class="dialog-note" id="quota-note"></p>
 
       <p class="form-error" id="form-error" hidden></p>
 
       <div class="dialog-actions">
         <button class="btn" type="button" id="add-cancel">취소</button>
-        <button class="btn btn-primary" type="submit" id="add-submit">추가</button>
+        <button class="btn btn-primary" type="submit" id="add-submit">만들기</button>
       </div>
     </form>
   </dialog>

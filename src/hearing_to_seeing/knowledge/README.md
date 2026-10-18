@@ -6,10 +6,10 @@
 | 파일 | 역할 |
 |------|------|
 | [`llm.py`](llm.py) | Gemini 호출 창구 `ask()` 하나. 프롬프트(+ 영상/음성) → JSON 스키마에 맞는 dict |
-| [`prompts.py`](prompts.py) | 질문 네 가지의 (SYSTEM, PROMPT, SCHEMA) |
+| [`prompts.py`](prompts.py) | 질문 다섯 가지의 (SYSTEM, PROMPT, SCHEMA) |
 | [`retrieve.py`](retrieve.py) | 위키백과·나무위키 문서 가져오기 (모델 호출 없음) |
 
-호출하는 쪽은 [`pipeline.py`](../pipeline.py)(작품·인물표·화자 → 인물, 색 배정)와 [`review.py`](../review.py)(영상 검토)다.
+호출하는 쪽은 [`pipeline.py`](../pipeline.py)(작품·인물표·화자 → 인물, 색 배정), [`review.py`](../review.py)(영상 검토), 웹의 [`catalog.py`](../../web/catalog.py)(장르 분류)다.
 결과 색은 중간 JSON의 `speaker_profiles`에 `#RRGGBB`로 저장되고, [`design/speaker.py`](../design/speaker.py)는 이를 ASS 색으로 바꾸기만 한다.
 
 ---
@@ -38,10 +38,11 @@ pipeline.run(wav, ..., title=영상 제목, media_path=원본 영상)
 
 | | 질문 (`prompts.py`) | 호출 위치 | 모델 | 폴백 | 언제 |
 |---|---|---|---|---|---|
-| ① | `TITLE_*` | `pipeline.lookup_characters` | `H2S_LLM_MODEL` (기본 `gemini-3.6-flash`) | `gemini-3.5-flash-lite` | 키 + 제목, 제목에서 작품 문서를 못 찾았을 때 |
+| ① | `TITLE_*` | `pipeline.lookup_characters` | `llm.MODEL` (`gemini-3.6-flash`) | `gemini-3.5-flash-lite` | 키 + 제목, 제목에서 작품 문서를 못 찾았을 때 |
 | ③ | `CAST_*` | `pipeline.lookup_characters` | 〃 | 〃 | ①이 작품을 특정했을 때 |
-| ④ | `REVIEW_*` | `review.review_transcript` | `H2S_REVIEW_MODEL` (기본 `gemini-3.7-flash`) | `gemini-3.8-flash` → `gemini-3.5-flash` | 키가 있으면 항상 (클립 15분 이하) |
-| ⑤ | `SPEAKERS_*` | `pipeline.identify_speakers` | `H2S_LLM_MODEL` | `gemini-3.5-flash-lite` | 인물표가 있는데 ④가 실패했을 때 |
+| ④ | `REVIEW_*` | `review.review_transcript` | `review.REVIEW_MODEL` (`gemini-3.7-flash`) | `gemini-3.8-flash` → `gemini-3.5-flash` | 키가 있으면 항상 (클립 15분 이하) |
+| ⑤ | `SPEAKERS_*` | `pipeline.identify_speakers` | `llm.MODEL` | `gemini-3.5-flash-lite` | 인물표가 있는데 ④가 실패했을 때 |
+| ⑥ | `GENRE_*` | `web.catalog.genre_of` | `llm.MODEL` | `gemini-3.5-flash-lite` | 웹에서 자막을 만들 때마다 1회 (YouTube 메타데이터 → 장르, 실패 시 기타) |
 
 입력 조건별로 실제로 일어나는 일:
 

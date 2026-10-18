@@ -8,7 +8,6 @@ failure, the caller keeps the plain vote (None). See knowledge/README.md ④.
 """
 
 import mimetypes
-import os
 import re
 import sys
 from dataclasses import dataclass
@@ -18,8 +17,8 @@ from hearing_to_seeing.knowledge import llm, prompts
 from hearing_to_seeing.schema import Transcript, WordEntry
 
 # A daily quota of its own, apart from the cast lookup's `llm.MODEL`
-# (evaluation/README.md 5.5). H2S_REVIEW_MODEL overrides it.
-REVIEW_MODEL = os.environ.get("H2S_REVIEW_MODEL", "gemini-3.7-flash")
+# (evaluation/README.md 5.5).
+REVIEW_MODEL = "gemini-3.7-flash"
 # Over quota or overloaded: Flash models only, each on its own quota.
 REVIEW_FALLBACKS = ("gemini-3.8-flash", "gemini-3.5-flash")
 # Word picks need full thinking; without a cast or past TEXT_MAX_SECONDS,

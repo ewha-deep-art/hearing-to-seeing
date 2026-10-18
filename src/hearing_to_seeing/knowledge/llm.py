@@ -15,8 +15,8 @@ import time
 from functools import lru_cache
 
 API_KEY_VAR = "GEMINI_API_KEY"
-# ~30 s per call on the free tier. H2S_LLM_MODEL overrides it.
-MODEL = os.environ.get("H2S_LLM_MODEL", "gemini-3.6-flash")
+# ~30 s per call on the free tier.
+MODEL = "gemini-3.6-flash"
 # Where a request goes when the preferred model is over quota (429) or
 # overloaded (503): the lightest Flash, ~3 s per call.
 FALLBACK_MODEL = "gemini-3.5-flash-lite"

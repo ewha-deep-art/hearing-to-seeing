@@ -19,10 +19,7 @@ MODEL_URL = (
     "https://huggingface.co/Wespeaker/wespeaker-voxceleb-resnet34-LM/resolve/main/"
     "voxceleb_resnet34_LM.onnx"
 )
-MODEL_PATH = os.environ.get(
-    "H2S_VOICE_MODEL",
-    os.path.join(os.path.expanduser("~"), ".cache", "hearing-to-seeing", "voxceleb_resnet34_LM.onnx"),
-)
+MODEL_PATH = os.path.join(os.path.expanduser("~"), ".cache", "hearing-to-seeing", "voxceleb_resnet34_LM.onnx")
 RATE = 16_000
 
 # Shorter stretches give no usable voice print.

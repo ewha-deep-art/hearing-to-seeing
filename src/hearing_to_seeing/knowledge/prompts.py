@@ -2,7 +2,8 @@
 
 Each is a (SYSTEM, PROMPT, SCHEMA) triple for `llm.ask()`; PROMPT is filled in
 with `str.format`. The answers are plain dicts shaped by SCHEMA and are read
-directly by `pipeline.py` (1–3) and `review.py` (4).
+directly by `pipeline.py` (1–3), `review.py` (4) and the web
+catalogue, `web/catalog.py` (5).
 """
 
 # --- 1. clip title → work -----------------------------------------------------
@@ -213,5 +214,31 @@ REVIEW_SCHEMA = {
         },
     },
     "required": ["utterances", "corrections"],
+    "additionalProperties": False,
+}
+
+# --- 5. clip metadata → genre (the web catalogue) ------------------------------
+# Only the shelves the catalogue has; films come first, and anything that is not
+# a clip of a film, drama or animation goes to 기타.
+
+GENRE_SYSTEM = """\
+당신은 유튜브 클립을 장르별로 분류하는 도구다. 클립이 어떤 작품에서 나왔는지 보고 장르를 고른다.
+- 영화의 장면·예고편이면 영화, TV·OTT 드라마면 드라마, 애니메이션(극장판 포함)이면 애니메이션.
+- 예능, 브이로그, 뉴스, 인터뷰, 강연 등 영화·드라마·애니메이션의 클립이 아니거나 판단할 수 없으면 기타."""
+
+GENRE_PROMPT = """\
+제목: {title}
+채널: {channel}
+유튜브 카테고리: {categories}
+태그: {tags}
+설명:
+{description}"""
+
+GENRE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "genre": {"type": "string"},  # the shelves (`web.db.GENRES`) are filled in as its enum
+    },
+    "required": ["genre"],
     "additionalProperties": False,
 }

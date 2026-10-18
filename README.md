@@ -28,7 +28,7 @@ uv run hearing-to-seeing data/input/sample.wav
 uv run hearing-to-seeing data/input/sample.wav -o data/output/sample.ass --json data/output/sample.json \
     --language ko --speakers 6 --video data/input/sample.mp4
 
-# 웹 — http://127.0.0.1:8000 (YouTube 링크를 받아 영상 제목으로 등장인물을 찾아 화자 색상 결정)
+# 웹 — http://127.0.0.1:8000 (YouTube 링크로 자막을 만들고, 만들어 둔 영상을 검색·장르로 찾아 YouTube 플레이어에서 자막과 함께 재생)
 uv run hearing-to-seeing-web --host 127.0.0.1 --port 8000
 ```
 
@@ -40,10 +40,8 @@ uv run hearing-to-seeing-web --host 127.0.0.1 --port 8000
 |------|------|------|
 | `WHISPERX_API_KEY` | ✅ | 원격 WhisperX 서버(STT·정렬·화자 분리) API 키 |
 | `WHISPERX_API_URL` | ✅ | 원격 WhisperX 서버 주소 |
-| `GEMINI_API_KEY` | | 설정하면 웹 작업에서 영상 제목으로 작품의 등장인물을 찾아 화자별 색상을 정하고, 원본 영상을 보며 발화마다 화자를 확인함 ([knowledge/README.md](src/hearing_to_seeing/knowledge/README.md)). 없으면 색상환에 고르게 배정. [발급](https://aistudio.google.com/apikey) (무료 티어로 충분) |
-| `H2S_LLM_MODEL` | | 색상 조회에 쓸 Gemini 모델 (기본 `gemini-3.6-flash`, 한도·과부하 시 `gemini-3.5-flash-lite`로 자동 폴백) |
-| `H2S_REVIEW_MODEL` | | 영상 검토(발화별 화자, 엇갈린 단어 선택)에 쓸 Gemini 모델 (기본 `gemini-3.7-flash`, 한도·과부하 시 `gemini-3.8-flash` → `gemini-3.5-flash`, 모두 실패하면 검토를 건너뜀). [evaluation/README.md](evaluation/README.md) 참조 |
+| `GEMINI_API_KEY` | | 설정하면 웹 작업에서 영상 제목으로 작품의 등장인물을 찾아 화자별 색상을 정하고, 원본 영상을 보며 발화마다 화자를 확인하고, 장르를 분류함 ([knowledge/README.md](src/hearing_to_seeing/knowledge/README.md)). 없으면 색상환에 고르게 배정. [발급](https://aistudio.google.com/apikey) (무료 티어로 충분) |
 | `H2S_FFMPEG` / `H2S_FFPROBE` | | `PATH`에 없는 ffmpeg / ffprobe 경로. `H2S_FFPROBE`는 생략하면 `H2S_FFMPEG`와 같은 폴더에서 찾음 |
-| `H2S_LIBRARY_DIR` | | 웹 화면의 영상 라이브러리 저장 위치 (기본 `data/output/library`) |
+| `SUPABASE_URL` / `SUPABASE_SECRET_KEY` | 웹 ✅ | 웹 카탈로그를 저장할 Supabase 프로젝트 (`clips` 테이블). 키는 서버 전용 secret key |
 
 아키텍처와 저장소 구조는 [CLAUDE.md](CLAUDE.md)를, 브랜치 전략과 커밋 컨벤션은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
