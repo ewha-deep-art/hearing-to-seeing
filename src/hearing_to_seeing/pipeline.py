@@ -31,13 +31,14 @@ from functools import lru_cache
 
 import numpy as np
 
+from hearing_to_seeing import voice
 from hearing_to_seeing.schema import Transcript
 from hearing_to_seeing.review import review_transcript, upload as upload_for_review
 from hearing_to_seeing.stt import correct_names, decode, parse_result
 from hearing_to_seeing.design.volume import annotate_volumes
 from hearing_to_seeing.converter.ass import write_ass
 from hearing_to_seeing.knowledge import llm, prompts
-from hearing_to_seeing.knowledge.retrieve import retrieve
+from hearing_to_seeing.knowledge.retrieve import retrieve, work_in_title
 
 # --- colour model --------------------------------------------------------------
 
@@ -234,15 +235,18 @@ def lookup_characters(title: str | None) -> list[dict] | None:
     if not title or not llm.configured():
         return None
     try:
-        work = llm.ask(prompts.TITLE_SYSTEM, prompts.TITLE_PROMPT.format(title=title), prompts.TITLE_SCHEMA)
-        work_title = (work.get("title") or "").strip()
+        # A title naming a Namu work page outright needs no model call.
+        work_title = work_in_title(title)
+        if not work_title:
+            work = llm.ask(prompts.TITLE_SYSTEM, prompts.TITLE_PROMPT.format(title=title), prompts.TITLE_SCHEMA)
+            work_title = (work.get("title") or "").strip()
         if not work_title:
             return None
         print(f"… 작품 검색 중: {work_title!r}", file=sys.stderr, flush=True)
-        documents = retrieve(work_title) or prompts.NO_DOCUMENTS
+        documents = retrieve(work_title, hint=title) or prompts.NO_DOCUMENTS
         cast = llm.ask(
             prompts.CAST_SYSTEM,
-            prompts.CAST_PROMPT.format(title=work_title, documents=documents),
+            prompts.CAST_PROMPT.format(title=work_title, clip=title, documents=documents),
             prompts.CAST_SCHEMA,
         )
     except Exception as exc:  # network, quota, bad key — anything
@@ -335,7 +339,7 @@ def _by_name(characters: list[dict]) -> dict[str, dict]:
 def named_speakers(names: dict[str, str], characters: list[dict]) -> dict[str, dict]:
     """Label → match, as `identify_speakers` gives, for labels already named
     by watching the clip (`review.review_transcript`). A name not in the cast
-    (손님1 …) matches no one."""
+    (간호사1, 경찰 …) matches no one."""
     by_name = _by_name(characters)
     return {
         label: {"character": by_name[_fold(name)], "confidence": 1.0,
@@ -490,6 +494,11 @@ def run(
         characters = lookup.result()
         review = review_transcript(results, language, characters, review_media, upload.result())
         transcript = review.transcript if review else parse_result(results, language)
+        # The voices settle what neither the labels nor the review could.
+        if review:
+            voice.reassign_utterances(transcript, sample_rate, audio_data)
+        else:
+            voice.merge_labels(transcript, sample_rate, audio_data)
 
         annotate_volumes(transcript, sample_rate, audio_data)
 

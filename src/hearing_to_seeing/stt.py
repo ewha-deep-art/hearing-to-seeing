@@ -39,9 +39,8 @@ ALIGN_MODEL = "w11wo/wav2vec2-xls-r-300m-korean"
 # first with the fastest model.
 DETECTION_MODEL = "large-v3-turbo"
 
-# The audio is decoded once per (Whisper model, window length) pair — the
-# server's `model` and `chunk_size` (seconds) — and the passes merged region by
-# region (`merge_passes`). Long windows give Whisper context; short ones keep a
+# The audio is decoded once per pass and the passes merged region by region
+# (`merge_passes`). Long windows give Whisper context; short ones keep a
 # decoding loop from eating the lines after it and time words best; the models
 # mishear different words. Measured on dubbed-cartoon clips (docs/STT_TUNING.md).
 # The first pass is the primary one: it anchors speaker labels and wins ties.
@@ -50,9 +49,13 @@ DETECTION_MODEL = "large-v3-turbo"
 # 97–100 % of words keep the speaker they had with every pass diarized, at
 # 6 s less per pass. The passes are sent grouped by model, starting with the
 # one the server holds (`_pass_order`): switching models costs 2–4 s.
+# Each pass: the server's `model`, `chunk_size` (seconds) and VAD (onset,
+# offset), None for the server's default. LOW_VAD reads shouted and whispered
+# lines the default drops (evaluation/README.md 5.2).
+LOW_VAD = (0.2, 0.15)
 PASSES = (
-    ("large-v3", 30), ("large-v2", 30), ("large-v2", 20),
-    ("large-v3", 5), ("large-v3-turbo", 5),
+    ("large-v3", 30, None), ("large-v2", 30, None), ("large-v2", 20, None),
+    ("large-v3", 5, None), ("large-v3-turbo", 5, None), ("large-v3", 30, LOW_VAD),
 )
 
 # A syllable repeated past this inside one word ("하하하하하…") is a decoding
@@ -114,6 +117,7 @@ def _request(
     chunk_size: int | None = None,
     num_speakers: int | None = None,
     diarize: bool = True,
+    vad: tuple[float, float] | None = None,
 ) -> dict:
     # min/max_speakers hints changed nothing on the test clips, but an exact
     # count that is at least the real one splits voices diarization merged
@@ -129,6 +133,8 @@ def _request(
         data["chunk_size"] = str(chunk_size)
     if num_speakers and diarize:
         data["num_speakers"] = str(num_speakers)
+    if vad:
+        data["vad_onset"], data["vad_offset"] = (str(v) for v in vad)
     return _post(wav, data)
 
 
@@ -143,8 +149,8 @@ def _loaded_model() -> str | None:
 
 def _pass_order(loaded: str | None) -> list[int]:
     """Indices into PASSES, grouped by model, the `loaded` one's first."""
-    models = sorted(dict.fromkeys(m for m, _ in PASSES), key=lambda m: m != loaded)
-    return [i for m in models for i, (model, _) in enumerate(PASSES) if model == m]
+    models = sorted(dict.fromkeys(m for m, _, _ in PASSES), key=lambda m: m != loaded)
+    return [i for m in models for i, (model, _, _) in enumerate(PASSES) if model == m]
 
 
 def _detect_language(wav: bytes) -> str | None:
@@ -625,7 +631,8 @@ def decode(
     language = language or _detect_language(wav)
     results: list[dict] = [{}] * len(PASSES)
     for i in _pass_order(loaded or _loaded_model()):
-        results[i] = _request(wav, language, *PASSES[i], num_speakers, diarize=i == 0)
+        model, size, vad = PASSES[i]
+        results[i] = _request(wav, language, model, size, num_speakers, diarize=i == 0, vad=vad)
     return results, language
 
 

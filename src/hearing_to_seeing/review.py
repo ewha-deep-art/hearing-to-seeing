@@ -1,25 +1,10 @@
-"""Checking the merged transcript against the clip itself, in one model call.
+"""Checks the merged transcript against the clip itself, in one model call.
 
-STT merges several Whisper passes by majority vote (`stt.merge_passes`), and
-the server's diarization labels the speakers. Both fail where the clip itself
-settles the question: diarization cannot tell apart two fish the screen shows
-plainly, and a word most passes misheard is often read right by a few.
-
-So the model is shown the clip (the video, or the audio when there is none)
-and the merged transcript cut into utterances, with every spot the passes
-disagree on marked with its readings, and asked
-  - who speaks each utterance, by whose mouth moves on screen, and
-  - where a reading other than the vote's is clearly what is said.
-It only chooses — a name per utterance, an option per spot, never new text —
-so it cannot put words in anyone's mouth, and every word keeps the timing the
-passes gave it. Measured in docs/STT_TUNING.md (4차).
-
-The answer's names replace the diarization labels: each name takes over the
-label it shares the most speaking time with, one to one, and a name left over
-gets a label of its own. `assign_speaker_colors` then gets the label → name
-map instead of guessing it from the dialogue (`identify_speakers`), so a
-reviewed clip costs no extra model call. Without a key, with a clip too long,
-or on any failure, the caller keeps the plain vote (None).
+The model sees the clip and the transcript cut into utterances, with every
+spot the passes disagree on marked, and picks a speaker per utterance and a
+reading per spot — never new text, so every word keeps its timing. Its names
+replace the diarization labels. Without a key, for a clip too long, or on any
+failure, the caller keeps the plain vote (None). See knowledge/README.md ④.
 """
 
 import mimetypes
@@ -32,32 +17,27 @@ from hearing_to_seeing import stt
 from hearing_to_seeing.knowledge import llm, prompts
 from hearing_to_seeing.schema import Transcript, WordEntry
 
-# The free tier allows each model about 20 requests a day, and the work and
-# cast lookups already spend two of `llm.MODEL`'s per clip; this model's quota
-# is its own. It also scored best on the human-checked clip, though it
-# overrules the vote far more often than `llm.MODEL` (docs/STT_TUNING.md, 4차).
-# H2S_REVIEW_MODEL overrides it.
-REVIEW_MODEL = os.environ.get("H2S_REVIEW_MODEL", "gemini-3.5-flash")
-# Picking among readings needs the model's full thinking: at the low level it
-# overruled the vote 52 times on clip 1 and CER went 2.5 → 4.1 %. But with no
-# cast list to go by, full (and medium) thinking ran past 30,000 tokens, cut
-# the answer short and once ran over ten minutes. Speakers come out as well at
-# the low level (99 %), so a clip with no cast is asked about speakers only.
-NO_CAST_THINKING = "low"
+# A daily quota of its own, apart from the cast lookup's `llm.MODEL`
+# (evaluation/README.md 5.5). H2S_REVIEW_MODEL overrides it.
+REVIEW_MODEL = os.environ.get("H2S_REVIEW_MODEL", "gemini-3.7-flash")
+# Over quota or overloaded: Flash models only, each on its own quota.
+REVIEW_FALLBACKS = ("gemini-3.8-flash", "gemini-3.5-flash")
+# Word picks need full thinking; without a cast or past TEXT_MAX_SECONDS,
+# only speakers are asked, at low thinking (evaluation/README.md 5.1).
+SPEAKERS_THINKING = "low"
+TEXT_MAX_SECONDS = 300.0
 MAX_TOKENS = 16_000
-# Overloaded, the model has held a review for ten minutes across the SDK's
-# retries before failing; the plain vote is ready, so one try this long.
-TIMEOUT_MS = 120_000
+# One try, long enough for a ~10-minute clip at low thinking (~260 s).
+TIMEOUT_MS = 480_000
 
 # Utterances are cut wherever the label changes, at a pause this long, and
 # after a sentence ends. Cut that finely, labelling every utterance right
 # gets clip 1 to 100 % speaker accuracy (speaker change alone: 94 %).
 UTTERANCE_PAUSE = 0.5
 SENTENCE_END = re.compile(r"[.?!]$")
-# Measured on clips up to 4.6 min (≈ 115 input tokens a second at low
-# resolution); twice that is still far inside the context, but the answer
-# grows with the utterance count, so longer clips are not sent.
-MAX_SECONDS = 600.0
+# Longer clips than the longest measured (12.3 min) are not sent
+# (evaluation/README.md 5.1).
+MAX_SECONDS = 900.0
 
 
 @dataclass
@@ -175,8 +155,11 @@ def review_transcript(
     """The transcript `stt.parse_result(results)` would give, checked against
     `media_path` (video or audio); None when the review cannot run.
     `uploaded` is `media_path` as `upload` already put it up."""
-    # Without a cast, speakers only (see NO_CAST_THINKING).
-    lines, spots, spans = _prompt_lines(results, mark=bool(characters))
+    # Without a cast, or for a long clip, speakers only (see SPEAKERS_THINKING).
+    seconds = max((w.get("end") or 0.0 for r in results
+                   for seg in r.get("segments", []) for w in seg.get("words", [])), default=0.0)
+    text_task = bool(characters) and seconds <= TEXT_MAX_SECONDS
+    lines, spots, spans = _prompt_lines(results, mark=text_task)
     if not llm.configured() or not spans or spans[-1][1] > MAX_SECONDS:
         if uploaded:
             llm.discard(uploaded)
@@ -193,9 +176,9 @@ def review_transcript(
           file=sys.stderr, flush=True)
     try:
         answer = llm.ask(prompts.REVIEW_SYSTEM, prompt, prompts.REVIEW_SCHEMA, model=REVIEW_MODEL,
-                         media_path=media_path, media=uploaded, fallback=False, temperature=0,
+                         media_path=media_path, media=uploaded, fallback=REVIEW_FALLBACKS, temperature=0,
                          max_tokens=MAX_TOKENS, timeout_ms=TIMEOUT_MS,
-                         thinking_level=None if characters else NO_CAST_THINKING)
+                         thinking_level=None if text_task else SPEAKERS_THINKING)
     except Exception as exc:  # network, quota, bad key — anything
         print(f"! 검토 실패, 다수결 결과 사용: {exc}", file=sys.stderr, flush=True)
         return None

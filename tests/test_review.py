@@ -61,10 +61,10 @@ def test_the_prompt_marks_each_disputed_spot_in_place(model):
     assert "mouth moves on screen" in prompt  # judged by the picture, not the audio
 
 
-def test_the_model_watches_the_clip_without_a_fallback(model):
+def test_the_model_watches_the_clip_with_full_flash_fallbacks(model):
     review.review_transcript(_passes(), "ko", [{"name": "스폰지밥"}], "clip.mp4")
     call = model.calls[0]
-    assert (call["media_path"], call["fallback"], call["temperature"]) == ("clip.mp4", False, 0)
+    assert (call["media_path"], call["fallback"], call["temperature"]) == ("clip.mp4", review.REVIEW_FALLBACKS, 0)
     assert (call["model"], call["thinking_level"]) == (review.REVIEW_MODEL, None)
 
 
@@ -154,7 +154,7 @@ def test_an_early_upload_is_discarded_when_there_is_nothing_to_review(model, mon
     discarded = []
     monkeypatch.setattr(review.llm, "discard", discarded.append)
 
-    assert review.review_transcript([_result(_word("x", 700.0, 700.5))], "ko", None, "clip.mp4", "up") is None
+    assert review.review_transcript([_result(_word("x", 1000.0, 1000.5))], "ko", None, "clip.mp4", "up") is None
     assert discarded == ["up"] and model.calls == []
 
 
