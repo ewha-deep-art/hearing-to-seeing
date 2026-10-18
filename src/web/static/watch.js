@@ -1,4 +1,5 @@
-import { STEPS, api, el, formatTime, icon, isPending, statusLabel } from "/static/common.js";
+import { STEPS, api, el, formatTime, icon, isPending, statusLabel, stepIndex } from "/static/common.js";
+import { mountTray } from "/static/tray.js";
 
 // Modules come from esm.sh, which keeps abslink a single shared instance
 // across JASSUB's entry points (jsDelivr's +esm inlines a second copy into
@@ -13,13 +14,164 @@ const JASSUB_ASSETS = "https://cdn.jsdelivr.net/npm/jassub@2.5.16/dist";
 // after a paused seek renders blank.
 const SUBTITLE_FONT_NAME = "KoPubDotum Bold";
 const SUBTITLE_FONT = "/api/subtitle-font";
-const SUB_MODES = ["kinetic", "plain", "off"];
-const SUB_MODE_LABELS = { kinetic: "키네틱 자막", plain: "일반 자막", off: "자막 끔" };
+// The ASS PlayRes (converter/ass.py); the stage is always this shape.
+const FRAME = { width: 1920, height: 1080 };
+const SUB_MODES = ["kinetic", "plain"];
+const SUB_MODE_LABELS = { kinetic: "키네틱 자막", plain: "일반 자막" };
 
 const videoId = location.pathname.split("/").pop();
+const searchQuery = (new URLSearchParams(location.search).get("q") ?? "").trim();
 const $ = (id) => document.getElementById(id);
 const player = $("player");
-const video = $("video");
+let media = null; // YouTubeMedia, once the player is up
+
+// --- YouTube player, behind the HTMLMediaElement surface the page uses ---------
+
+let youtubeApi = null;
+function loadYouTubeApi() {
+  youtubeApi ??= new Promise((resolve) => {
+    window.onYouTubeIframeAPIReady = () => resolve(window.YT);
+    document.head.append(el("script", { src: "https://www.youtube.com/iframe_api" }));
+  });
+  return youtubeApi;
+}
+
+// The IFrame API only reports its time when asked; between polls the clock
+// runs on, so the subtitles move every frame rather than four times a second.
+const POLL_MS = 250;
+const MAX_DRIFT = 0.12;
+
+class YouTubeMedia extends EventTarget {
+  constructor(YT, target, youtubeId, start) {
+    super();
+    this.YT = YT;
+    this._time = start;
+    this._at = performance.now();
+    this._paused = true;
+    this._running = false; // playing and not buffering: the clock advances
+    this._ended = false;
+    this._duration = 0;
+    this._muted = false;
+    this._volume = 1;
+    this.ready = new Promise((resolve) => {
+      this.player = new YT.Player(target, {
+        videoId: youtubeId,
+        width: "100%",
+        height: "100%",
+        playerVars: {
+          controls: 0, disablekb: 1, fs: 0, rel: 0, playsinline: 1, iv_load_policy: 3,
+          start: Math.floor(start), origin: location.origin, cc_load_policy: 0,
+        },
+        events: {
+          onReady: () => {
+            this._hideCaptions();
+            this._muted = this.player.isMuted();
+            this._volume = this.player.getVolume() / 100;
+            this._syncDuration();
+            setInterval(() => this._poll(), POLL_MS);
+            resolve(this);
+          },
+          onStateChange: (e) => this._onState(e.data),
+          onError: (e) => { this.error = e.data; this._emit("error"); },
+        },
+      });
+    });
+  }
+
+  _emit(type) { this.dispatchEvent(new Event(type)); }
+
+  // YouTube's own captions (often auto-generated) would sit under ours.
+  // cc_load_policy alone doesn't stop them: a viewer's account setting or an
+  // auto track turns them back on, and they reload once playback starts.
+  _hideCaptions() {
+    for (const module of ["captions", "cc"]) this.player.unloadModule?.(module);
+  }
+
+  _syncDuration() {
+    const d = this.player.getDuration?.() || 0;
+    if (d && d !== this._duration) { this._duration = d; this._emit("durationchange"); }
+  }
+
+  _rebase(t = this.player.getCurrentTime()) {
+    this._time = t;
+    this._at = performance.now();
+  }
+
+  _poll() {
+    if (this._running) {
+      const t = this.player.getCurrentTime();
+      if (Math.abs(t - this.currentTime) > MAX_DRIFT) this._rebase(t);
+    }
+    this._syncDuration();
+    this._emit("timeupdate");
+  }
+
+  _onState(state) {
+    const S = this.YT.PlayerState;
+    // Before the first play the player reports 0, not the `start` it will begin at.
+    if (state !== S.UNSTARTED && state !== S.CUED) this._rebase();
+    const wasPaused = this._paused;
+    this._running = state === S.PLAYING;
+    if (state === S.PLAYING) {
+      this._hideCaptions();
+      this._paused = false;
+      this._ended = false;
+      if (wasPaused) this._emit("play");
+    } else if (state === S.PAUSED || state === S.ENDED || state === S.CUED) {
+      this._paused = true;
+      this._ended = state === S.ENDED;
+      if (!wasPaused) this._emit("pause");
+      if (this._ended) this._emit("ended");
+    }
+    this._emit("timeupdate");
+  }
+
+  get currentTime() {
+    if (!this._running) return this._time;
+    const t = this._time + (performance.now() - this._at) / 1000;
+    return this._duration ? Math.min(t, this._duration) : t;
+  }
+
+  set currentTime(t) {
+    t = Math.min(Math.max(t, 0), this._duration || Infinity);
+    this.player.seekTo(t, true);
+    this._time = t;
+    this._at = performance.now();
+    this._ended = false;
+    this._emit("timeupdate");
+    this._emit("seeked");
+  }
+
+  get duration() { return this._duration; }
+  get paused() { return this._paused; }
+  get ended() { return this._ended; }
+  get loadedFraction() { return this.player.getVideoLoadedFraction?.() ?? 0; }
+
+  play() { this.player.playVideo(); }
+  pause() { this.player.pauseVideo(); }
+
+  get volume() { return this._volume; }
+  set volume(v) {
+    this._volume = v;
+    this.player.setVolume(Math.round(v * 100));
+    this._emit("volumechange");
+  }
+
+  get muted() { return this._muted; }
+  set muted(m) {
+    this._muted = m;
+    if (m) this.player.mute(); else this.player.unMute();
+    this._emit("volumechange");
+  }
+}
+
+// What the viewer reads for each IFrame API error code
+// (developers.google.com/youtube/iframe_api_reference#onError); the code
+// itself only goes to the console.
+const GONE = "YouTube에서 영상이 삭제되었거나 비공개로 바뀌었어요.";
+const BLOCKED = "영상 제공자가 다른 사이트에서는 재생할 수 없도록 설정했어요.";
+const YOUTUBE_ERRORS = { 2: GONE, 100: GONE, 101: BLOCKED, 150: BLOCKED };
+const PLAYBACK_FAILED = "영상을 재생하지 못했어요. 새로고침해 주세요.";
 
 // --- loading / processing state --------------------------------------------
 
@@ -29,17 +181,17 @@ async function load() {
     meta = await api(`/api/videos/${videoId}`);
   } catch (err) {
     console.error(err);
-    return showState("error", "영상을 불러올 수 없습니다");
+    return showState("error", "영상을 찾을 수 없어요");
   }
   document.title = `${meta.title || "제목 없음"} · Hearing to Seeing`;
-  $("title").textContent = meta.title || meta.source_url || "제목 없음";
+  $("title").textContent = meta.title || "제목 없음";
 
   if (isPending(meta.status)) {
     showProgress(meta);
     setTimeout(load, 2000);
   } else if (meta.status === "error") {
     console.error(meta.error);
-    showState("error", "처리에 실패했습니다");
+    showState("error", "자막을 만들지 못했어요. 다시 요청해 주세요.");
   } else {
     setup(meta);
   }
@@ -55,35 +207,39 @@ function showState(kind, title) {
 }
 
 function showProgress(meta) {
-  const current = STEPS.findIndex(([key]) => key === meta.status);
+  const current = stepIndex(meta.status);
   const state = $("state");
   state.className = "player-state";
   // replaceChildren takes only Nodes/strings — a bare null argument would
   // stringify to the text "null" instead of being dropped, so filter first.
   state.replaceChildren(...[
     el("div", { class: "spinner" }),
-    el("strong", {}, `${statusLabel(meta.status)} 중…`),
-    el("div", { class: "steps" }, STEPS.map(([, label], i) =>
-      el("span", { class: i < current ? "done" : i === current ? "current" : null }, label))),
-    meta.status === "transcribing" ? el("span", {}, "원격 서버에서 영상 길이만큼 걸립니다.") : null,
+    el("strong", {}, `${statusLabel(meta.status)}…`),
+    el("div", { class: "steps" }, STEPS.map(([, , short], i) =>
+      el("span", { class: i < current ? "done" : i === current ? "current" : null }, short))),
+    meta.status === "transcribing" ? el("span", {}, "영상이 길어지면 더 오랜 시간이 걸릴 수 있어요.") : null,
   ].filter((c) => c != null));
 }
 
 // --- ready: player, legend, script -----------------------------------------
 
-function setup(meta) {
-  $("state").hidden = true;
-  $("controls").hidden = false;
-  video.src = `/api/videos/${videoId}/media`;
-
+async function setup(meta) {
   const colors = Object.fromEntries(meta.speakers.map((s) => [s.label, s]));
   $("legend").replaceChildren(...meta.speakers.map((s) =>
     el("span", { class: "chip" }, el("span", { class: "swatch", style: `background:${s.color}` }), s.name)));
 
-  const parts = ["YouTube"];
+  const parts = [meta.channel || "YouTube", meta.genre];
   if (meta.duration) parts.push(formatTime(meta.duration));
-  parts.push(`화자 ${meta.speakers.length}명`, `자막 ${meta.cues.length}줄`);
-  $("meta-sub").textContent = parts.join(" · ");
+  parts.push(`화자 ${meta.speakers.length}명`);
+  $("meta-sub").textContent = parts.filter(Boolean).join(" · ");
+
+  const source = $("source-link");
+  const sourceUrl = () => `https://www.youtube.com/watch?v=${meta.youtube_id}` +
+    (media && media.currentTime >= 1 ? `&t=${Math.floor(media.currentTime)}s` : "");
+  source.href = sourceUrl();
+  source.hidden = false;
+  // Opens where the viewer is now, and pauses here so the two don't play at once.
+  source.addEventListener("click", () => { source.href = sourceUrl(); media?.pause(); });
 
   for (const link of document.querySelectorAll("#downloads a")) {
     link.href = `/api/videos/${videoId}/files/${link.dataset.kind}?download=1`;
@@ -91,9 +247,31 @@ function setup(meta) {
   $("downloads-button").prepend(icon("download"));
   $("downloads").hidden = false;
 
-  setupScript(meta.cues, colors);
+  // Arriving from a search starts at the first line that matched.
+  const firstMatch = setupScript(meta.cues, colors);
+  const start = firstMatch?.start ?? 0;
+
+  let YT;
+  try {
+    YT = await loadYouTubeApi();
+  } catch (err) {
+    console.error(err);
+    return showState("error", "영상을 불러오지 못했어요. 새로고침해 주세요.");
+  }
+  media = await new YouTubeMedia(YT, $("yt"), meta.youtube_id, start).ready;
+  media.addEventListener("error", () => {
+    console.error("YouTube player error", media.error);
+    showState("error", YOUTUBE_ERRORS[media.error] ?? PLAYBACK_FAILED);
+    $("controls").hidden = true;
+  });
+  $("state").hidden = true;
+  $("controls").hidden = false;
+
+  media.addEventListener("timeupdate", syncScript);
+  media.addEventListener("seeked", syncScript);
   setupControls();
   setupSubtitles();
+  syncScript();
 }
 
 // --- subtitles (JASSUB) ------------------------------------------------------
@@ -106,12 +284,25 @@ try { subMode = SUB_MODES.includes(localStorage.subMode) ? localStorage.subMode 
 const trackUrl = (mode) =>
   new URL(`/api/videos/${videoId}/files/${mode === "plain" ? "plain" : "ass"}`, location.href).href;
 
+// No <video> to follow: each animation frame hands JASSUB the player's clock.
+function renderSubtitles(repaint = false) {
+  if (!jassub) return;
+  jassub.manualRender({
+    mediaTime: media.currentTime, expectedDisplayTime: performance.now(), ...FRAME,
+  }, repaint);
+}
+
+function subtitleLoop() {
+  if (!media.paused) renderSubtitles();
+  requestAnimationFrame(subtitleLoop);
+}
+
 async function setupSubtitles() {
   try {
     const { default: JASSUB } = await import(JASSUB_MODULE);
     loadedTrack = subMode === "plain" ? "plain" : "kinetic";
     jassub = new JASSUB({
-      video,
+      canvas: $("subs"),
       subUrl: trackUrl(loadedTrack),
       workerUrl: new URL("/static/jassub-worker.js", location.href).href,
       wasmUrl: `${JASSUB_ASSETS}/wasm/jassub-worker.wasm`,
@@ -121,9 +312,14 @@ async function setupSubtitles() {
       queryFonts: false,
     });
     await jassub.ready;
+    // The canvas has no <video> for JASSUB to watch, so resizes come from here.
+    new ResizeObserver(() => jassub.resize(true)).observe($("stage"));
+    for (const ev of ["seeked", "pause"]) media.addEventListener(ev, () => renderSubtitles(true));
+    renderSubtitles(true);
+    requestAnimationFrame(subtitleLoop);
   } catch (err) {
     console.error(err);
-    toast("자막 렌더러를 불러오지 못했습니다");
+    toast("자막을 불러오지 못했어요. 새로고침해 주세요.");
   }
   applySubMode(false);
 }
@@ -132,19 +328,16 @@ async function setSubMode(mode) {
   subMode = mode;
   try { localStorage.subMode = mode; } catch {}
   applySubMode(true);
-  if (jassub && mode !== "off" && mode !== loadedTrack) {
+  if (jassub && mode !== loadedTrack) {
     loadedTrack = mode;
     await jassub.ready;
     await jassub.renderer.setTrackByUrl(trackUrl(mode));
-    if (video.paused) jassub.resize(true);
+    renderSubtitles(true);
   }
 }
 
 function applySubMode(announce) {
   for (const b of document.querySelectorAll("#sub-mode button")) b.setAttribute("aria-pressed", b.dataset.mode === subMode);
-  if (jassub) {
-    jassub._canvas.style.visibility = subMode === "off" ? "hidden" : "visible";
-  }
   if (announce) toast(SUB_MODE_LABELS[subMode]);
 }
 
@@ -154,18 +347,23 @@ let cueItems = [];
 let cueStarts = [];
 let activeCue = -1;
 
+// Returns the first cue matching the search the viewer came from, if any.
 function setupScript(cues, colors) {
   const list = $("script-list");
   if (!cues.length) {
-    list.replaceChildren(el("li", { class: "script-empty" }, "인식된 대사가 없습니다."));
+    list.replaceChildren(el("li", { class: "script-empty" }, "인식된 대사가 없어요."));
   }
+  const needle = searchQuery.toLowerCase();
+  let firstMatch = null;
   cueStarts = cues.map((c) => c.start);
   cueItems = cues.map((cue, i) => {
     const speaker = colors[cue.speaker] ?? { name: cue.speaker, color: "#888" };
     const showName = i === 0 || cues[i - 1].speaker !== cue.speaker;
+    const match = needle && (cue.text.toLowerCase().includes(needle) || speaker.name?.toLowerCase().includes(needle));
+    if (match) firstMatch ??= cue;
     return el("li", {
-      class: "cue",
-      onclick: () => { video.currentTime = cue.start; video.play(); },
+      class: match ? "cue match" : "cue",
+      onclick: () => { if (!media) return; media.currentTime = cue.start; media.play(); },
     },
       el("span", { class: "cue-time" }, formatTime(cue.start)),
       el("span", { class: "cue-bar", style: `background:${speaker.color}` }),
@@ -175,13 +373,12 @@ function setupScript(cues, colors) {
   });
   if (cues.length) list.replaceChildren(...cueItems);
   $("script").hidden = false;
-  video.addEventListener("timeupdate", syncScript);
-  video.addEventListener("seeked", syncScript);
+  return firstMatch;
 }
 
 function syncScript() {
   // Last cue that has started; binary search since this runs several times a second.
-  const t = video.currentTime;
+  const t = media.currentTime;
   let lo = 0, hi = cueStarts.length - 1, found = -1;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
@@ -203,56 +400,56 @@ function syncScript() {
 
 function setupControls() {
   const playBtn = $("play"), bigPlay = $("big-play"), muteBtn = $("mute"), volume = $("volume");
-  const fsBtn = $("fullscreen"), seek = $("seek"), tip = $("seek-tip");
+  const fsBtn = $("fullscreen"), seek = $("seek"), tip = $("seek-tip"), clickLayer = $("click-layer");
   bigPlay.append(icon("play"));
 
-  const togglePlay = () => (video.paused || video.ended ? video.play() : video.pause());
+  const togglePlay = () => (media.paused || media.ended ? media.play() : media.pause());
   const setIcon = (btn, name) => btn.replaceChildren(icon(name));
 
   const syncPlay = () => {
-    setIcon(playBtn, video.paused ? "play" : "pause");
-    bigPlay.hidden = !video.paused;
+    setIcon(playBtn, media.paused ? "play" : "pause");
+    bigPlay.hidden = !media.paused;
     wake();
   };
   const syncVolume = () => {
-    setIcon(muteBtn, video.muted || video.volume === 0 ? "muted" : "volume");
-    volume.value = video.muted ? 0 : video.volume;
+    setIcon(muteBtn, media.muted || media.volume === 0 ? "muted" : "volume");
+    volume.value = media.muted ? 0 : media.volume;
   };
   const syncTime = () => {
-    const d = video.duration || 0;
-    $("time").textContent = `${formatTime(video.currentTime)} / ${formatTime(d)}`;
-    const pct = d ? (video.currentTime / d) * 100 : 0;
+    const d = media.duration || 0;
+    $("time").textContent = `${formatTime(media.currentTime)} / ${formatTime(d)}`;
+    const pct = d ? (media.currentTime / d) * 100 : 0;
     $("seek-played").style.width = `${pct}%`;
     $("seek-thumb").style.left = `${pct}%`;
-    if (d && video.buffered.length) {
-      $("seek-buffered").style.width = `${(video.buffered.end(video.buffered.length - 1) / d) * 100}%`;
-    }
+    $("seek-buffered").style.width = `${media.loadedFraction * 100}%`;
   };
   const syncFullscreen = () => setIcon(fsBtn, document.fullscreenElement ? "exitFullscreen" : "fullscreen");
 
+  // A single click waits a moment so a double click toggles fullscreen alone.
+  let clickTimer;
   playBtn.onclick = togglePlay;
   bigPlay.onclick = togglePlay;
-  video.onclick = togglePlay;
-  video.ondblclick = () => toggleFullscreen();
-  muteBtn.onclick = () => { video.muted = !video.muted; };
-  volume.oninput = () => { video.volume = Number(volume.value); video.muted = video.volume === 0; };
+  clickLayer.onclick = () => { clearTimeout(clickTimer); clickTimer = setTimeout(togglePlay, 200); };
+  clickLayer.ondblclick = () => { clearTimeout(clickTimer); toggleFullscreen(); };
+  muteBtn.onclick = () => { media.muted = !media.muted; };
+  volume.oninput = () => { media.volume = Number(volume.value); media.muted = media.volume === 0; };
   fsBtn.onclick = () => toggleFullscreen();
   for (const b of document.querySelectorAll("#sub-mode button")) b.onclick = () => setSubMode(b.dataset.mode);
 
-  for (const ev of ["play", "pause", "ended"]) video.addEventListener(ev, syncPlay);
-  video.addEventListener("volumechange", syncVolume);
-  for (const ev of ["timeupdate", "durationchange", "progress", "seeked"]) video.addEventListener(ev, syncTime);
+  for (const ev of ["play", "pause", "ended"]) media.addEventListener(ev, syncPlay);
+  media.addEventListener("volumechange", syncVolume);
+  for (const ev of ["timeupdate", "durationchange", "seeked"]) media.addEventListener(ev, syncTime);
   document.addEventListener("fullscreenchange", syncFullscreen);
 
   // Seek bar: click or drag anywhere along it.
   const timeAt = (e) => {
     const rect = seek.getBoundingClientRect();
-    return Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1) * (video.duration || 0);
+    return Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1) * (media.duration || 0);
   };
   seek.onpointerdown = (e) => {
     seek.setPointerCapture(e.pointerId);
-    video.currentTime = timeAt(e);
-    seek.onpointermove = (ev) => { video.currentTime = timeAt(ev); showTip(ev); };
+    media.currentTime = timeAt(e);
+    seek.onpointermove = (ev) => { media.currentTime = timeAt(ev); showTip(ev); };
   };
   seek.onpointerup = () => { seek.onpointermove = showTip; };
   const showTip = (e) => {
@@ -269,22 +466,22 @@ function setupControls() {
   function wake() {
     player.classList.remove("idle", "hide-cursor");
     clearTimeout(idleTimer);
-    if (!video.paused) idleTimer = setTimeout(() => player.classList.add("idle", "hide-cursor"), 2500);
+    if (!media.paused) idleTimer = setTimeout(() => player.classList.add("idle", "hide-cursor"), 2500);
   }
   player.addEventListener("pointermove", wake);
-  player.addEventListener("pointerleave", () => { if (!video.paused) player.classList.add("idle"); });
+  player.addEventListener("pointerleave", () => { if (!media.paused) player.classList.add("idle"); });
 
   document.addEventListener("keydown", (e) => {
     if (e.target.closest("input, textarea, select, [contenteditable]") && e.target.type !== "range") return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const actions = {
       " ": togglePlay, k: togglePlay,
-      ArrowLeft: () => { video.currentTime -= 5; },
-      ArrowRight: () => { video.currentTime += 5; },
-      j: () => { video.currentTime -= 10; },
-      l: () => { video.currentTime += 10; },
+      ArrowLeft: () => { media.currentTime -= 5; },
+      ArrowRight: () => { media.currentTime += 5; },
+      j: () => { media.currentTime -= 10; },
+      l: () => { media.currentTime += 10; },
       f: toggleFullscreen,
-      m: () => { video.muted = !video.muted; },
+      m: () => { media.muted = !media.muted; },
       c: () => setSubMode(SUB_MODES[(SUB_MODES.indexOf(subMode) + 1) % SUB_MODES.length]),
     };
     const action = actions[e.key.length === 1 ? e.key.toLowerCase() : e.key];
@@ -298,8 +495,8 @@ function setupControls() {
 }
 
 function toggleFullscreen() {
-  // The wrapper, not the <video>, goes fullscreen so the subtitle canvas and
-  // controls come along.
+  // The wrapper, not the YouTube frame, goes fullscreen so the subtitle
+  // canvas and controls come along.
   if (document.fullscreenElement) document.exitFullscreen();
   else player.requestFullscreen();
 }
@@ -313,4 +510,5 @@ function toast(message) {
   toastTimer = setTimeout(() => t.classList.remove("show"), 1200);
 }
 
+mountTray();
 load();

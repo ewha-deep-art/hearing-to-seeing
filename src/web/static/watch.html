@@ -15,7 +15,12 @@
   <main class="watch">
     <section>
       <div class="player" id="player" tabindex="-1">
-        <video id="video" playsinline preload="auto"></video>
+        <div class="stage" id="stage">
+          <div id="yt"></div>
+          <canvas class="subs" id="subs"></canvas>
+          <!-- Takes the clicks the YouTube frame would otherwise swallow. -->
+          <div class="click-layer" id="click-layer"></div>
+        </div>
         <div class="player-state" id="state"><div class="spinner"></div></div>
         <button class="big-play" id="big-play" type="button" aria-label="재생" hidden></button>
         <div class="toast" id="toast"></div>
@@ -39,7 +44,6 @@
             <div class="sub-mode" id="sub-mode" role="group" aria-label="자막 (c)">
               <button type="button" data-mode="kinetic">키네틱</button>
               <button type="button" data-mode="plain">일반</button>
-              <button type="button" data-mode="off">끄기</button>
             </div>
             <button class="icon-btn" id="fullscreen" type="button" aria-label="전체 화면 (f)"></button>
           </div>
@@ -51,15 +55,16 @@
         <div class="meta-row">
           <div class="legend" id="legend"></div>
           <details class="menu" id="downloads" hidden>
-            <summary class="btn" id="downloads-button">자막 파일</summary>
+            <summary class="btn" id="downloads-button">자막 내려받기</summary>
             <div class="menu-list">
-              <a data-kind="ass">키네틱 자막 (.ass)<small>화자 색 · 채움 · 음량 크기</small></a>
+              <a data-kind="ass">키네틱 자막 (.ass)<small>화자 색 · 말하는 타이밍 · 목소리 크기</small></a>
               <a data-kind="plain">일반 자막 (.ass)<small>같은 타이밍, 효과 없음</small></a>
-              <a data-kind="json">전사 데이터 (.json)<small>단어별 화자 · 시간 · 음량</small></a>
+              <a data-kind="json">대사 데이터 (.json)<small>단어별 화자 · 시간 · 음량</small></a>
             </div>
           </details>
         </div>
         <div class="meta-sub" id="meta-sub"></div>
+        <a class="source-link" id="source-link" target="_blank" rel="noopener" hidden>YouTube에서 보기 ↗</a>
       </div>
     </section>
 
