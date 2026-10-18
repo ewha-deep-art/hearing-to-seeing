@@ -7,6 +7,7 @@ lets the caller skip the lookup up front instead of failing mid-run.
 """
 
 import json
+import math
 import os
 import sys
 import threading
@@ -21,6 +22,9 @@ MODEL = os.environ.get("H2S_LLM_MODEL", "gemini-3.6-flash")
 FALLBACK_MODEL = "gemini-3.5-flash-lite"
 
 MAX_TOKENS = 16000
+# Same question, same answer as far as Gemini allows (seed is best-effort).
+TEMPERATURE = 0.0
+SEED = 0
 REQUEST_TIMEOUT_MS = 180_000
 # Server trouble (5xx) usually clears in seconds, so the SDK retries it
 # briefly. 429 (quota) and 503 (overloaded) go straight to the fallback: a
@@ -98,21 +102,19 @@ def ask(
     model: str | None = None,
     media_path: str | None = None,
     media=None,
-    fallback: bool = True,
-    temperature: float | None = None,
+    fallback: tuple[str, ...] = (FALLBACK_MODEL,),
+    temperature: float = TEMPERATURE,
+    seed: int = SEED,
     max_tokens: int = MAX_TOKENS,
     thinking_level: str | None = None,
     timeout_ms: int | None = None,
 ) -> dict:
     """Asks `prompt` and returns an answer that satisfies `schema`.
 
-    Tries `model` (default `MODEL`), then `FALLBACK_MODEL` when the first is
-    over quota or overloaded — unless `fallback` is off, for questions the
-    lighter model answers badly. `media_path` (video or audio) is uploaded, sent at low
-    resolution ahead of the prompt, and deleted afterwards; `media`, a file
-    `upload` already put up, stands in for that upload. Any other failure
-    (bad key, blocked prompt, …) raises. With `timeout_ms`, each model gets
-    one try of at most that long instead of the SDK's retries.
+    Tries `model` (default `MODEL`), then each `fallback` model on 429/503.
+    `media_path` is uploaded, sent at low resolution and deleted afterwards;
+    `media` is a file `upload` already put up. With `timeout_ms`, each model
+    gets one try of at most that long. Other failures raise.
     """
     from google.genai import errors, types
 
@@ -122,20 +124,26 @@ def ask(
         response_mime_type="application/json",
         response_json_schema=schema,
         temperature=temperature,
+        seed=seed,
         media_resolution=types.MediaResolution.MEDIA_RESOLUTION_LOW if media or media_path else None,
         thinking_config=(
             types.ThinkingConfig(thinking_level=types.ThinkingLevel(thinking_level.upper()))
             if thinking_level else None
         ),
+        # Sent per request: the SDK keeps the first request's X-Server-Timeout
+        # in the client's shared headers (evaluation/README.md 5.1).
         http_options=(
-            types.HttpOptions(timeout=timeout_ms, retry_options=types.HttpRetryOptions(attempts=1))
+            types.HttpOptions(
+                timeout=timeout_ms,
+                headers={"X-Server-Timeout": str(math.ceil(timeout_ms / 1000))},
+                retry_options=types.HttpRetryOptions(attempts=1),
+            )
             if timeout_ms else None
         ),
     )
     media = media or (upload(media_path) if media_path else None)
     contents = [media, prompt] if media else prompt
-    first = model or MODEL
-    models = list(dict.fromkeys([first, FALLBACK_MODEL] if fallback else [first]))
+    models = list(dict.fromkeys([model or MODEL, *fallback]))
     try:
         for i, name in enumerate(models):
             try:

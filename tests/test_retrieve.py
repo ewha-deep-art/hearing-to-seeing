@@ -12,6 +12,7 @@ from hearing_to_seeing.knowledge.retrieve import (
     retrieve,
     wikipedia_document,
     wikipedia_search,
+    work_in_title,
 )
 
 
@@ -93,8 +94,11 @@ def test_wikipedia_document_is_none_for_a_missing_page(serve):
 
 # --- Namu --------------------------------------------------------------------
 
+MISSING = "<html><body>해당 문서를 찾을 수 없습니다</body></html>"
+
+
 def test_namu_document_extracts_body_sections_not_the_table_of_contents(serve):
-    serve({"namu.wiki/w/왕과 사는 남자": NAMU_HTML})
+    serve({"/w/왕과 사는 남자/등장인물": MISSING, "namu.wiki/w/왕과 사는 남자": NAMU_HTML})
     text = namu_document("왕과 사는 남자")
 
     assert "## 주요 인물" in text
@@ -109,6 +113,40 @@ def test_namu_document_tries_the_film_qualifier_when_the_bare_title_is_missing(s
     fetch = serve({"namu.wiki/w/기생충(영화)": NAMU_HTML, "namu.wiki/w/기생충": missing})
     assert namu_document("기생충") is not None
     assert fetch.urls[0].endswith("/w/기생충") and fetch.urls[1].endswith("/w/기생충(영화)")
+
+
+def test_namu_document_uses_the_separate_cast_page(serve):
+    cast = NAMU_HTML.replace("2.1. 주요 인물", "2.1. 엄흥도").replace("엄흥도 (배우: 유해진)", "광천골 촌장 역")
+    serve({"/w/왕과 사는 남자/등장인물": cast, "namu.wiki/w/왕과 사는 남자": NAMU_HTML})
+    text = namu_document("왕과 사는 남자")
+    assert "## 등장인물 · 엄흥도" in text and "광천골 촌장 역" in text
+    assert "## 주요 인물" not in text  # the article's own pointer section is dropped
+
+
+def test_namu_document_picks_the_variant_naming_the_hinted_cast(serve):
+    other = NAMU_HTML.replace("유해진", "홍길동").replace("박지훈", "임꺽정")
+    serve({"/등장인물": MISSING, "/w/마녀(드라마)": NAMU_HTML, "/w/마녀": other})
+    assert "유해진" in namu_document("마녀", hint="드라마 마녀 | 유해진, 박지훈")
+    assert "홍길동" in namu_document("마녀")  # without a hint, the first page found
+
+
+def test_namu_document_falls_back_to_the_closest_search_hit(serve):
+    hits = '<a href="/w/%EC%96%B8%EC%A0%A0%EA%B0%80%EB%8A%94%20%EC%8A%AC%EA%B8%B0%EB%A1%9C%EC%9A%B8%20%EC%83%9D%ED%99%9C">x</a><a href="/w/%EB%B6%84%EB%A5%98:%EC%8A%AC">y</a>'
+    serve({"Search?q=": hits, "/등장인물": MISSING, "/w/언젠가는 슬기로울 생활": NAMU_HTML, "namu.wiki/w/": MISSING})
+    assert "엄흥도" in namu_document("언젠가는 슬기로운 생활")
+
+
+def test_work_in_title_finds_the_one_piece_that_is_a_work_page(serve):
+    actor = NAMU_HTML.replace("2. 등장인물", "2. 출연 작품").replace("2.1. 주요 인물", "2.1. 영화")
+    serve({"/w/터널(영화)": NAMU_HTML, "/w/하정우": actor, "namu.wiki/w/": MISSING})
+    assert work_in_title("터널 – 극적인 첫 통화 (2/10) | 하정우") == "터널"
+    assert work_in_title("드라마 터널 - 첫 통화") == "터널"
+
+
+def test_work_in_title_gives_up_on_none_or_several_works(serve):
+    serve({"/w/터널(영화)": NAMU_HTML, "/w/마녀": NAMU_HTML, "namu.wiki/w/": MISSING})
+    assert work_in_title("터널 | 마녀") is None
+    assert work_in_title("브이로그 | 일상") is None
 
 
 def test_namu_document_is_none_when_nothing_usable_comes_back(serve):
@@ -139,6 +177,7 @@ def test_retrieve_returns_namu_then_wikipedia_for_the_resolved_title(serve):
     fetch = serve({
         "list=search": _wiki_search_body("기생충 (영화)", "기생충"),
         "prop=extracts": _wiki_extract_body("기생충 (영화)", "《기생충》은 2019년 영화.\n\n== 줄거리 ==\n반지하."),
+        "/등장인물": MISSING,
         "namu.wiki/w/기생충(영화)": NAMU_HTML,
     })
     text = retrieve("기생충")

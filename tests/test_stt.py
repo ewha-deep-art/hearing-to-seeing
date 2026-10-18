@@ -45,7 +45,6 @@ class FakeResponse:
 def api(monkeypatch, tmp_path):
     """Stubs the WAV file and the HTTP call, recording what was posted."""
     calls = []
-    monkeypatch.setattr(stt, "load_dotenv", lambda: None)
     monkeypatch.setenv("WHISPERX_API_KEY", "secret")
     monkeypatch.setenv("WHISPERX_API_URL", "http://example.test/whisperx")
     monkeypatch.setattr(stt, "RETRY_WAIT", 0)
@@ -77,7 +76,7 @@ def test_transcribe_posts_audio_with_api_key(api):
     assert url == "http://example.test/whisperx"
     assert kwargs["headers"] == {"X-API-Key": "secret"}
     assert kwargs["files"]["file"] == ("audio.wav", b"RIFF", "audio/wav")
-    model, size = stt.PASSES[0]
+    model, size, _ = stt.PASSES[0]
     assert kwargs["data"] == {
         "align": "true", "diarize": "true", "language": "en",
         "model": model, "chunk_size": str(size),
@@ -93,10 +92,10 @@ def _sent(api):
     return [(kwargs["data"]["model"], kwargs["data"]["chunk_size"]) for kwargs in _passes(api)]
 
 
-def test_transcribe_decodes_once_per_model_and_window(api):
+def test_transcribe_decodes_once_per_pass(api):
     stt.transcribe(api.wav_path, language="ko")
 
-    assert sorted(_sent(api)) == sorted((model, str(size)) for model, size in stt.PASSES)
+    assert sorted(_sent(api)) == sorted((model, str(size)) for model, size, _ in stt.PASSES)
 
 
 def test_passes_are_sent_grouped_by_model_starting_with_the_loaded_one(api):
@@ -112,9 +111,19 @@ def test_only_the_first_pass_is_diarized(api):
     stt.transcribe(api.wav_path, language="ko", num_speakers=6)
 
     diarized = [(k["data"]["model"], k["data"]["chunk_size"]) for k in _passes(api) if k["data"]["diarize"] == "true"]
-    model, size = stt.PASSES[0]
+    model, size, _ = stt.PASSES[0]
     assert diarized == [(model, str(size))]
     assert all("num_speakers" not in k["data"] for k in _passes(api) if k["data"]["diarize"] == "false")
+
+
+def test_only_the_low_vad_pass_sends_its_own_thresholds(api):
+    stt.transcribe(api.wav_path, language="ko")
+
+    sent = [(k["data"].get("vad_onset"), k["data"].get("vad_offset")) for k in _passes(api)]
+    vads = [vad for _, _, vad in stt.PASSES]
+    expected = [tuple(str(v) for v in vad) for vad in vads if vad]
+    assert sorted(v for v in sent if v != (None, None)) == sorted(expected)
+    assert sent.count((None, None)) == vads.count(None)
 
 
 def test_transcribe_passes_a_known_speaker_count_to_diarization(api):

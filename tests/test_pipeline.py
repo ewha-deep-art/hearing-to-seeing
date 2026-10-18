@@ -46,6 +46,9 @@ def stt(monkeypatch):
 
     monkeypatch.setattr(pipeline, "review_transcript", review)
     monkeypatch.setattr(pipeline, "upload_for_review", lambda path, seconds: f"uploaded {path}")
+    # The voice model is tested in test_voice.py.
+    monkeypatch.setattr(pipeline.voice, "merge_labels", lambda *_: {})
+    monkeypatch.setattr(pipeline.voice, "reassign_utterances", lambda *_: 0)
     return seen
 
 
@@ -183,6 +186,7 @@ def fake_llm(monkeypatch):
         fake = FakeLLM(**answers)
         monkeypatch.setattr(pipeline.llm, "ask", fake)
         monkeypatch.setattr(pipeline.llm, "configured", lambda: True)
+        monkeypatch.setattr(pipeline, "work_in_title", lambda title: None)
         return fake
     return install
 
@@ -227,7 +231,7 @@ def test_assign_hues_places_everyone_when_the_circle_is_crowded():
 # --- lookup --------------------------------------------------------------------
 
 def test_lookup_characters_adds_a_hue_per_character(fake_llm, monkeypatch):
-    monkeypatch.setattr(pipeline, "retrieve", lambda title: f"<document>{title}</document>")
+    monkeypatch.setattr(pipeline, "retrieve", lambda title, hint=None: f"<document>{title}</document>")
     fake = fake_llm(
         title={"title": "기생충"},
         characters={"characters": [
@@ -239,6 +243,14 @@ def test_lookup_characters_adds_a_hue_per_character(fake_llm, monkeypatch):
     assert fake.asked == ["title", "characters"]
     assert hue_distance(cast[0]["hue"], 29) < 5
     assert cast[1]["hue"] is None  # grey: no preference
+
+
+def test_lookup_characters_skips_the_title_call_when_the_wiki_names_the_work(fake_llm, monkeypatch):
+    monkeypatch.setattr(pipeline, "retrieve", lambda title, hint=None: f"<document>{title}</document>")
+    fake = fake_llm(characters={"characters": [_character("기택", None)]})
+    monkeypatch.setattr(pipeline, "work_in_title", lambda title: "기생충")
+    assert lookup_characters("기생충 – 명장면 (1/5)")[0]["name"] == "기택"
+    assert fake.asked == ["characters"]
 
 
 def test_lookup_characters_needs_a_title_and_a_key(monkeypatch):
