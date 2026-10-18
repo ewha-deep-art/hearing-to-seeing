@@ -57,6 +57,7 @@ The **intermediate JSON schema** (`schema.py`) is the central data contract: it 
 - `src/hearing_to_seeing/knowledge/` — what the pipeline's speaker step and the review call out to: `llm.py` (Gemini `ask()`), `retrieve.py` (Wikipedia/Namu wiki), `prompts.py` (the LLM prompts + JSON schemas); `README.md` there documents every LLM call (speaker-color RAG, video review)
 - `src/hearing_to_seeing/converter/` — output format converters (ASS, future VTT)
 - `src/hearing_to_seeing/render.py` — preview renderer that burns the generated ASS onto the source media (ffmpeg, optional; not the pipeline's real output)
+- `src/web/` — web catalogue (FastAPI, `hearing-to-seeing-web`): a YouTube link becomes a background job (`jobs.py`; 15 min / 20 a day, one row per YouTube video) stored in the Supabase `clips` table (`db.py`); clips are browsed by search (title, characters, dialogue) and genre (`catalog.py`) and played in the YouTube IFrame player with the ASS drawn over it by JASSUB (`static/watch.js`)
 - `data/input/` / `data/output/` — local test media files (not committed)
 - `tests/` — test suite
 - `scripts/stt_eval.py` — STT measurement on the test clips (references, passes, video review, scores)
