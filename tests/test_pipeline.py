@@ -47,6 +47,7 @@ def stt(monkeypatch):
     monkeypatch.setattr(pipeline, "review_transcript", review)
     monkeypatch.setattr(pipeline, "upload_for_review", lambda path, seconds: f"uploaded {path}")
     # The voice model is tested in test_voice.py.
+    monkeypatch.setattr(pipeline.voice, "available", lambda: False)
     monkeypatch.setattr(pipeline.voice, "merge_labels", lambda *_: {})
     monkeypatch.setattr(pipeline.voice, "reassign_utterances", lambda *_: 0)
     return seen
@@ -322,3 +323,49 @@ def test_failed_inference_falls_back_to_even_vivid_hues(fake_llm):
     profiles = assign_speaker_colors(transcript, [_character("기택", 30.0)])
     assert profiles == assign_speaker_colors(transcript)
     assert all(p["name"] is None for p in profiles.values())
+
+
+def test_the_review_starts_on_the_first_pass_while_the_rest_decode(monkeypatch, tmp_path, stt):
+    asked = threading.Event()
+    seen = {}
+
+    def decode(*_, on_first=None, **__):
+        on_first("first", "ko")
+        assert asked.wait(timeout=5), "the review waited for every pass"
+        return ["first", "second"], "ko"
+
+    def ask(results, characters, media_path, uploaded, words):
+        asked.set()
+        seen.update(asked=results, words=words, media_path=media_path, uploaded=uploaded)
+        return "answer"
+
+    def apply(answer, results, language):
+        seen["applied"] = (answer, results)
+        return Review(_transcript(), {})
+
+    monkeypatch.setattr(pipeline, "decode", decode)
+    monkeypatch.setattr(pipeline, "ask_review", ask)
+    monkeypatch.setattr(pipeline, "apply_review", apply)
+
+    pipeline.run("a.wav", str(tmp_path / "a.ass"), media_path="a.mp4")
+
+    assert seen == {"asked": ["first"], "words": False, "media_path": "a.mp4", "uploaded": "uploaded a.mp4",
+                    "applied": ("answer", ["first", "second"])}
+
+
+def test_the_first_pass_is_labelled_by_voice_before_the_review_sees_it(monkeypatch, tmp_path, stt):
+    order = []
+
+    def decode(*_, on_first=None, diarize=True, **__):
+        order.append(("server diarizes", diarize))
+        on_first({"pass": 1}, "ko")
+        return [{"pass": 1}, {"pass": 2}], "ko"
+
+    monkeypatch.setattr(pipeline.voice, "available", lambda: True)
+    monkeypatch.setattr(pipeline.voice, "diarize", lambda result, *_: order.append(("voice", result)))
+    monkeypatch.setattr(pipeline, "decode", decode)
+    monkeypatch.setattr(pipeline, "ask_review", lambda results, *_, **__: order.append(("review", results)))
+
+    pipeline.run("a.wav", str(tmp_path / "a.ass"), media_path="a.mp4")
+
+    assert order == [("server diarizes", False), ("voice", {"pass": 1}), ("review", [{"pass": 1}])]

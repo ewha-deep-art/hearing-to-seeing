@@ -64,3 +64,45 @@ def test_audio_is_brought_to_mono_16k_on_the_int16_scale():
     stereo = np.full((48_000, 2), 0.5, dtype=np.float32)
     out = voice._mono_16k(48_000, stereo)
     assert out.shape == (16_000,) and abs(out[8000] - 16384) < 1
+
+
+def _response(*words: tuple[str, float, float]) -> dict:
+    return {"segments": [{"text": "", "speaker": "SPEAKER_09",
+                          "words": [{"word": t, "start": s, "end": e, "speaker": "SPEAKER_09"} for t, s, e in words]}]}
+
+
+def test_diarize_groups_utterances_by_voice(voices):
+    voices.update({10: B, 11: B, 30: B})
+    result = _response(("안녕.", 0, 1.5), ("응", 10, 11.5), ("뭐해?", 20, 21.5), ("그냥", 30, 31.5), ("음", 40, 40.2))
+
+    voice.diarize(result, 16_000, AUDIO)
+
+    labels = [w["speaker"] for w in result["segments"][0]["words"]]
+    assert labels[0] == labels[2] == labels[4] != labels[1] == labels[3]  # the short one joins its neighbour
+    assert result["segments"][0]["speaker"] is None
+
+
+def test_diarize_cuts_where_the_voice_changes_mid_sentence(voices):
+    # One run of speech with no pause: A until 12 s, then B.
+    voices.update({12: B, 13: B, 14: B, 15: B})
+    result = _response(*[("말", float(s), s + 0.9) for s in range(8, 16)], ("끝", 30, 32))
+
+    voice.diarize(result, 16_000, AUDIO)
+
+    labels = [w["speaker"] for w in result["segments"][0]["words"]]
+    assert labels[:4] == [labels[0]] * 4 and labels[4:8] == [labels[4]] * 4 and labels[0] != labels[4]
+
+
+def test_diarize_takes_a_known_speaker_count(voices):
+    # Alike enough to group by similarity alone; a count of two splits them.
+    voices.update({10: np.array([0.6, 0.8, 0.0]), 20: B})
+    words = [("가.", 0, 1.5), ("나.", 10, 11.5), ("다.", 20, 21.5)]
+
+    by_similarity, by_count = _response(*words), _response(*words)
+    voice.diarize(by_similarity, 16_000, AUDIO)
+    voice.diarize(by_count, 16_000, AUDIO, num_speakers=2)
+
+    labels = lambda r: [w["speaker"] for w in r["segments"][0]["words"]]  # noqa: E731
+    assert len(set(labels(by_similarity))) == 1
+    a, b, c = labels(by_count)
+    assert a != b == c

@@ -1,3 +1,6 @@
+import shutil
+
+import numpy as np
 import pytest
 import requests
 
@@ -57,15 +60,16 @@ def api(monkeypatch, tmp_path):
 
     wav_path = tmp_path / "clip.wav"
     wav_path.write_bytes(b"RIFF")
+    # FLAC encoding and the length check read real audio (tested below).
+    monkeypatch.setattr(stt, "_upload_audio", lambda path: ("audio.flac", open(path, "rb").read(), "audio/flac"))
+    monkeypatch.setattr(stt, "_seconds", lambda path: api.seconds)
+    api.seconds = 60.0
 
     api.response = FakeResponse(200, RESPONSE)
     api.failures = []
     api.calls = calls
     api.wav_path = str(wav_path)
-    api.loaded = None  # the model /health reports the server holds
     monkeypatch.setattr(stt.requests, "post", post)
-    monkeypatch.setattr(stt.requests, "get", lambda url, **_: FakeResponse(
-        200, {"status": "ok", "loaded_model": {"model": api.loaded}}))
     return api
 
 
@@ -75,7 +79,7 @@ def test_transcribe_posts_audio_with_api_key(api):
     url, kwargs = api.calls[0]
     assert url == "http://example.test/whisperx"
     assert kwargs["headers"] == {"X-API-Key": "secret"}
-    assert kwargs["files"]["file"] == ("audio.wav", b"RIFF", "audio/wav")
+    assert kwargs["files"]["file"] == ("audio.flac", b"RIFF", "audio/flac")
     model, size, _ = stt.PASSES[0]
     assert kwargs["data"] == {
         "align": "true", "diarize": "true", "language": "en",
@@ -98,13 +102,48 @@ def test_transcribe_decodes_once_per_pass(api):
     assert sorted(_sent(api)) == sorted((model, str(size)) for model, size, _ in stt.PASSES)
 
 
-def test_passes_are_sent_grouped_by_model_starting_with_the_loaded_one(api):
-    api.loaded = "large-v2"
+def test_the_diarized_pass_goes_first_and_the_rest_grouped_by_model(api):
     stt.transcribe(api.wav_path, language="ko")
 
+    assert _passes(api)[0]["data"]["diarize"] == "true"
     models = [model for model, _ in _sent(api)]
-    assert models[0] == "large-v2"
     assert models == sorted(models, key=models.index)  # each model's passes together
+
+
+def test_the_first_pass_is_handed_over_before_the_others_decode(api):
+    seen = []
+    stt.decode(api.wav_path, "ko", on_first=lambda result, language: seen.append((len(_passes(api)), language)))
+
+    assert seen == [(1, "ko")]
+
+
+def test_audio_goes_up_as_flac(tmp_path):
+    from scipy.io import wavfile
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("needs ffmpeg")
+    wav = tmp_path / "tone.wav"
+    wavfile.write(wav, 16000, (np.sin(np.arange(16000) / 5) * 8000).astype(np.int16))
+
+    name, data, mime = stt._upload_audio(str(wav))
+    assert (name, mime, data[:4]) == ("audio.flac", "audio/flac", b"fLaC")
+    assert stt._seconds(str(wav)) == 1.0
+
+
+def test_audio_ffmpeg_cannot_read_goes_up_as_it_is(tmp_path):
+    wav = tmp_path / "clip.wav"
+    wav.write_bytes(b"RIFF")
+    assert stt._upload_audio(str(wav)) == ("audio.wav", b"RIFF", "audio/wav")
+
+
+def test_a_long_clip_leaves_the_large_v2_pass_out(api):
+    api.seconds = stt.LONG_SECONDS + 1
+    stt.transcribe(api.wav_path, language="ko")
+
+    assert sorted(_sent(api)) == sorted((model, str(size)) for model, size, _ in stt.LONG_PASSES)
+    assert "large-v2" not in {model for model, _ in _sent(api)}
+
+
 
 
 def test_only_the_first_pass_is_diarized(api):
@@ -376,3 +415,15 @@ def test_names_already_right_or_called_out_are_left_alone():
 
 def test_everyday_words_near_short_names_are_left_alone():
     assert _names_fixed("진짜", "진정이", "사장님", "집게리아") == ["진짜", "진정이", "사장님", "집게리아"]
+
+
+def test_a_server_out_of_gpu_memory_is_asked_again_at_once(api, monkeypatch):
+    slept = []
+    monkeypatch.setattr(stt.time, "sleep", slept.append)
+    oom = FakeResponse(503, {"detail": "GPU 메모리 부족(OOM). CUDA failed with error out of memory"})
+    responses = [oom, api.response]
+    monkeypatch.setattr(stt.requests, "post", lambda url, **kwargs: responses.pop(0) if responses else api.response)
+
+    stt.transcribe(api.wav_path, language="ko")
+
+    assert slept == []
