@@ -160,7 +160,8 @@ REVIEW_SYSTEM = (
 )
 
 REVIEW_PROMPT = """\
-Task 1, speakers: for EVERY utterance id, name the character actually speaking it. {how} \
+Task 1, speakers: for EVERY utterance id, name the character actually speaking it, \
+as "u<N> <name>" (e.g. "u1 {example}"). {how} \
 Use the cast names below. A character not in the cast gets a short label of their own \
 from how they look or what they do (간호사1, 경찰, 손님2, …): two different people never \
 share a label, even minor ones who speak once, and the same person keeps theirs \
@@ -188,17 +189,11 @@ that is not one of the options.
 REVIEW_SCHEMA = {
     "type": "object",
     "properties": {
+        # One short string per utterance: on a 239-utterance clip "u12 이름"
+        # came to 2,576 answer tokens against 6,383 as {"id", "speaker"}.
         "utterances": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string", "description": "u1, u2, …"},
-                    "speaker": {"type": "string", "description": "the speaking character"},
-                },
-                "required": ["id", "speaker"],
-                "additionalProperties": False,
-            },
+            "items": {"type": "string", "description": "u<N> <the speaking character>"},
         },
         "corrections": {
             "type": "array",

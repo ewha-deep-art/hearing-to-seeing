@@ -209,23 +209,27 @@ class Library:
         path = lambda name: self.path(video_id, name)  # noqa: E731
         timings: dict[str, float] = {}
 
-        with self._timed_step(video_id, "downloading", timings):
-            source_path = media.download_youtube(youtube_url(meta["youtube_id"]), path(""))
+        # The video only matters to the review, which waits for STT anyway:
+        # it downloads alongside, and STT starts as soon as the audio is in.
+        with ThreadPoolExecutor(max_workers=1) as fetch:
+            video = fetch.submit(self._review_video, youtube_url(meta["youtube_id"]), path(""))
+            with self._timed_step(video_id, "downloading", timings):
+                audio_path = media.download_audio(youtube_url(meta["youtube_id"]), path(""))
 
-        with self._timed_step(video_id, "preparing", timings):
-            probed = media.probe(source_path)
-            if probed["audio"] is None:
-                raise MediaToolError("오디오 트랙이 없는 파일입니다.")
-            media.extract_wav(source_path, path(AUDIO))
-            self.update(video_id, duration=probed["duration"], genre=catalog.genre_of(info))
+            with self._timed_step(video_id, "preparing", timings):
+                probed = media.probe(audio_path)
+                if probed["audio"] is None:
+                    raise MediaToolError("오디오 트랙이 없는 파일입니다.")
+                media.extract_wav(audio_path, path(AUDIO))
+                self.update(video_id, duration=probed["duration"], genre=catalog.genre_of(info))
 
-        with self._timed_step(video_id, "transcribing", timings):
-            # The title lets the speaker step look up the work's characters
-            # (when GEMINI_API_KEY is set) — alongside STT, inside pipeline.run;
-            # the source video lets the review see who is speaking.
-            transcript = pipeline.run(
-                path(AUDIO), None, LANGUAGE, title=meta["title"], media_path=source_path,
-            )
+            with self._timed_step(video_id, "transcribing", timings):
+                # The title lets the speaker step look up the work's characters
+                # (when GEMINI_API_KEY is set) — alongside STT, inside pipeline.run;
+                # the source video lets the review see who is speaking.
+                transcript = pipeline.run(
+                    path(AUDIO), None, LANGUAGE, title=meta["title"], media_path=video,
+                )
 
         with self._timed_step(video_id, "finishing", timings):
             # The ASS files are generated from the transcript when requested.
@@ -234,6 +238,16 @@ class Library:
                         search_text=catalog.search_text(meta["title"], meta["channel"], data))
 
         self.update(video_id, status=READY, error=None)
+
+    @staticmethod
+    def _review_video(url: str, dest_dir: str) -> str | None:
+        """The video for the review; None (it listens to the audio) when it
+        cannot be had."""
+        try:
+            return media.download_youtube(url, dest_dir)
+        except Exception as exc:
+            print(f"… 검토용 영상 받기 실패, 음성으로 검토: {exc}", file=sys.stderr, flush=True)
+            return None
 
     def transcript(self, video_id: str):
         from hearing_to_seeing.schema import Transcript

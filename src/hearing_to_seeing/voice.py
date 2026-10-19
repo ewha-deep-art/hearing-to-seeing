@@ -1,18 +1,20 @@
-"""Speaker labels checked against voice prints (WeSpeaker ResNet34, ONNX, CPU).
+"""Speaker labels from voice prints (WeSpeaker ResNet34, ONNX, CPU).
 
+`diarize` labels the first STT pass in place of the server's diarization;
 `merge_labels` joins same-voice labels when there is no review;
 `reassign_utterances` corrects the review. Without the model the labels stay
-as they are. Measurements: evaluation/README.md 5.3.
+as they are. Measurements: evaluation/README.md 5.3, 5.8.
 """
 
 import os
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 
 import numpy as np
 
-from hearing_to_seeing.review import UTTERANCE_PAUSE
+from hearing_to_seeing.review import SENTENCE_END, UTTERANCE_PAUSE
 from hearing_to_seeing.schema import Transcript, WordEntry
 
 MODEL_URL = (
@@ -33,6 +35,17 @@ REASSIGN_MARGIN = 0.15
 MIN_SPEAKER_SECONDS = 3.0
 REASSIGN_ROUNDS = 3
 
+# `diarize`: the server's diarization took 7–141 s a clip and was most of a
+# long clip's wait; this takes a few seconds and labelled as well
+# (evaluation/LOG.md 6.7). Utterances are cut where the voice on either side of
+# a word boundary (CHANGE_WINDOW s each) is less alike than CHANGE_SIMILARITY,
+# then those of CLUSTER_SECONDS or more are grouped (average linkage) while
+# alike from CLUSTER_SIMILARITY up; shorter ones join the nearest group.
+CHANGE_WINDOW = 1.5
+CHANGE_SIMILARITY = 0.2
+CLUSTER_SECONDS = 1.0
+CLUSTER_SIMILARITY = 0.3
+
 
 @lru_cache(maxsize=1)
 def _session():
@@ -43,8 +56,20 @@ def _session():
         urllib.request.urlretrieve(MODEL_URL, MODEL_PATH + ".part")
         os.replace(MODEL_PATH + ".part", MODEL_PATH)
     options = onnxruntime.SessionOptions()
-    options.intra_op_num_threads = min(8, os.cpu_count() or 1)
+    # Utterances are embedded in parallel (`_voices`), one thread each:
+    # 2.1 s for a 5-minute clip against 3.5 s one at a time on eight threads.
+    options.intra_op_num_threads = 1
     return onnxruntime.InferenceSession(MODEL_PATH, options, providers=["CPUExecutionProvider"])
+
+
+def available() -> bool:
+    """Whether the model loads (downloading it the first time)."""
+    try:
+        _session()
+        return True
+    except Exception as exc:  # no network, no onnxruntime
+        print(f"… 목소리 모델 없음: {exc}", file=sys.stderr, flush=True)
+        return False
 
 
 def _mono_16k(sample_rate: int, audio: np.ndarray) -> np.ndarray:
@@ -102,7 +127,9 @@ def _voices(transcript: Transcript, sample_rate: int, audio: np.ndarray):
     utterances = _utterances(transcript.words)
     try:
         samples = _mono_16k(sample_rate, audio)
-        prints = [_embed(samples, u[0].start, u[-1].end) for u in utterances]
+        _session()  # loaded (or downloaded) once, before the threads ask for it
+        with ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+            prints = list(pool.map(lambda u: _embed(samples, u[0].start, u[-1].end), utterances))
     except Exception as exc:  # no model, no network — keep the labels
         print(f"… 목소리 비교 생략: {exc}", file=sys.stderr, flush=True)
         return None
@@ -196,3 +223,90 @@ def reassign_utterances(transcript: Transcript, sample_rate: int, audio: np.ndar
     if moved:
         print(f"… 목소리로 발화 {moved}개 화자 수정", file=sys.stderr, flush=True)
     return moved
+
+
+def _embed_all(samples: np.ndarray, spans: list[tuple[float, float]]) -> list[np.ndarray | None]:
+    with ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+        return list(pool.map(lambda span: _embed(samples, *span), spans))
+
+
+def _split_at_changes(pieces: list[list[dict]], samples: np.ndarray) -> list[list[dict]]:
+    """Each piece cut at word boundaries where the voice changes, a second or more apart."""
+    candidates = []  # (piece, word index, before, at, after)
+    for p, words in enumerate(pieces):
+        for k in range(1, len(words)):
+            at = words[k]["start"]
+            if at - words[0]["start"] >= 1.0 and words[-1]["end"] - at >= 1.0:
+                candidates.append((p, k, max(words[0]["start"], at - CHANGE_WINDOW), at,
+                                   min(words[-1]["end"], at + CHANGE_WINDOW)))
+    spans = [(b, a) for _, _, b, a, _ in candidates] + [(a, c) for _, _, _, a, c in candidates]
+    prints = _embed_all(samples, spans)
+    cuts: dict[int, list[int]] = {}
+    scored = []
+    for n, (p, k, *_) in enumerate(candidates):
+        left, right = prints[n], prints[n + len(candidates)]
+        if left is not None and right is not None and float(left @ right) < CHANGE_SIMILARITY:
+            scored.append((float(left @ right), p, k))
+    for _, p, k in sorted(scored):  # the clearest changes first
+        at = pieces[p][k]["start"]
+        if all(abs(pieces[p][c]["start"] - at) >= 1.0 for c in cuts.get(p, [])):
+            cuts.setdefault(p, []).append(k)
+    out = []
+    for p, words in enumerate(pieces):
+        bounds = [0, *sorted(cuts.get(p, [])), len(words)]
+        out += [words[a:b] for a, b in zip(bounds, bounds[1:])]
+    return out
+
+
+def diarize(result: dict, sample_rate: int, audio: np.ndarray, num_speakers: int | None = None) -> None:
+    """Labels a server response's words by voice, in place (see CHANGE_WINDOW).
+
+    `num_speakers`, when known, is the number of groups instead of
+    CLUSTER_SIMILARITY. Words without timing are left for the merge to fill.
+    """
+    from scipy.cluster.hierarchy import fcluster, linkage
+
+    words = [w for seg in result.get("segments", []) for w in seg.get("words", [])
+             if w.get("start") is not None and w.get("end") is not None]
+    for seg in result.get("segments", []):
+        seg["speaker"] = None
+        for w in seg.get("words", []):
+            w["speaker"] = None
+    pieces: list[list[dict]] = []
+    for w in words:
+        prev = pieces[-1][-1] if pieces else None
+        if (prev is None or w["start"] - prev["end"] > UTTERANCE_PAUSE
+                or SENTENCE_END.search(prev.get("word", "").strip())):
+            pieces.append([])
+        pieces[-1].append(w)
+    if not pieces:
+        return
+    samples = _mono_16k(sample_rate, audio)
+    pieces = _split_at_changes(pieces, samples)
+    spans = [(p[0]["start"], p[-1]["end"]) for p in pieces]
+    prints = _embed_all(samples, spans)
+
+    long = [i for i, (p, (a, b)) in enumerate(zip(prints, spans)) if p is not None and b - a >= CLUSTER_SECONDS]
+    group: dict[int, int] = {}
+    if len(long) >= 2:
+        tree = linkage(np.stack([prints[i] for i in long]), method="average", metric="cosine")
+        found = (fcluster(tree, t=num_speakers, criterion="maxclust") if num_speakers
+                 else fcluster(tree, t=1 - CLUSTER_SIMILARITY, criterion="distance"))
+        group = {i: int(g) - 1 for i, g in zip(long, found)}
+    elif long:
+        group = {long[0]: 0}
+    if group:
+        sums: dict[int, np.ndarray] = {}
+        for i, g in group.items():
+            sums[g] = sums.get(g, 0) + prints[i] * (spans[i][1] - spans[i][0])
+        centres = {g: _unit(v) for g, v in sums.items()}
+        for i, p in enumerate(prints):
+            if i not in group and p is not None:
+                group[i] = max(centres, key=lambda g: float(p @ centres[g]))
+        mids = [(a + b) / 2 for a, b in spans]
+        for i in range(len(pieces)):
+            if i not in group:
+                group[i] = group[min(group, key=lambda j: abs(mids[j] - mids[i]))]
+    for i, piece in enumerate(pieces):
+        for w in piece:
+            w["speaker"] = f"SPEAKER_{group.get(i, 0):02d}"

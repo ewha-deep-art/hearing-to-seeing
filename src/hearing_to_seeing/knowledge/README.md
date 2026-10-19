@@ -18,14 +18,16 @@
 
 ```
 pipeline.run(wav, ..., title=영상 제목, media_path=원본 영상)
-  ├─ 원격 WhisperX STT (패스 여러 개) ─────────────┐    ← 병렬
+  ├─ 원격 WhisperX STT (패스 3~4개, 차례대로) ───────┐    ← 병렬
+  │    첫 패스가 오면 voice.diarize(목소리로 화자 라벨) ┐  │
+  │      ask_review(첫 패스, 인물표, 영상)  [review.py] │
+  │        ④ LLM + 영상: 발화별 말하는 인물         │
   └─ lookup_characters(title)                     │
        ① LLM: 클립 제목 → 작품명 (제목에서 못 찾을 때) │
        ② 위키백과·나무위키 검색 (모델 호출 없음)    │
        ③ LLM: 문서 → 인물표 + 인물별 자막 색      │
                                                   ↓
-     review_transcript(패스들, 인물표, 영상)          [review.py]
-       ④ LLM + 영상: 발화별 말하는 인물 + 엇갈린 단어 고르기
+     apply_review(④의 답, 모든 패스)                  [review.py]
      voice: ④ 후 발화 재배정, ④ 없으면 같은 목소리 라벨 병합  [voice.py, CPU]
                                                   ↓
      correct_names(인물표의 이름·호칭)                  [stt.py, 규칙 기반]
@@ -40,7 +42,7 @@ pipeline.run(wav, ..., title=영상 제목, media_path=원본 영상)
 |---|---|---|---|---|---|
 | ① | `TITLE_*` | `pipeline.lookup_characters` | `llm.MODEL` (`gemini-3.6-flash`) | `gemini-3.5-flash-lite` | 키 + 제목, 제목에서 작품 문서를 못 찾았을 때 |
 | ③ | `CAST_*` | `pipeline.lookup_characters` | 〃 | 〃 | ①이 작품을 특정했을 때 |
-| ④ | `REVIEW_*` | `review.review_transcript` | `review.REVIEW_MODEL` (`gemini-3.7-flash`) | `gemini-3.8-flash` → `gemini-3.5-flash` | 키가 있으면 항상 (클립 15분 이하) |
+| ④ | `REVIEW_*` | `review.ask_review` | `review.REVIEW_MODEL` (`gemini-3.7-flash`) | `gemini-3.8-flash` → `gemini-3.5-flash` | 키가 있으면 항상 (클립 15분 이하) |
 | ⑤ | `SPEAKERS_*` | `pipeline.identify_speakers` | `llm.MODEL` | `gemini-3.5-flash-lite` | 인물표가 있는데 ④가 실패했을 때 |
 | ⑥ | `GENRE_*` | `web.catalog.genre_of` | `llm.MODEL` | `gemini-3.5-flash-lite` | 웹에서 자막을 만들 때마다 1회 (YouTube 메타데이터 → 장르, 실패 시 기타) |
 
@@ -62,7 +64,7 @@ pipeline.run(wav, ..., title=영상 제목, media_path=원본 영상)
 - 응답은 `response_json_schema`로 강제하므로 파싱은 실패하지 않는다. 출력 한도(`MAX_TOKENS` 16,000, thinking 포함)에서 잘리면 예외.
 - 요청 타임아웃 180초. 5xx는 SDK가 최대 4번 재시도(2–20초 간격)한다. 503이 오래 이어지면 이것만으로 수 분이 걸릴 수 있다.
 - 429(한도)·503(과부하)이면 `FALLBACK_MODEL`(`gemini-3.5-flash-lite`)로 한 번 더 요청한다. `fallback`에 모델 목록을 주면 그 순서로, `fallback=()`이면 바로 예외.
-- `media_path`가 있으면 파일을 업로드하고(영상은 처리 완료까지 대기), 저해상도(`MEDIA_RESOLUTION_LOW`)로 프롬프트 앞에 붙인 뒤, 끝나면 삭제한다. 미리 올린 파일(`llm.upload`)은 `media`로 넘긴다. 영상 검토는 업로드에 약 10초가 걸려서 `pipeline.run`이 STT와 동시에 올려 둔다(`review.upload`).
+- `media_path`가 있으면 파일을 업로드하고(영상은 처리 완료까지 대기), 저해상도(`MEDIA_RESOLUTION_LOW`)로 프롬프트 앞에 붙인 뒤, 끝나면 삭제한다. 미리 올린 파일(`llm.upload`)은 `media`로 넘긴다. 영상 검토는 업로드에 10~30초가 걸려서 `pipeline.run`이 STT와 동시에 올려 둔다(`review.upload`). 웹 작업은 리뷰용 영상을 360p로 받는다.
 - `configured()`로 키가 있는지 먼저 확인해, 키가 없으면 호출 자체를 하지 않는다.
 
 ## 단계별 설명
@@ -80,16 +82,14 @@ pipeline.run(wav, ..., title=영상 제목, media_path=원본 영상)
 코드는 hex에서 OKLCH hue만 취하고, 채도가 `ACHROMATIC_CHROMA`(0.06) 미만이면 선호 없음으로 둔다.
 인물표의 이름·호칭은 Whisper가 잘못 받아 적은 이름을 고치는 데도 쓰인다(`stt.correct_names`, 모델 호출 없음).
 
-**④ 영상 검토** ([`review.py`](../review.py)) — 여러 STT 패스를 다수결로 합친 대사를 발화 단위(라벨 변경, 0.5초 휴지, 문장 끝)로 자르고,
-패스끼리 엇갈린 자리를 `⟨dN @t: 1) … ×k | 2) … ×k⟩`로 표시해(패스 하나만 단어를 빠뜨리거나 더한 4–1 자리는 빼고, `t`는 읽은 패스들의 중앙값) 영상(없으면 음성)과 함께 보낸다. 모델은 두 가지를 **고르기만** 한다:
-- 발화마다 말하는 인물 — 화면에서 입이 움직이는 인물 기준. 인물표의 이름을 쓰고, 인물표에 없는 인물은 생김새·하는 일로 짧은 이름(`간호사1`, `경찰` …)을 붙이되 다른 사람끼리 겹치지 않게 한다.
-- 엇갈린 자리마다 다수결(1번)이 아닌 다른 읽기가 분명히 들릴 때만 그 번호. 새 텍스트는 쓰지 못하므로 단어 타이밍은 패스의 것을 그대로 쓴다.
+**④ 영상 검토** ([`review.py`](../review.py)) — 첫 STT 패스가 오고 목소리로 화자 라벨이 붙으면(`voice.diarize`) 그 대사를 발화 단위(라벨 변경, 0.5초 휴지, 문장 끝)로 잘라 영상(없으면 음성)과 함께 보낸다. 나머지 패스가 디코딩되는 동안 돈다.
+모델은 발화마다 말하는 인물을 **고르기만** 하고 `"u12 이름"` 문자열로 답한다 — 화면에서 입이 움직이는 인물 기준. 인물표의 이름을 쓰고, 인물표에 없는 인물은 생김새·하는 일로 짧은 이름(`간호사1`, `경찰` …)을 붙이되 다른 사람끼리 겹치지 않게 한다.
 
-답의 이름은 화자 분리 라벨을 대체한다: 이름마다 말한 시간이 가장 많이 겹치는 라벨을 1:1로 가져가고, 남는 이름은 새 라벨을 받는다.
+답의 이름은 모든 패스를 합친 대사에 발화 시간 구간으로 얹혀 화자 분리 라벨을 대체한다(`apply_review`): 이름마다 말한 시간이 가장 많이 겹치는 라벨을 1:1로 가져가고, 남는 이름은 새 라벨을 받는다.
 이 이름이 ⑥에 그대로 넘어가므로(신뢰도 1.0) ⑤를 부르지 않는다.
 
-- `temperature=0`, 폴백은 Flash 모델만(`REVIEW_FALLBACKS`) — flash-lite는 엇갈린 자리마다 엉뚱한 선택지를 골라 쓸 수 없다.
-- 인물표가 없거나 5분(`TEXT_MAX_SECONDS`)보다 길면 단어 고르기는 빼고 화자만 묻고, thinking을 `low`로 낮춘다(전체 thinking은 30,000 토큰을 넘겨 답이 잘렸다).
+- `temperature=0`, thinking `low`, 폴백은 Flash 모델만(`REVIEW_FALLBACKS`).
+- 패스끼리 엇갈린 단어를 고르는 텍스트 검토(`⟨dN …⟩` 표시, 전체 thinking)도 남아 있지만 꺼 두었다(`TEXT_MAX_SECONDS = 0`). 4패스 다수결 위에서 WER을 올렸고 2분 가까이 걸렸다.
 - 영어 프롬프트를 쓴다 — 같은 지시를 한국어로 주면 다수결을 더 자주, 더 자주 틀리게 뒤집었다.
 - 15분(`MAX_SECONDS`)보다 긴 클립은 보내지 않는다.
 - 측정과 근거: [evaluation/README.md 5절](../../../evaluation/README.md).

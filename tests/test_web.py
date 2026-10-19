@@ -107,6 +107,7 @@ def fake_media(monkeypatch):
 
     monkeypatch.setattr(media, "youtube_info", info)
     monkeypatch.setattr(media, "download_youtube", download)
+    monkeypatch.setattr(media, "download_audio", lambda url, dest_dir: touch(f"{dest_dir}/audio-source.m4a"))
     monkeypatch.setattr(media, "probe", lambda _: {"duration": 1.3, "video": "h264", "audio": "aac"})
     monkeypatch.setattr(media, "extract_wav", touch)
     monkeypatch.setattr("hearing_to_seeing.pipeline.run", run)
@@ -205,7 +206,13 @@ def test_pipeline_gets_the_title_for_speaker_lookup(library, fake_media):
 
 def test_pipeline_gets_the_source_video_for_the_review(library, fake_media):
     _submit(library)
-    assert fake_media[0]["media_path"].endswith("source.mp4")
+    assert fake_media[0]["media_path"].result().endswith("source.mp4")
+
+
+def test_the_review_listens_when_the_video_cannot_be_had(library, fake_media, monkeypatch):
+    monkeypatch.setattr(media, "download_youtube", lambda *_: 1 / 0)
+    assert library.get(_submit(library))["status"] == "ready"
+    assert fake_media[0]["media_path"].result() is None
 
 
 def test_genre_falls_back_to_other_without_a_key(library, fake_media):
@@ -452,3 +459,17 @@ def test_pages_and_scripts_are_revalidated(client):
     # Cached scripts under fresh HTML break the page after a deploy.
     assert client.get("/").headers["cache-control"] == "no-cache"
     assert client.get("/static/library.js").headers["cache-control"] == "no-cache"
+
+
+def test_a_refused_audio_stream_is_asked_for_again(monkeypatch, tmp_path):
+    asked = []
+
+    def download(url, options):
+        asked.append(options["format"])
+        if len(asked) < 3:
+            raise RuntimeError("HTTP Error 403: Forbidden")
+        return "audio-source.webm"
+
+    monkeypatch.setattr(media, "_download", download)
+    assert media.download_audio("https://youtu.be/x", str(tmp_path)) == "audio-source.webm"
+    assert asked == [media.AUDIO_FORMAT, media.AUDIO_FORMAT, media.AUDIO_FALLBACK_FORMAT]

@@ -9,7 +9,7 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 1 | [pipeline.py](../src/hearing_to_seeing/pipeline.py) | **색상 배정 값 검증 필요** ([knowledge/README.md](../src/hearing_to_seeing/knowledge/README.md)). (1) `MIN_CONFIDENCE`(0.7)·`LIGHTNESS`(0.75)·채도 비율은 경험값 — 실제 영상 위 가독성·매핑 정확도 측정 후 조정. (2) 확인 UI(인물명·색상 수정, 화자 병합)와 수동 매핑 미구현. (3) Gemini 무료 티어가 수요 폭주(503)일 때 SDK 재시도로 수 분이 걸릴 수 있음 — 영상 검토·화자 추론은 STT 이후 직렬 단계라 작업 시간이 그만큼 늘어남. | 기획서 §다음 논의 필요 사항 |
+| 1 | [pipeline.py](../src/hearing_to_seeing/pipeline.py) | **색상 배정 값 검증 필요** ([knowledge/README.md](../src/hearing_to_seeing/knowledge/README.md)). (1) `MIN_CONFIDENCE`(0.7)·`LIGHTNESS`(0.75)·채도 비율은 경험값 — 실제 영상 위 가독성·매핑 정확도 측정 후 조정. (2) 확인 UI(인물명·색상 수정, 화자 병합)와 수동 매핑 미구현. (3) Gemini 무료 티어가 수요 폭주(503)일 때 SDK 재시도로 수 분이 걸릴 수 있음 — 영상 검토는 첫 STT 패스 뒤 나머지 패스와 겹쳐 돌지만, 그보다 길어지거나 대사 기반 화자 추론(⑤)으로 넘어가면 작업 시간이 그만큼 늘어남. | 기획서 §다음 논의 필요 사항 |
 
 ---
 
@@ -34,8 +34,10 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 5 | [stt.py](../src/hearing_to_seeing/stt.py) | **디코딩 옵션 일부만 동작** ([evaluation/README.md](../evaluation/README.md) 4.2절). (1) `temperatures`·`hotwords`·`repetition_penalty`가 적용되지 않음(WhisperX 배치 디코딩 한계로 추정) — 반복 루프를 디코더에서 막으려면 서버에 temperature fallback 경로가 필요. 인물표 `initial_prompt`는 재측정 후 채택 여부 결정. (2) 화자 분리: 리뷰 없이(서버 diarization + 목소리 병합) 평균 화자 정확도 0.763, Gemini 영상 검토([review.py](../src/hearing_to_seeing/review.py))까지 0.932. 검토는 키·한도(모델당 하루 20회)가 있을 때만 돌아서, 한도가 차면 0.763으로 돌아감. 유료 티어 전환이나 서버 `community-1`(gated, [LOG.md](../evaluation/LOG.md) 3절)이 대안. | 기획서 §10 (STT·화자 분리 정확도) |
+| 5 | [stt.py](../src/hearing_to_seeing/stt.py) | **디코딩 옵션 일부만 동작** ([evaluation/README.md](../evaluation/README.md) 4.2절). (1) `temperatures`·`hotwords`·`repetition_penalty`가 적용되지 않음(WhisperX 배치 디코딩 한계로 추정) — 반복 루프를 디코더에서 막으려면 서버에 temperature fallback 경로가 필요. 인물표 `initial_prompt`는 재측정 후 채택 여부 결정. (2) 화자 분리: 리뷰 없이(목소리 화자 분리 `voice.diarize` + 목소리 병합) 평균 화자 정확도 0.804, Gemini 영상 검토([review.py](../src/hearing_to_seeing/review.py))까지 0.92 안팎(4.3절). 검토는 키·한도(모델당 하루 20회)가 있을 때만 돌아서, 한도가 차면 0.804로 돌아감. 유료 티어 전환이 대안. | 기획서 §10 (STT·화자 분리 정확도) |
 | 9 | [review.py](../src/hearing_to_seeing/review.py), [voice.py](../src/hearing_to_seeing/voice.py) | **화자 정확도 남은 오류** ([evaluation/README.md](../evaluation/README.md) 4.2절, 평균 0.932). (1) macro P/R/F1 0.9는 단어 1~9개뿐인 단역까지 맞혀야 도달한다. 1초 미만 발화는 목소리로 확인할 수 없어 리뷰의 판단에 달려 있다. (2) 마녀 정확도 0.886. 남은 오류의 절반은 gold와 리뷰·목소리가 엇갈리는 한 발화다. (3) 리뷰는 temperature 0에서도 실행마다 조금씩 달라진다. 위키 문서가 바뀌면 캐스트와 리뷰 프롬프트도 달라진다. | 기획서 §10 (STT·화자 분리 정확도) |
+| 12 | [stt.py](../src/hearing_to_seeing/stt.py) | **gold 이외 영상 검증 필요.** 현재 측정은 gold 클립에만 근거함. 다른 영상에서도 STT·화자 정확도를 확인해야 함. | 기획서 §10 (STT·화자 분리 정확도) |
+| 13 | [stt.py](../src/hearing_to_seeing/stt.py) | **긴 공백 뒤 대사 타이밍 어긋남.** 공백이 큰 시점에서 대사 시작 시각이 실제와 어긋남(예: "다친 다리로 심부름에 나선 김유정, 그 모습이 마음에 걸린 박진영 \| tvN 261018 방송"의 "여기는 왜 오셨어요?"). | — |
 
 ---
 
