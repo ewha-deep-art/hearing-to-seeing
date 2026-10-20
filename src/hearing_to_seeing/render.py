@@ -5,8 +5,7 @@ can actually be watched. Audio-only sources (mp3) get a solid-colour video
 track synthesised for the subtitles to sit on; sources that already carry
 video are used as-is.
 
-Requires `ffmpeg` (built with libass) on PATH. Set the H2S_FFMPEG environment
-variable to point at a specific binary instead.
+Uses the image's `ffmpeg` (built with libass).
 """
 
 import os
@@ -29,21 +28,9 @@ class MediaToolError(RuntimeError):
 
 def tool(name: str) -> str:
     """Returns the path to an ffmpeg-family binary."""
-    override = os.environ.get(f"H2S_{name.upper()}")
-    if override:
-        return override
-    # ffprobe normally ships beside ffmpeg, so an ffmpeg override locates it too.
-    ffmpeg_override = os.environ.get("H2S_FFMPEG")
-    if ffmpeg_override:
-        sibling = os.path.join(os.path.dirname(ffmpeg_override), name)
-        if os.path.exists(sibling):
-            return sibling
     found = shutil.which(name)
     if not found:
-        raise MediaToolError(
-            f"{name} not found on PATH. Install ffmpeg, or set H2S_{name.upper()} "
-            "to the binary's path."
-        )
+        raise MediaToolError(f"{name} not found on PATH.")
     return found
 
 

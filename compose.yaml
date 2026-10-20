@@ -1,17 +1,41 @@
-# The worker: converts the clips the web app on Vercel queues.
-#   docker compose up -d --build     (logs: docker compose logs -f worker)
+# Everything runs here, from one image, reading .env.
+#   docker compose up -d --build                  the worker (logs: docker compose logs -f worker)
+#   docker compose --profile web up web           the web app on http://127.0.0.1:8080
+#   docker compose run --rm cli data/input/x.wav  the CLI, on files under ./data
 #
-# It reads .env. To reach the STT server on this machine without going through
-# the tunnel, set WHISPERX_API_URL=http://host.docker.internal:<port>/whisperx.
+# To reach the STT server on this machine without going through the tunnel,
+# set WHISPERX_API_URL=http://host.docker.internal:<port>/whisperx.
+x-app: &app
+  build: .
+  image: hearing-to-seeing
+  env_file: .env
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
 services:
+  # Converts the clips the web app on Vercel queues. No host files mounted.
   worker:
-    build: .
-    env_file: .env
+    <<: *app
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       # The voice model (downloaded once).
+      - cache:/home/worker/.cache
+
+  web:
+    <<: *app
+    profiles: [web]
+    command: ["python", "-m", "web.app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      # Host port 8000 is the STT server's.
+      - "127.0.0.1:8080:8000"
+
+  cli:
+    <<: *app
+    profiles: [cli]
+    entrypoint: ["python", "-m", "hearing_to_seeing.cli"]
+    volumes:
+      # Written as the container's user (uid 1000).
+      - ./data:/home/worker/app/data
       - cache:/home/worker/.cache
 
 volumes:

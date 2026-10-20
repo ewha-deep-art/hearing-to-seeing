@@ -1,4 +1,4 @@
-"""Command line entry point for the `hearing-to-seeing` console script.
+"""Command line entry point, run as `docker compose run --rm cli <wav>`.
 
 `run` sends the media to the remote WhisperX API for STT, alignment and
 diarization, then builds the subtitles locally. See `pipeline.run`.
