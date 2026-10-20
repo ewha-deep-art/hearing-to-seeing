@@ -14,6 +14,31 @@ searchInput.value = query;
 
 // --- catalogue grid -----------------------------------------------------------
 
+// Deleting takes the admin token (ADMIN_TOKEN on the server), asked for once
+// and remembered in this browser.
+const TOKEN_KEY = "h2s-admin-token";
+
+function storedToken() {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+}
+
+function storeToken(token) {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch {}
+}
+
+async function removeVideo(id) {
+  const attempt = (token) => api(`/api/videos/${id}`, { method: "DELETE", headers: { "X-Admin-Token": token ?? "" } });
+  try {
+    await attempt(storedToken());
+  } catch (err) {
+    if (err.status !== 403) return console.error(err);
+    const token = prompt("관리자 토큰을 입력해 주세요.");
+    if (!token) return;
+    storeToken(token);
+    try { await attempt(token); } catch (err) { console.error(err); if (err.status === 403) alert("삭제 권한이 없습니다."); }
+  }
+}
+
 function card(video) {
   const thumb = el("div", { class: "thumb" });
   const img = el("img", { src: youtubeThumb(video.youtube_id), alt: "", loading: "lazy" });
@@ -30,7 +55,7 @@ function card(video) {
     onclick: async (e) => {
       e.preventDefault();
       if (!confirm(`'${title}'을(를) 삭제할까요?`)) return;
-      try { await api(`/api/videos/${video.id}`, { method: "DELETE" }); } catch (err) { console.error(err); }
+      await removeVideo(video.id);
       refresh();
     },
   }, icon("trash"));
@@ -153,7 +178,9 @@ form.onsubmit = async (e) => {
   data.append("url", url);
 
   submit.disabled = true;
-  submit.textContent = "영상 확인 중…";
+  submit.style.width = `${submit.offsetWidth}px`; // keep the button's size while the spinner replaces the label
+  submit.setAttribute("aria-label", "요청 보내는 중");
+  submit.replaceChildren(el("div", { class: "spinner small" }));
   try {
     const res = await api("/api/videos", { method: "POST", body: data });
     if (res.existing) {
@@ -164,9 +191,11 @@ form.onsubmit = async (e) => {
     trackConversion(res.id);
   } catch (err) {
     console.error(err);
-    setError(err.detail ?? "자막을 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
+    setError(err.detail ?? "자막을 만들지 못했어요. 잠시 뒤 다시 요청해 주세요.");
   } finally {
-    submit.textContent = "만들기";
+    submit.replaceChildren("만들기");
+    submit.removeAttribute("aria-label");
+    submit.style.width = "";
     submit.disabled = false;
     await refreshQuota(); // this request may have used today's last one
     showQuota();

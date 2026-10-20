@@ -1,13 +1,15 @@
 """HTTP layer: the catalogue and watch pages plus the JSON API behind them.
 
-Run with `uv run hearing-to-seeing-web`.
+Run with `uv run hearing-to-seeing-web`, alongside `uv run hearing-to-seeing-worker`
+(which converts the clips this queues). On Vercel, `index.py` serves it.
 """
 
 import os
+import secrets
 from typing import Annotated
 from urllib.parse import quote
 
-from fastapi import FastAPI, Form, HTTPException
+from fastapi import FastAPI, Form, Header, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -20,7 +22,6 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 def create_app(library: jobs.Library | None = None) -> FastAPI:
     library = library or jobs.Library()
-    library.recover()
 
     app = FastAPI(title="Hearing to Seeing")
     app.state.library = library
@@ -89,7 +90,11 @@ def create_app(library: jobs.Library | None = None) -> FastAPI:
         return meta
 
     @app.delete("/api/videos/{video_id}", status_code=204)
-    def delete_video(video_id: str):
+    def delete_video(video_id: str, x_admin_token: Annotated[str | None, Header()] = None):
+        # Only whoever holds ADMIN_TOKEN deletes; unset, nobody does.
+        expected = os.environ.get("ADMIN_TOKEN")
+        if not (expected and x_admin_token and secrets.compare_digest(x_admin_token, expected)):
+            raise HTTPException(403, "삭제 권한이 없습니다.")
         meta = _meta(video_id)
         if meta["status"] in jobs.PENDING_STATES:
             raise HTTPException(409, "처리 중인 영상은 삭제할 수 없습니다.")

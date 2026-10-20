@@ -9,13 +9,7 @@ from hearing_to_seeing.schema import Transcript, WordEntry
 from hearing_to_seeing import media
 from web import catalog, jobs, subtitles
 from web.app import create_app
-
-
-class InlineExecutor:
-    """Runs submitted work immediately, so a request returns with the job done."""
-
-    def submit(self, fn, *args):
-        fn(*args)
+from worker import convert
 
 
 class MemoryStore:
@@ -96,6 +90,7 @@ def fake_media(monkeypatch):
         return path
 
     def info(url):
+        runs.asked.append(url)
         return infos.get(url) or _info()
 
     def download(url, dest_dir):
@@ -116,21 +111,30 @@ def fake_media(monkeypatch):
 
 
 class _Runs(list):
-    """`pipeline.run` calls, plus `infos`: `youtube_info` answers by link."""
+    """`pipeline.run` calls, plus `infos`: `youtube_info` answers by link, and
+    `asked`: the links it was asked about."""
 
     def __init__(self):
         super().__init__()
         self.infos: dict[str, dict] = {}
+        self.asked: list[str] = []
 
 
 @pytest.fixture
-def library(tmp_path):
-    return jobs.Library(str(tmp_path), executor=InlineExecutor(), store=MemoryStore())
+def library():
+    return jobs.Library(store=MemoryStore())
 
 
 @pytest.fixture
-def client(library):
-    return TestClient(create_app(library))
+def worker(library, tmp_path):
+    return convert.Worker(library, str(tmp_path))
+
+
+@pytest.fixture
+def client(library, worker):
+    client = TestClient(create_app(library))
+    client.worker = worker  # takes what the posts queue
+    return client
 
 
 # --- subtitles ---------------------------------------------------------------
@@ -170,14 +174,16 @@ def test_cues_match_ass_dialogue_lines():
 # --- jobs --------------------------------------------------------------------
 
 
-def _submit(library, url="https://youtu.be/abcdefghijk"):
-    video_id, existing = library.submit(url)
+def _submit(worker, url="https://youtu.be/abcdefghijk"):
+    """Queues `url` and has the worker convert it."""
+    video_id, existing = worker.library.submit(url)
     assert not existing
+    assert worker.work_once()
     return video_id
 
 
-def test_url_runs_to_ready(library, fake_media):
-    video_id = _submit(library)
+def test_url_runs_to_ready(library, worker, fake_media):
+    video_id = _submit(worker)
     meta = library.get(video_id)
 
     assert meta["status"] == jobs.READY
@@ -189,66 +195,66 @@ def test_url_runs_to_ready(library, fake_media):
     assert library.transcript(video_id).to_dict() == _transcript().to_dict()
 
 
-def test_nothing_stays_on_disk(library, fake_media):
-    video_id = _submit(library)
+def test_nothing_stays_on_disk(worker, fake_media):
+    video_id = _submit(worker)
     assert fake_media[0]["ass"] is None
-    assert not os.path.exists(library.path(video_id))
+    assert not os.path.exists(worker.path(video_id))
 
 
-def test_failed_job_drops_working_files(library, fake_media, monkeypatch):
+def test_failed_job_drops_working_files(worker, fake_media, monkeypatch):
     monkeypatch.setattr("hearing_to_seeing.pipeline.run", lambda *_, **__: 1 / 0)
-    video_id = _submit(library)
-    assert not os.path.exists(library.path(video_id))
+    video_id = _submit(worker)
+    assert not os.path.exists(worker.path(video_id))
 
 
-def test_url_run_records_step_timings(library, fake_media):
-    timings = library.get(_submit(library))["timings"]
+def test_url_run_records_step_timings(library, worker, fake_media):
+    timings = library.get(_submit(worker))["timings"]
     assert set(timings) == {"downloading", "preparing", "transcribing", "finishing"}
     assert all(isinstance(v, float) and v >= 0 for v in timings.values())
 
 
-def test_pipeline_gets_the_title_for_speaker_lookup(library, fake_media):
-    _submit(library)
+def test_pipeline_gets_the_title_for_speaker_lookup(worker, fake_media):
+    _submit(worker)
     assert fake_media[0]["title"] == "Fetched title"
 
 
-def test_pipeline_gets_the_source_video_for_the_review(library, fake_media):
-    _submit(library)
+def test_pipeline_gets_the_source_video_for_the_review(worker, fake_media):
+    _submit(worker)
     assert fake_media[0]["media_path"].result().endswith("source.mp4")
 
 
-def test_the_review_listens_when_the_video_cannot_be_had(library, fake_media, monkeypatch):
+def test_the_review_listens_when_the_video_cannot_be_had(library, worker, fake_media, monkeypatch):
     monkeypatch.setattr(media, "download_youtube", lambda *_: 1 / 0)
-    assert library.get(_submit(library))["status"] == "ready"
+    assert library.get(_submit(worker))["status"] == "ready"
     assert fake_media[0]["media_path"].result() is None
 
 
-def test_genre_falls_back_to_other_without_a_key(library, fake_media):
-    assert library.get(_submit(library))["genre"] == "기타"
+def test_genre_falls_back_to_other_without_a_key(library, worker, fake_media):
+    assert library.get(_submit(worker))["genre"] == "기타"
 
 
-def test_genre_comes_from_the_model(library, fake_media, monkeypatch):
+def test_genre_comes_from_the_model(library, worker, fake_media, monkeypatch):
     monkeypatch.setattr("hearing_to_seeing.knowledge.llm.configured", lambda: True)
     monkeypatch.setattr("hearing_to_seeing.knowledge.llm.ask", lambda *_, **__: {"genre": "영화"})
-    assert library.get(_submit(library))["genre"] == "영화"
+    assert library.get(_submit(worker))["genre"] == "영화"
 
 
-def test_dialogue_is_searchable(library, fake_media):
-    video_id = _submit(library)
+def test_dialogue_is_searchable(library, worker, fake_media):
+    video_id = _submit(worker)
     assert library.store.rows[video_id]["search_text"].endswith("hello world bye")
     assert [v["id"] for v in library.list(query="WORLD")] == [video_id]
     assert library.list(query="nowhere") == []
 
 
-def test_same_video_is_not_converted_twice(library, fake_media):
-    video_id = _submit(library, "https://youtu.be/abcdefghijk")
+def test_same_video_is_not_converted_twice(library, worker, fake_media):
+    video_id = _submit(worker, "https://youtu.be/abcdefghijk")
     again = library.submit("https://www.youtube.com/watch?v=abcdefghijk&t=3")
     assert again == (video_id, True)
     assert len(fake_media) == 1
     assert len(library.store.rows) == 1
 
 
-def test_failed_video_is_submitted_again(library, fake_media, monkeypatch):
+def test_failed_video_is_submitted_again(library, worker, fake_media, monkeypatch):
     calls = []
 
     def flaky(*_, **__):
@@ -258,11 +264,12 @@ def test_failed_video_is_submitted_again(library, fake_media, monkeypatch):
         return _transcript()
 
     monkeypatch.setattr("hearing_to_seeing.pipeline.run", flaky)
-    video_id = _submit(library)
+    video_id = _submit(worker)
     assert library.get(video_id)["status"] == jobs.ERROR
-    assert library.get(video_id)["error"] == "STT server down"
+    assert library.get(video_id)["error"] == jobs.FAILED  # the cause is only logged
 
     assert library.submit("https://youtu.be/abcdefghijk") == (video_id, False)
+    assert worker.work_once()
     assert library.get(video_id)["status"] == jobs.READY
     assert len(library.store.rows) == 1
 
@@ -273,11 +280,43 @@ def test_failed_video_is_submitted_again(library, fake_media, monkeypatch):
     ({"playable_in_embed": False}, "영상 제공자가"),
     ({"live_status": "is_live"}, "라이브"),
 ])
-def test_unsuitable_videos_are_rejected(library, fake_media, fields, message):
-    fake_media.infos["https://youtu.be/xxxxxxxxxxx"] = _info(**fields)
-    with pytest.raises(jobs.Rejected, match=message):
-        library.submit("https://youtu.be/xxxxxxxxxxx")
-    assert library.store.rows == {}
+def test_unsuitable_videos_are_rejected(library, worker, fake_media, fields, message):
+    fake_media.infos[jobs.youtube_url("xxxxxxxxxxx")] = _info("xxxxxxxxxxx", **fields)
+    video_id = _submit(worker, "https://youtu.be/xxxxxxxxxxx")
+    meta = library.get(video_id)
+    assert meta["status"] == jobs.ERROR
+    assert message in meta["error"]
+    assert fake_media == []
+    # Turned away before any work: nothing spent from today's limit.
+    assert library.quota()["used"] == 0
+
+
+def test_the_worker_asks_youtube_about_the_id_alone(worker, fake_media):
+    _submit(worker, "https://www.youtube.com/watch?feature=share&v=abcdefghijk&t=3")
+    assert fake_media.asked == [jobs.youtube_url("abcdefghijk")]
+
+
+def test_an_empty_queue_has_no_work(worker):
+    assert worker.work_once() is False
+
+
+def test_the_worker_outlasts_an_unreachable_store(library, worker, monkeypatch):
+    calls = []
+
+    def flaky(statuses):
+        calls.append(statuses)
+        if len(calls) == 1:
+            raise ConnectionError("no address")  # at start-up, before recover() gets through
+        if len(calls) == 4:
+            raise KeyboardInterrupt  # stops the loop
+        return []
+
+    monkeypatch.setattr(library.store, "with_status", flaky)
+    monkeypatch.setattr(convert.time, "sleep", lambda _: None)
+    with pytest.raises(KeyboardInterrupt):
+        worker.work()
+    assert calls[1] == jobs.PENDING_STATES[1:]  # recover() tried again
+    assert calls[2] == (jobs.QUEUED,)
 
 
 def test_only_youtube_links_are_taken(library, fake_media):
@@ -287,9 +326,9 @@ def test_only_youtube_links_are_taken(library, fake_media):
 
 
 def test_daily_limit_counts_todays_submissions(tmp_path, fake_media):
-    library = jobs.Library(str(tmp_path), executor=InlineExecutor(), store=MemoryStore(), daily_limit=1)
-    fake_media.infos["https://youtu.be/bbbbbbbbbbb"] = _info("bbbbbbbbbbb")
-    _submit(library)
+    library = jobs.Library(store=MemoryStore(), daily_limit=1)
+    worker = convert.Worker(library, str(tmp_path))
+    _submit(worker)
     with pytest.raises(jobs.QuotaExceeded):
         library.submit("https://youtu.be/bbbbbbbbbbb")
     # A video already in the catalogue still opens.
@@ -297,22 +336,24 @@ def test_daily_limit_counts_todays_submissions(tmp_path, fake_media):
     assert library.quota()["used"] == 1
 
 
-def test_source_without_audio_fails(library, fake_media, monkeypatch):
+def test_source_without_audio_fails(library, worker, fake_media, monkeypatch):
     monkeypatch.setattr(media, "probe", lambda _: {"duration": 1.0, "video": "h264", "audio": None})
-    assert library.get(_submit(library))["status"] == jobs.ERROR
+    assert library.get(_submit(worker))["status"] == jobs.ERROR
 
 
-def test_recover_marks_unfinished_jobs_failed(tmp_path):
+def test_recover_marks_unfinished_jobs_failed():
     store = MemoryStore()
     store.insert({"id": "0123456789ab", "youtube_id": "x", "status": "transcribing", "created_at": 0, "submitted_at": 0})
-    restarted = jobs.Library(str(tmp_path), executor=InlineExecutor(), store=store)
-    restarted.recover()
+    store.insert({"id": "ba9876543210", "youtube_id": "y", "status": "queued", "created_at": 0, "submitted_at": 0})
+    restarted = jobs.Library(store=store)
+    convert.Worker(restarted).recover()
     assert restarted.get("0123456789ab")["status"] == jobs.ERROR
+    assert restarted.get("ba9876543210")["status"] == "queued"  # the worker takes it next
 
 
-def test_path_rejects_ids_outside_the_library(library):
+def test_path_rejects_ids_outside_the_library(worker):
     with pytest.raises(KeyError):
-        library.path("../etc")
+        worker.path("../etc")
 
 
 def test_youtube_id_reads_every_link_shape():
@@ -330,7 +371,10 @@ def test_youtube_id_reads_every_link_shape():
 
 
 def _post(client, url="https://youtu.be/abcdefghijk"):
-    return client.post("/api/videos", data={"url": url})
+    """Posts `url`, then lets the worker take whatever was queued."""
+    res = client.post("/api/videos", data={"url": url})
+    client.worker.work_once()
+    return res
 
 
 def test_post_then_fetch_ready_video(client, fake_media):
@@ -364,14 +408,15 @@ def test_post_requires_a_valid_url(client):
 
 
 def test_post_rejections_and_quota(client, fake_media, library):
-    fake_media.infos["https://youtu.be/lllllllllll"] = _info("lllllllllll", duration=3600)
+    fake_media.infos[jobs.youtube_url("lllllllllll")] = _info("lllllllllll", duration=3600)
     res = _post(client, "https://youtu.be/lllllllllll")
-    assert res.status_code == 422
-    assert "15분" in res.json()["detail"]
+    assert res.status_code == 201
+    video = client.get(f"/api/videos/{res.json()['id']}").json()
+    assert video["status"] == jobs.ERROR
+    assert "15분" in video["error"]
 
     library.daily_limit = 1
     _post(client)
-    fake_media.infos["https://youtu.be/bbbbbbbbbbb"] = _info("bbbbbbbbbbb")
     assert _post(client, "https://youtu.be/bbbbbbbbbbb").status_code == 429
 
 
@@ -406,7 +451,7 @@ def test_unknown_or_malformed_id_is_404(client):
 
 
 def test_subtitle_download_is_an_attachment(client, fake_media):
-    fake_media.infos["https://youtu.be/ttttttttttt"] = _info("ttttttttttt", title="talk")
+    fake_media.infos[jobs.youtube_url("ttttttttttt")] = _info("ttttttttttt", title="talk")
     video_id = _post(client, "https://youtu.be/ttttttttttt").json()["id"]
 
     inline = client.get(f"/api/videos/{video_id}/files/ass")
@@ -426,7 +471,7 @@ def test_subtitle_download_is_an_attachment(client, fake_media):
 
 
 def test_subtitle_download_keeps_a_korean_title(client, fake_media):
-    fake_media.infos["https://youtu.be/kkkkkkkkkkk"] = _info("kkkkkkkkkkk", title="대화")
+    fake_media.infos[jobs.youtube_url("kkkkkkkkkkk")] = _info("kkkkkkkkkkk", title="대화")
     video_id = _post(client, "https://youtu.be/kkkkkkkkkkk").json()["id"]
     download = client.get(f"/api/videos/{video_id}/files/ass?download=1")
     assert download.headers["content-disposition"] == (
@@ -440,10 +485,18 @@ def test_files_wait_for_the_transcript(client, library):
     assert client.get("/api/videos/0123456789ab/files/ass").status_code == 404
 
 
-def test_delete_removes_video(client, fake_media):
+def test_delete_takes_the_admin_token(client, fake_media, monkeypatch):
     video_id = _post(client).json()["id"]
-    assert client.delete(f"/api/videos/{video_id}").status_code == 204
-    assert client.get(f"/api/videos/{video_id}").status_code == 404
+    url = f"/api/videos/{video_id}"
+    assert client.delete(url, headers={"X-Admin-Token": "anything"}).status_code == 403  # unset: nobody
+
+    monkeypatch.setenv("ADMIN_TOKEN", "s3cret")
+    assert client.delete(url).status_code == 403
+    assert client.delete(url, headers={"X-Admin-Token": "wrong"}).status_code == 403
+    assert client.get(url).status_code == 200
+
+    assert client.delete(url, headers={"X-Admin-Token": "s3cret"}).status_code == 204
+    assert client.get(url).status_code == 404
 
 
 def test_pages_are_served(client):

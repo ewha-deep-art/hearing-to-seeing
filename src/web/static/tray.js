@@ -44,7 +44,8 @@ function item(id, video) {
   } else if (video.status === "ready") {
     status = el("a", { class: "tray-link", href: `/watch/${id}` }, "완성 · 보러 가기");
   } else {
-    status = el("span", { class: "tray-error" }, "자막을 만들지 못했어요 · 다시 요청해 주세요");
+    // `error` is written for the viewer (a rejected link says why).
+    status = el("span", { class: "tray-error" }, video.error || "자막을 만들지 못했어요 · 잠시 뒤 다시 요청해 주세요");
   }
 
   const thumb = el("img", { class: "tray-thumb", alt: "", src: youtubeThumb(video.youtube_id, "mqdefault") });

@@ -197,7 +197,7 @@ async function load() {
     setTimeout(load, 2000);
   } else if (meta.status === "error") {
     console.error(meta.error);
-    showState("error", "자막을 만들지 못했어요. 다시 요청해 주세요.");
+    showState("error", meta.error || "자막을 만들지 못했어요. 잠시 뒤 다시 요청해 주세요.");
   } else {
     setup(meta);
   }
