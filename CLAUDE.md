@@ -10,6 +10,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 See [README.md](README.md) for installation, running the pipeline, This project uses [`uv`](https://docs.astral.sh/uv/) for package management (Python 3.12).
 ```
+# 의존성 설치 (변환 파이프라인 `pipeline` extra 포함)
+uv sync --all-extras
+
 # 테스트 실행
 uv run pytest
 
@@ -49,7 +52,7 @@ The **intermediate JSON schema** (`schema.py`) is the central data contract: it 
 - Each effect module owns one signal and nothing else: `sync.py` timing (fill wipe, wave), `volume.py` size, `speaker.py` colour. Code that needs more than one of them goes in `layout.py`, or in `converter/ass.py` if it is about the ASS format (assembling Dialogue events).
 - Each subtitle is three ASS layers: Box (opaque background), Fill (white → hidden while spoken), Pop (per-word events wiped into the speaker colour). A Pop event carries the whole line with every other word invisible, so libass places the word itself; nothing is measured.
 - One bundled font (`design/fonts/`, named in `design/layout.py`). ASS finds it by the family name inside the file, so `FONT_NAME` must match it (`tests/test_layout.py` checks).
-- Speaker colors: with `GEMINI_API_KEY` set, the web job looks up the work's characters (title → Wikipedia/Namu wiki → LLM cast sheet → per-character hue) in parallel with STT, then infers which speaker is which character. Without a key or on failure, hues are spread evenly. See [src/hearing_to_seeing/knowledge/README.md](src/hearing_to_seeing/knowledge/README.md), which covers every LLM call.
+- Speaker colors: with `GEMINI_API_KEY` set, the worker looks up the work's characters (title → Wikipedia/Namu wiki → LLM cast sheet → per-character hue) in parallel with STT, then infers which speaker is which character. Without a key or on failure, hues are spread evenly. See [src/hearing_to_seeing/knowledge/README.md](src/hearing_to_seeing/knowledge/README.md), which covers every LLM call.
 
 ### Directory layout
 - `src/hearing_to_seeing/` — core pipeline package + CLI entry point (`cli.py`)
@@ -57,7 +60,8 @@ The **intermediate JSON schema** (`schema.py`) is the central data contract: it 
 - `src/hearing_to_seeing/knowledge/` — what the pipeline's speaker step and the review call out to: `llm.py` (Gemini `ask()`), `retrieve.py` (Wikipedia/Namu wiki), `prompts.py` (the LLM prompts + JSON schemas); `README.md` there documents every LLM call (speaker-color RAG, video review)
 - `src/hearing_to_seeing/converter/` — output format converters (ASS, future VTT)
 - `src/hearing_to_seeing/render.py` — preview renderer that burns the generated ASS onto the source media (ffmpeg, optional; not the pipeline's real output)
-- `src/web/` — web catalogue (FastAPI, `hearing-to-seeing-web`): a YouTube link becomes a background job (`jobs.py`; 15 min / 20 a day, one row per YouTube video) stored in the Supabase `clips` table (`db.py`); clips are browsed by search (title, characters, dialogue) and genre (`catalog.py`) and played in the YouTube IFrame player with the ASS drawn over it by JASSUB (`static/watch.js`)
+- `src/web/` — web catalogue (FastAPI, `hearing-to-seeing-web`): a YouTube link is queued (`jobs.py`; 15 min / 20 a day, one row per YouTube video) stored in the Supabase `clips` table (`db.py`); clips are browsed by search (title, characters, dialogue) and genre (`catalog.py`) and played in the YouTube IFrame player with the ASS drawn over it by JASSUB (`static/watch.js`); deployed on Vercel through `index.py` with the base dependencies only
+- `src/worker/` — the worker (`hearing-to-seeing-worker`, `convert.py`): takes queued clips one at a time and runs the pipeline; runs in Docker (`Dockerfile`, `compose.yaml`) with the `pipeline` extra
 - `data/input/` / `data/output/` — local test media files (not committed)
 - `tests/` — test suite
 - `scripts/stt_eval.py` — STT measurement on the test clips (references, passes, video review, scores)
