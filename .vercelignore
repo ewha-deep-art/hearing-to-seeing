@@ -10,4 +10,3 @@ meeting-log.md
 Dockerfile
 compose.yaml
 .dockerignore
-src/worker
