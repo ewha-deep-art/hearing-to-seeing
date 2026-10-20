@@ -1,0 +1,13 @@
+.env
+.venv
+.claude
+.github
+data
+docs
+evaluation
+tests
+meeting-log.md
+Dockerfile
+compose.yaml
+.dockerignore
+src/worker
