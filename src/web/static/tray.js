@@ -38,14 +38,14 @@ function item(id, video) {
   let status, bar = null;
   if (isPending(video.status)) {
     const transcribing = video.status === "transcribing";
-    status = `${statusLabel(video.status)} (${step + 1}/${STEPS.length})` +
-      (transcribing && video.duration ? ` · 약 ${Math.max(1, Math.round(video.duration / 60))}분 걸려요` : "");
+    status = `${statusLabel(video.status)} (${step + 1}/${STEPS.length})`;
     bar = el("div", { class: transcribing ? "tray-bar running" : "tray-bar" },
       el("span", { style: `width:${((step + 1) / STEPS.length) * 100}%` }));
   } else if (video.status === "ready") {
     status = el("a", { class: "tray-link", href: `/watch/${id}` }, "완성 · 보러 가기");
   } else {
-    status = el("span", { class: "tray-error" }, "자막을 만들지 못했어요 · 다시 요청해 주세요");
+    // `error` is written for the viewer (a rejected link says why).
+    status = el("span", { class: "tray-error" }, video.error || "자막을 만들지 못했어요 · 잠시 뒤 다시 요청해 주세요");
   }
 
   const thumb = el("img", { class: "tray-thumb", alt: "", src: youtubeThumb(video.youtube_id, "mqdefault") });

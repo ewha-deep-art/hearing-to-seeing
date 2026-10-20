@@ -1,0 +1,12 @@
+.env
+.venv
+.git
+.claude
+data
+docs
+evaluation
+tests
+.github
+.vercel
+index.py
+meeting-log.md

@@ -1,0 +1,18 @@
+# The worker: converts the clips the web app on Vercel queues.
+#   docker compose up -d --build     (logs: docker compose logs -f worker)
+#
+# It reads .env. To reach the STT server on this machine without going through
+# the tunnel, set WHISPERX_API_URL=http://host.docker.internal:<port>/whisperx.
+services:
+  worker:
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # The voice model (downloaded once).
+      - cache:/home/worker/.cache
+
+volumes:
+  cache:

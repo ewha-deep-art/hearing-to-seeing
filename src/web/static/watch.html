@@ -17,7 +17,7 @@
       <div class="player" id="player" tabindex="-1">
         <div class="stage" id="stage">
           <div id="yt"></div>
-          <canvas class="subs" id="subs"></canvas>
+          <div class="subs-clip"><canvas class="subs" id="subs"></canvas></div>
           <!-- Takes the clicks the YouTube frame would otherwise swallow. -->
           <div class="click-layer" id="click-layer"></div>
         </div>
@@ -44,6 +44,11 @@
             <div class="sub-mode" id="sub-mode" role="group" aria-label="자막 (c)">
               <button type="button" data-mode="kinetic">키네틱</button>
               <button type="button" data-mode="plain">일반</button>
+              <button type="button" data-mode="off">끄기</button>
+            </div>
+            <div class="sub-mode" role="group" aria-label="자막 크기">
+              <button type="button" id="sub-smaller" aria-label="자막 작게 (-)">가−</button>
+              <button type="button" id="sub-larger" aria-label="자막 크게 (+)">가+</button>
             </div>
             <button class="icon-btn" id="fullscreen" type="button" aria-label="전체 화면 (f)"></button>
           </div>

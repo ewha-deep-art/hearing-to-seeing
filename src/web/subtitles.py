@@ -16,12 +16,21 @@ def ass_to_hex(colour: str) -> str:
 
 
 def speakers(transcript: Transcript) -> list[dict]:
-    """Legend entries in label order, named 화자 1, 화자 2, … for display."""
+    """Legend entries, most speaking time first, named by the character the
+    pipeline matched (speaker_profiles) or 화자 1, 화자 2, … in label order."""
     colours = speaker_colors(transcript)
-    return [
-        {"label": label, "name": f"화자 {i}", "color": ass_to_hex(colours[label])}
+    talk: dict[str, float] = {}
+    for w in transcript.words:
+        talk[w.speaker] = talk.get(w.speaker, 0.0) + w.duration
+    legend = [
+        {
+            "label": label,
+            "name": (transcript.speaker_profiles.get(label) or {}).get("name") or f"화자 {i}",
+            "color": ass_to_hex(colours[label]),
+        }
         for i, label in enumerate(transcript.speakers(), start=1)
     ]
+    return sorted(legend, key=lambda s: -talk[s["label"]])
 
 
 def cues(transcript: Transcript) -> list[dict]:

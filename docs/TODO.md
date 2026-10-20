@@ -54,8 +54,8 @@
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
 | 8 | [src/web/](../src/web/) | **웹 UI 실사용 테스트 진행 중.** 문구, 레이아웃, 디자인 등 세부 수정 필요 — 구체적인 개선 항목은 테스트 피드백을 취합한 후 정리 예정. | — |
-| 10 | [jobs.py](../src/web/jobs.py), [watch.js](../src/web/static/watch.js) | **도메인 제한 영상을 요청 단계에서 못 거름.** yt-dlp `playable_in_embed`·oEmbed·임베드 클라이언트 모두 "허용"인데 플레이어에서 오류 150이 나는 영상이 있음(니켈로디언 클립). 현재는 시청 화면 안내만 하고 할당량은 쓰인 채로 남음. 배포 도메인에서 빈도를 본 뒤 플레이어 오류 시 자동 숨김 여부 결정. | — |
-| 11 | [watch.js](../src/web/static/watch.js), [jobs.py](../src/web/jobs.py) | **YouTube 정책 검토 필요(공개 배포 전).** 임베드 플레이어 위 자막 오버레이는 Required Minimum Functionality의 오버레이 금지 조항과, 처리 중 영상 다운로드는 API 약관 III.E.1.a와 충돌. YouTube 자동자막 숨김은 비공개 API `unloadModule`에 의존. | — |
+| 10 | [convert.py](../src/worker/convert.py), [watch.js](../src/web/static/watch.js) | **도메인 제한 영상을 요청 단계에서 못 거름.** yt-dlp `playable_in_embed`·oEmbed·임베드 클라이언트 모두 "허용"인데 플레이어에서 오류 150이 나는 영상이 있음(니켈로디언 클립). 현재는 시청 화면 안내만 하고 할당량은 쓰인 채로 남음. 배포 도메인에서 빈도를 본 뒤 플레이어 오류 시 자동 숨김 여부 결정. | — |
+| 11 | [watch.js](../src/web/static/watch.js), [convert.py](../src/worker/convert.py) | **YouTube 정책 검토 필요(공개 배포 전).** 임베드 플레이어 위 자막 오버레이는 Required Minimum Functionality의 오버레이 금지 조항과, 처리 중 영상 다운로드는 API 약관 III.E.1.a와 충돌. YouTube 자동자막 숨김은 비공개 API `unloadModule`에 의존. | — |
 
 ---
 
