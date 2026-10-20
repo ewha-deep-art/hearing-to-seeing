@@ -128,10 +128,12 @@ class Worker:
         path = lambda name: self.path(video_id, name)  # noqa: E731
         timings: dict[str, float] = {}
 
-        # The video only matters to the review, which waits for STT anyway:
-        # it downloads alongside, and STT starts as soon as the audio is in.
-        with ThreadPoolExecutor(max_workers=1) as fetch:
+        # The video only matters to the review, which waits for STT anyway, and
+        # the genre (a Gemini call) only to the catalogue: both run alongside,
+        # and STT starts as soon as the audio is in.
+        with ThreadPoolExecutor(max_workers=2) as fetch:
             video = fetch.submit(self._review_video, url, path(""))
+            genre = fetch.submit(catalog.genre_of, info)
             with self._timed_step(video_id, "downloading", timings):
                 audio_path = media.download_audio(url, path(""))
 
@@ -140,7 +142,7 @@ class Worker:
                 if probed["audio"] is None:
                     raise MediaToolError("오디오 트랙이 없는 파일입니다.")
                 media.extract_wav(audio_path, path(AUDIO))
-                self.library.update(video_id, duration=probed["duration"], genre=catalog.genre_of(info))
+                self.library.update(video_id, duration=probed["duration"])
 
             with self._timed_step(video_id, "transcribing", timings):
                 # The title lets the speaker step look up the work's characters
@@ -153,7 +155,7 @@ class Worker:
         with self._timed_step(video_id, "finishing", timings):
             # The ASS files are generated from the transcript when requested.
             data = transcript.to_dict()
-            self.library.update(video_id, transcript=data,
+            self.library.update(video_id, transcript=data, genre=genre.result(),
                                 search_text=catalog.search_text(title, channel, data))
 
         self.library.update(video_id, status=READY, error=None)
