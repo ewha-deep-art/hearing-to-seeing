@@ -9,7 +9,6 @@ converts them.
 from __future__ import annotations
 
 import re
-import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -67,8 +66,6 @@ class Library:
         self.store = store or SupabaseStore()
         self.max_duration = max_duration or MAX_DURATION
         self.daily_limit = daily_limit or DAILY_LIMIT
-        # Holds the duplicate check, the count and the insert together.
-        self._lock = threading.Lock()
 
     # --- records ---------------------------------------------------------
 
@@ -83,13 +80,13 @@ class Library:
         """Ready clips, newest first."""
         return self.store.list(genre=genre, query=query)
 
-    def next_queued(self) -> dict | None:
-        """The oldest clip waiting for the worker."""
-        queued = self.store.with_status((QUEUED,))
-        return queued[0] if queued else None
+    def claim(self) -> dict | None:
+        """The oldest queued clip, taken for the calling worker alone."""
+        return self.store.claim()
 
-    def in_progress(self) -> list[dict]:
-        return self.store.with_status(PENDING_STATES[1:])
+    def heartbeat(self, video_id: str) -> None:
+        """Marks a claimed clip as still being worked on."""
+        self.store.heartbeat(video_id)
 
     def update(self, video_id: str, **fields) -> None:
         self.store.update(video_id, **fields)
@@ -118,22 +115,12 @@ class Library:
         if not youtube_id:
             raise Rejected("YouTube 링크만 자막을 만들 수 있어요.")
 
-        with self._lock:
-            existing = self.store.find_by_youtube_id(youtube_id)
-            if existing and existing["status"] != ERROR:
-                return existing["id"], True
-            if self.store.count_submitted_since(self._day_start()) >= self.daily_limit:
-                raise QuotaExceeded(f"오늘 만들 수 있는 자막 {self.daily_limit}건을 모두 썼어요. 내일 다시 요청해 주세요.")
-
-            now = time.time()
-            fields = {"status": QUEUED, "error": None, "timings": {}, "submitted_at": now}
-            if existing:  # a failed clip goes round again under the same id
-                video_id = existing["id"]
-                self.store.update(video_id, **fields)
-            else:
-                video_id = uuid.uuid4().hex[:12]
-                self.store.insert({"id": video_id, "youtube_id": youtube_id, "created_at": now, **fields})
-        return video_id, False
+        result = self.store.submit(
+            uuid.uuid4().hex[:12], youtube_id, time.time(), self._day_start(), self.daily_limit,
+        )
+        if result["over_quota"]:
+            raise QuotaExceeded(f"오늘 만들 수 있는 자막 {self.daily_limit}건을 모두 썼어요. 내일 다시 요청해 주세요.")
+        return result["id"], result["existing"]
 
     def transcript(self, video_id: str):
         from hearing_to_seeing.schema import Transcript

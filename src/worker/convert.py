@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+import threading
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
@@ -29,6 +30,10 @@ LANGUAGE = "ko"
 # How often an idle worker looks for queued clips.
 POLL_SECONDS = 5.0
 
+# A working worker marks its clip this often; `claim_clip` fails a clip left
+# unmarked for two minutes.
+HEARTBEAT_SECONDS = 30.0
+
 # Files inside a clip's working directory.
 AUDIO = "audio.wav"
 
@@ -42,20 +47,10 @@ class Worker:
         check_id(video_id)
         return os.path.join(self.root, video_id, name)
 
-    def recover(self) -> None:
-        """Marks work a previous worker left unfinished as failed; queued clips
-        wait for the next one."""
-        for video in self.library.in_progress():
-            self.library.update(video["id"], status=ERROR, error="서버 재시작으로 처리가 중단되었습니다.")
-
     def work(self, interval: float = POLL_SECONDS) -> None:
         """Converts queued clips one at a time, oldest first, forever."""
-        recovered = False
         while True:
             try:
-                if not recovered:
-                    self.recover()
-                    recovered = True
                 busy = self.work_once()
             except Exception:  # e.g. Supabase unreachable: try again later
                 traceback.print_exc()
@@ -65,11 +60,32 @@ class Worker:
 
     def work_once(self) -> bool:
         """Converts the oldest queued clip; False when none is waiting."""
-        clip = self.library.next_queued()
+        clip = self.library.claim()
         if clip is None:
             return False
-        self._process(clip)
+        with self._heartbeat(clip["id"]):
+            self._process(clip)
         return True
+
+    @contextmanager
+    def _heartbeat(self, video_id: str):
+        """Marks the clip as worked on every HEARTBEAT_SECONDS until the block ends."""
+        done = threading.Event()
+
+        def beat():
+            while not done.wait(HEARTBEAT_SECONDS):
+                try:
+                    self.library.heartbeat(video_id)
+                except Exception:  # a missed beat only matters after two minutes
+                    traceback.print_exc()
+
+        thread = threading.Thread(target=beat, daemon=True)
+        thread.start()
+        try:
+            yield
+        finally:
+            done.set()
+            thread.join()
 
     def _process(self, clip: dict) -> None:
         video_id = clip["id"]

@@ -1,5 +1,6 @@
 import copy
 import os
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -25,9 +26,6 @@ class MemoryStore:
         row = self.rows.get(clip_id)
         return self._public(row) if row else None
 
-    def find_by_youtube_id(self, youtube_id):
-        return next((self._public(r) for r in self.rows.values() if r["youtube_id"] == youtube_id), None)
-
     def list(self, genre=None, query=None, limit=200):
         rows = [
             r for r in self.rows.values()
@@ -38,12 +36,37 @@ class MemoryStore:
         rows.sort(key=lambda r: r["created_at"], reverse=True)
         return [self._public(r) for r in rows[:limit]]
 
-    def with_status(self, statuses):
-        rows = sorted((r for r in self.rows.values() if r["status"] in statuses), key=lambda r: r["submitted_at"])
-        return [self._public(r) for r in rows]
+    def claim(self):
+        """`claim_clip` in supabase/migrations, on the dict."""
+        stale = time.time() - 120
+        for r in self.rows.values():
+            if r["status"] in jobs.PENDING_STATES[1:] and (r.get("heartbeat_at") or 0) < stale:
+                r.update(status=jobs.ERROR, error="서버 재시작으로 처리가 중단되었습니다.")
+        queued = sorted((r for r in self.rows.values() if r["status"] == jobs.QUEUED), key=lambda r: r["submitted_at"])
+        if not queued:
+            return None
+        queued[0].update(status=jobs.PENDING_STATES[1], heartbeat_at=time.time())
+        return {"id": queued[0]["id"], "youtube_id": queued[0]["youtube_id"]}
+
+    def heartbeat(self, clip_id):
+        self.rows[clip_id]["heartbeat_at"] = time.time()
 
     def count_submitted_since(self, epoch):
         return sum(r["submitted_at"] >= epoch for r in self.rows.values())
+
+    def submit(self, clip_id, youtube_id, now, day_start, limit):
+        """`submit_clip` in supabase/migrations, on the dict."""
+        found = next((r for r in self.rows.values() if r["youtube_id"] == youtube_id), None)
+        if found and found["status"] != jobs.ERROR:
+            return {"id": found["id"], "existing": True, "over_quota": False}
+        if self.count_submitted_since(day_start) >= limit:
+            return {"id": None, "existing": False, "over_quota": True}
+        if found:  # a failed clip goes round again under the same id
+            clip_id = found["id"]
+        else:
+            self.insert({"id": clip_id, "youtube_id": youtube_id, "created_at": now})
+        self.update(clip_id, status=jobs.QUEUED, error=None, timings={}, submitted_at=now)
+        return {"id": clip_id, "existing": False, "over_quota": False}
 
     def insert(self, fields):
         self.rows[fields["id"]] = {"genre": "기타", "transcript": None, "search_text": None, **copy.deepcopy(fields)}
@@ -303,20 +326,34 @@ def test_an_empty_queue_has_no_work(worker):
 def test_the_worker_outlasts_an_unreachable_store(library, worker, monkeypatch):
     calls = []
 
-    def flaky(statuses):
-        calls.append(statuses)
+    def claim():
+        calls.append("claim")
         if len(calls) == 1:
-            raise ConnectionError("no address")  # at start-up, before recover() gets through
-        if len(calls) == 4:
+            raise ConnectionError("no address")
+        if len(calls) == 3:
             raise KeyboardInterrupt  # stops the loop
-        return []
+        return None
 
-    monkeypatch.setattr(library.store, "with_status", flaky)
+    monkeypatch.setattr(library.store, "claim", claim)
     monkeypatch.setattr(convert.time, "sleep", lambda _: None)
     with pytest.raises(KeyboardInterrupt):
         worker.work()
-    assert calls[1] == jobs.PENDING_STATES[1:]  # recover() tried again
-    assert calls[2] == (jobs.QUEUED,)
+    assert len(calls) == 3  # it kept polling after the store failed
+
+
+def test_two_workers_never_take_the_same_clip(library, tmp_path):
+    library.submit("https://youtu.be/abcdefghijk")
+    assert library.claim() is not None
+    assert convert.Worker(library, str(tmp_path / "other")).work_once() is False
+
+
+def test_a_claim_leaves_a_live_workers_clip_alone():
+    store = MemoryStore()
+    store.insert({"id": "0123456789ab", "youtube_id": "x", "status": "transcribing",
+                  "created_at": 0, "submitted_at": 0, "heartbeat_at": time.time()})
+    library = jobs.Library(store=store)
+    assert library.claim() is None
+    assert library.get("0123456789ab")["status"] == "transcribing"
 
 
 def test_only_youtube_links_are_taken(library, fake_media):
@@ -341,14 +378,13 @@ def test_source_without_audio_fails(library, worker, fake_media, monkeypatch):
     assert library.get(_submit(worker))["status"] == jobs.ERROR
 
 
-def test_recover_marks_unfinished_jobs_failed():
+def test_a_claim_fails_clips_a_stopped_worker_left():
     store = MemoryStore()
     store.insert({"id": "0123456789ab", "youtube_id": "x", "status": "transcribing", "created_at": 0, "submitted_at": 0})
     store.insert({"id": "ba9876543210", "youtube_id": "y", "status": "queued", "created_at": 0, "submitted_at": 0})
     restarted = jobs.Library(store=store)
-    convert.Worker(restarted).recover()
+    assert restarted.claim()["id"] == "ba9876543210"  # the worker takes it next
     assert restarted.get("0123456789ab")["status"] == jobs.ERROR
-    assert restarted.get("ba9876543210")["status"] == "queued"  # the worker takes it next
 
 
 def test_path_rejects_ids_outside_the_library(worker):
