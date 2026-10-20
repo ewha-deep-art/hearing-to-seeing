@@ -4,35 +4,27 @@
 
 ## 설치 및 실행
 
-이 프로젝트는 패키지 관리에 [`uv`](https://docs.astral.sh/uv/)를 사용합니다 (Python 3.12).
-
-그 외에 **ffmpeg**와, YouTube 링크를 받기 위한 **JS 런타임**(Deno, 또는 Node.js 20+)이 필요합니다.
+모두 Docker로 띄웁니다. [`.env.example`](.env.example)을 `.env`로 복사해 값을 채운 뒤, 저장소 루트에서 실행합니다.
 
 ```bash
-# ffmpeg (ffprobe 포함)
-sudo apt install ffmpeg
+# 이미지 빌드 (ffmpeg, Node.js, 변환 파이프라인 포함)
+docker compose build
 
-# Deno (Node.js 20+가 이미 있으면 생략)
-curl -fsSL https://deno.land/install.sh | sh
-```
-
-```bash
-# 의존성 설치 (변환 파이프라인 포함; 웹만 돌릴 땐 `uv sync`)
-uv sync --all-extras
-
-# CLI — WAV를 받아 같은 폴더에 sample.ass 생성
-# (WAV 만들기: ffmpeg -i data/input/sample.mp4 -ac 1 -ar 16000 data/input/sample.wav)
-uv run hearing-to-seeing data/input/sample.wav
+# CLI — WAV를 받아 같은 폴더에 sample.ass 생성 (./data가 컨테이너에 연결됨)
+# (WAV 만들기: docker compose run --rm --entrypoint ffmpeg cli -i data/input/sample.mp4 -ac 1 -ar 16000 data/input/sample.wav)
+docker compose run --rm cli data/input/sample.wav
 
 # CLI — 옵션 전부: 출력 경로, 중간 JSON, 언어, 화자 수(아는 경우), 원본 영상(GEMINI_API_KEY 필요, 화면을 보고 화자 확인)
-uv run hearing-to-seeing data/input/sample.wav -o data/output/sample.ass --json data/output/sample.json \
+docker compose run --rm cli data/input/sample.wav -o data/output/sample.ass --json data/output/sample.json \
     --language ko --speakers 6 --video data/input/sample.mp4
 
-# 웹 — http://127.0.0.1:8000 (YouTube 링크로 자막을 만들고, 만들어 둔 영상을 검색·장르로 찾아 YouTube 플레이어에서 자막과 함께 재생)
-uv run hearing-to-seeing-web --host 127.0.0.1 --port 8000
+# 웹 — http://127.0.0.1:8080 (YouTube 링크로 자막을 만들고, 만들어 둔 영상을 검색·장르로 찾아 YouTube 플레이어에서 자막과 함께 재생)
+docker compose --profile web up web
 # 워커 — 웹이 큐에 넣은 영상을 하나씩 변환 (웹과 함께 실행)
-uv run hearing-to-seeing-worker
+docker compose up -d worker
 ```
+
+테스트는 [`uv`](https://docs.astral.sh/uv/)로 돌립니다 (Python 3.12): `uv sync --all-extras && uv run pytest`.
 
 ## 배포
 
@@ -69,7 +61,6 @@ uv run hearing-to-seeing-worker
 | `WHISPERX_API_KEY` | ✅ | 원격 WhisperX 서버(STT·정렬·화자 분리) API 키 |
 | `WHISPERX_API_URL` | ✅ | 원격 WhisperX 서버 주소 |
 | `GEMINI_API_KEY` | | 설정하면 워커가 영상 제목으로 작품의 등장인물을 찾아 화자별 색상을 정하고, 원본 영상을 보며 발화마다 화자를 확인하고, 장르를 분류함 ([knowledge/README.md](src/hearing_to_seeing/knowledge/README.md)). 없으면 색상환에 고르게 배정. [발급](https://aistudio.google.com/apikey) (무료 티어로 충분) |
-| `H2S_FFMPEG` / `H2S_FFPROBE` | | `PATH`에 없는 ffmpeg / ffprobe 경로. `H2S_FFPROBE`는 생략하면 `H2S_FFMPEG`와 같은 폴더에서 찾음 |
 | `SUPABASE_URL` / `SUPABASE_SECRET_KEY` | 웹 ✅ | 웹 카탈로그를 저장할 Supabase 프로젝트 (`clips` 테이블). 키는 서버 전용 secret key |
 | `ADMIN_TOKEN` | | 웹에서 영상을 삭제할 때 묻는 관리자 토큰. 없으면 아무도 삭제할 수 없음 |
 

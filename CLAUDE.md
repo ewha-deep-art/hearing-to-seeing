@@ -55,13 +55,13 @@ The **intermediate JSON schema** (`schema.py`) is the central data contract: it 
 - Speaker colors: with `GEMINI_API_KEY` set, the worker looks up the work's characters (title → Wikipedia/Namu wiki → LLM cast sheet → per-character hue) in parallel with STT, then infers which speaker is which character. Without a key or on failure, hues are spread evenly. See [src/hearing_to_seeing/knowledge/README.md](src/hearing_to_seeing/knowledge/README.md), which covers every LLM call.
 
 ### Directory layout
-- `src/hearing_to_seeing/` — core pipeline package + CLI entry point (`cli.py`)
+- `src/hearing_to_seeing/` — core pipeline package + CLI entry point (`cli.py`, the compose `cli` service)
 - `src/hearing_to_seeing/design/` — speaker color (profile → ASS), sync (fill/wave), volume (size), and layout (font/spacing) modules (+ bundled `fonts/`); `README.md` there documents the current design decisions
 - `src/hearing_to_seeing/knowledge/` — what the pipeline's speaker step and the review call out to: `llm.py` (Gemini `ask()`), `retrieve.py` (Wikipedia/Namu wiki), `prompts.py` (the LLM prompts + JSON schemas); `README.md` there documents every LLM call (speaker-color RAG, video review)
 - `src/hearing_to_seeing/converter/` — output format converters (ASS, future VTT)
 - `src/hearing_to_seeing/render.py` — preview renderer that burns the generated ASS onto the source media (ffmpeg, optional; not the pipeline's real output)
-- `src/web/` — web catalogue (FastAPI, `hearing-to-seeing-web`): a YouTube link is queued (`jobs.py`; 15 min / 20 a day, one row per YouTube video) stored in the Supabase `clips` table (`db.py`); clips are browsed by search (title, characters, dialogue) and genre (`catalog.py`) and played in the YouTube IFrame player with the ASS drawn over it by JASSUB (`static/watch.js`); deployed on Vercel through `index.py` with the base dependencies only
-- `src/worker/` — the worker (`hearing-to-seeing-worker`, `convert.py`): takes queued clips one at a time and runs the pipeline; runs in Docker (`Dockerfile`, `compose.yaml`) with the `pipeline` extra
+- `src/web/` — web catalogue (FastAPI, the compose `web` service): a YouTube link is queued (`jobs.py`; 15 min / 20 a day, one row per YouTube video) stored in the Supabase `clips` table (`db.py`); clips are browsed by search (title, characters, dialogue) and genre (`catalog.py`) and played in the YouTube IFrame player with the ASS drawn over it by JASSUB (`static/watch.js`); deployed on Vercel through `index.py` with the base dependencies only
+- `src/worker/` — the worker (`convert.py`, the compose `worker` service): takes queued clips one at a time and runs the pipeline; runs in Docker (`Dockerfile`, `compose.yaml`, which also run the CLI and the local web app) with the `pipeline` extra
 - `data/input/` / `data/output/` — local test media files (not committed)
 - `tests/` — test suite
 - `scripts/stt_eval.py` — STT measurement on the test clips (references, passes, video review, scores)
