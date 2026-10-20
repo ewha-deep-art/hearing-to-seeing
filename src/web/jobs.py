@@ -1,185 +1,132 @@
-"""The video library on disk, and the background work that fills it.
+"""The clip catalogue and its queue.
 
-Each video lives in its own directory under the library root; `meta.json`
-there is the single record of its state, so the library survives a restart
-and listing it is a directory scan.
+Each clip is a row in the Supabase `clips` table, one per YouTube video; the
+player streams from YouTube itself. The web server only queues clips; the
+worker (`worker.convert`) takes them in turn, checks them with YouTube and
+converts them.
 """
 
-import json
-import os
+from __future__ import annotations
+
 import re
-import shutil
-import threading
 import time
 import uuid
-from concurrent.futures import Executor, ThreadPoolExecutor
-from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 
-from hearing_to_seeing.converter.ass import generate_plain_ass
-from hearing_to_seeing.render import MediaToolError
-from hearing_to_seeing import media
-
-DEFAULT_LIBRARY_DIR = os.path.join("data", "output", "library")
+from web import catalog
+from web.db import SupabaseStore
 
 ID_RE = re.compile(r"^[0-9a-f]{12}$")
 
-# The only language the web app transcribes; the CLI still takes any.
-LANGUAGE = "ko"
 
-# Files inside a video's directory.
-AUDIO = "audio.wav"
-PLAYBACK = "media.mp4"
-THUMBNAIL = "thumb.jpg"
-ASS = "subtitles.ass"
-PLAIN_ASS = "subtitles.plain.ass"
-TRANSCRIPT = "transcript.json"
-META = "meta.json"
+def check_id(video_id: str) -> None:
+    """KeyError for a malformed id, before it reaches a query or a path."""
+    if not ID_RE.match(video_id):
+        raise KeyError(video_id)
 
-# In order; the page shows the current one while a video is processing.
-PENDING_STATES = ("queued", "downloading", "preparing", "transcribing", "finishing")
+
+# Longest clip accepted, and clips converted per day across the service: each
+# conversion spends a video review (Gemini, 20 a day per model) and roughly its
+# own length on the STT server.
+MAX_DURATION = 900
+DAILY_LIMIT = 20
+# The day the limit counts starts at midnight here.
+TIMEZONE = timezone(timedelta(hours=9))
+
+# In order; the page shows the current one while a clip is processing.
+QUEUED = "queued"
+PENDING_STATES = (QUEUED, "downloading", "preparing", "transcribing", "finishing")
 READY = "ready"
 ERROR = "error"
 
+# What the viewer reads when a conversion fails for any reason other than a
+# rejected link; the cause goes to the worker's log.
+FAILED = "자막을 만들지 못했어요. 잠시 뒤 다시 요청해 주세요."
+
+
+class Rejected(ValueError):
+    """A link the catalogue does not take; the message is shown to the user."""
+
+
+class QuotaExceeded(Exception):
+    """Today's conversions are used up."""
+
+
+def youtube_url(youtube_id: str) -> str:
+    return f"https://www.youtube.com/watch?v={youtube_id}"
+
 
 class Library:
-    def __init__(self, root: str | None = None, executor: Executor | None = None):
-        self.root = os.path.abspath(
-            root or os.environ.get("H2S_LIBRARY_DIR") or DEFAULT_LIBRARY_DIR
-        )
-        os.makedirs(self.root, exist_ok=True)
-        # One at a time: STT runs on a remote server at roughly real-time
-        # speed, so parallel jobs would only compete for it.
-        self.executor = executor or ThreadPoolExecutor(max_workers=1)
-        self._lock = threading.Lock()
+    def __init__(
+        self,
+        store: SupabaseStore | None = None,
+        max_duration: float | None = None,
+        daily_limit: int | None = None,
+    ):
+        self.store = store or SupabaseStore()
+        self.max_duration = max_duration or MAX_DURATION
+        self.daily_limit = daily_limit or DAILY_LIMIT
 
     # --- records ---------------------------------------------------------
 
-    def path(self, video_id: str, name: str = "") -> str:
-        if not ID_RE.match(video_id):
-            raise KeyError(video_id)
-        return os.path.join(self.root, video_id, name)
-
     def get(self, video_id: str) -> dict:
-        try:
-            with open(self.path(video_id, META), encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            raise KeyError(video_id) from None
+        check_id(video_id)
+        meta = self.store.get(video_id)
+        if meta is None:
+            raise KeyError(video_id)
+        return meta
 
-    def list(self) -> list[dict]:
-        videos = []
-        for name in os.listdir(self.root):
-            if ID_RE.match(name):
-                try:
-                    videos.append(self.get(name))
-                except (KeyError, json.JSONDecodeError):
-                    continue
-        return sorted(videos, key=lambda v: v["created_at"], reverse=True)
+    def list(self, genre: str | None = None, query: str | None = None) -> list[dict]:
+        """Ready clips, newest first."""
+        return self.store.list(genre=genre, query=query)
 
-    def update(self, video_id: str, **fields) -> dict:
-        with self._lock:
-            meta = self.get(video_id)
-            meta.update(fields)
-            tmp = self.path(video_id, META + ".tmp")
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(meta, f, ensure_ascii=False, indent=2)
-            os.replace(tmp, self.path(video_id, META))
-            return meta
+    def claim(self) -> dict | None:
+        """The oldest queued clip, taken for the calling worker alone."""
+        return self.store.claim()
+
+    def heartbeat(self, video_id: str) -> None:
+        """Marks a claimed clip as still being worked on."""
+        self.store.heartbeat(video_id)
+
+    def update(self, video_id: str, **fields) -> None:
+        self.store.update(video_id, **fields)
 
     def delete(self, video_id: str) -> None:
         self.get(video_id)
-        shutil.rmtree(self.path(video_id))
+        self.store.delete(video_id)
 
-    def _create(self, **fields) -> str:
-        video_id = uuid.uuid4().hex[:12]
-        os.makedirs(self.path(video_id))
-        meta = {
-            "id": video_id,
-            "title": None,
-            "source": "youtube",
-            "source_url": None,
-            "language": LANGUAGE,
-            "status": "queued",
-            "error": None,
-            "duration": None,
-            "created_at": time.time(),
-            "timings": {},
-            **fields,
+    def quota(self) -> dict:
+        return {
+            "used": self.store.count_submitted_since(self._day_start()),
+            "limit": self.daily_limit,
+            "max_duration": self.max_duration,
         }
-        with open(self.path(video_id, META), "w", encoding="utf-8") as f:
-            json.dump(meta, f, ensure_ascii=False, indent=2)
-        return video_id
 
-    def recover(self) -> None:
-        """Marks work a previous server process left unfinished as failed."""
-        for video in self.list():
-            if video["status"] in PENDING_STATES:
-                self.update(video["id"], status=ERROR, error="서버 재시작으로 처리가 중단되었습니다.")
+    def _day_start(self) -> float:
+        now = datetime.now(TIMEZONE)
+        return now.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
 
     # --- submission ------------------------------------------------------
 
-    def add_url(self, url: str, title: str | None) -> str:
-        video_id = self._create(title=title, source_url=url)
-        self.executor.submit(self._process, video_id)
-        return video_id
+    def submit(self, url: str) -> tuple[str, bool]:
+        """Queues `url` for the worker; returns its clip id and whether it was
+        already in the catalogue (which spends nothing from the daily limit)."""
+        youtube_id = catalog.youtube_id(url)
+        if not youtube_id:
+            raise Rejected("YouTube 링크만 자막을 만들 수 있어요.")
 
-    # --- processing ------------------------------------------------------
-
-    def _process(self, video_id: str) -> None:
-        try:
-            self._run_steps(video_id)
-        except Exception as exc:  # surfaced on the page, not lost in a thread
-            self.update(video_id, status=ERROR, error=str(exc) or type(exc).__name__)
-
-    @contextmanager
-    def _timed_step(self, video_id: str, name: str, timings: dict[str, float]):
-        """Marks `status` as `name` and records its duration into `timings`."""
-        self.update(video_id, status=name)
-        start = time.perf_counter()
-        try:
-            yield
-        finally:
-            timings[name] = time.perf_counter() - start
-            self.update(video_id, timings=dict(timings))
-
-    def _run_steps(self, video_id: str) -> None:
-        from hearing_to_seeing import pipeline
-
-        meta = self.get(video_id)
-        path = lambda name: self.path(video_id, name)  # noqa: E731
-        timings: dict[str, float] = {}
-
-        with self._timed_step(video_id, "downloading", timings):
-            source_path, fetched_title = media.download_youtube(meta["source_url"], path(""))
-            if not meta["title"]:
-                self.update(video_id, title=fetched_title or meta["source_url"])
-
-        with self._timed_step(video_id, "preparing", timings):
-            info = media.probe(source_path)
-            if info["audio"] is None:
-                raise MediaToolError("오디오 트랙이 없는 파일입니다.")
-            self.update(video_id, duration=info["duration"])
-            media.extract_wav(source_path, path(AUDIO))
-            media.prepare_playback(source_path, path(PLAYBACK))
-            media.extract_thumbnail(path(PLAYBACK), path(THUMBNAIL), info["duration"])
-
-        with self._timed_step(video_id, "transcribing", timings):
-            # The title lets the speaker step look up the work's characters
-            # (when GEMINI_API_KEY is set) — alongside STT, inside pipeline.run;
-            # the source video lets the review see who is speaking.
-            transcript = pipeline.run(
-                path(AUDIO), path(ASS), meta["language"], path(TRANSCRIPT),
-                title=self.get(video_id)["title"], media_path=source_path,
-            )
-
-        with self._timed_step(video_id, "finishing", timings):
-            with open(path(PLAIN_ASS), "w", encoding="utf-8") as f:
-                f.write(generate_plain_ass(transcript))
-
-        self.update(video_id, status=READY, error=None)
+        result = self.store.submit(
+            uuid.uuid4().hex[:12], youtube_id, time.time(), self._day_start(), self.daily_limit,
+        )
+        if result["over_quota"]:
+            raise QuotaExceeded(f"오늘 만들 수 있는 자막 {self.daily_limit}건을 모두 썼어요. 내일 다시 요청해 주세요.")
+        return result["id"], result["existing"]
 
     def transcript(self, video_id: str):
         from hearing_to_seeing.schema import Transcript
 
-        with open(self.path(video_id, TRANSCRIPT), encoding="utf-8") as f:
-            return Transcript.from_dict(json.load(f))
+        self.get(video_id)
+        data = self.store.get_transcript(video_id)
+        if data is None:
+            raise KeyError(video_id)
+        return Transcript.from_dict(data)

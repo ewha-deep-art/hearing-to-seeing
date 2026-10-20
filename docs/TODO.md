@@ -9,7 +9,7 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 1 | [pipeline.py](../src/hearing_to_seeing/pipeline.py) | **RAG 기반 색상 배정 구현됨 — 값 검증 필요.** 영상 제목 → 작품명 → 위키 검색 → 인물표·인물별 색 → 대사 기반 화자→인물 추론 → OKLCH 색상환 배정 (상세: [knowledge/README.md](../src/hearing_to_seeing/knowledge/README.md)). 웹 작업에서 `GEMINI_API_KEY`가 있으면 STT와 병렬로 자동 실행되고, 없거나 실패하면 균등 배치로 폴백. 남은 결정: (1) `MIN_CONFIDENCE`(0.7)·`LIGHTNESS`(0.75)·채도 비율은 경험값 — 실제 영상 위 가독성·매핑 정확도 측정 후 조정. (2) 확인 UI(인물명·색상 수정, 화자 병합)와 수동 매핑 미구현. (3) Gemini 무료 티어가 수요 폭주(503)일 때 SDK 재시도로 수 분이 걸릴 수 있음 — 영상 검토·화자 추론은 STT 이후 직렬 단계라 작업 시간이 그만큼 늘어남. | 기획서 §다음 논의 필요 사항 |
+| 1 | [pipeline.py](../src/hearing_to_seeing/pipeline.py) | **색상 배정 값 검증 필요** ([knowledge/README.md](../src/hearing_to_seeing/knowledge/README.md)). (1) `MIN_CONFIDENCE`(0.7)·`LIGHTNESS`(0.75)·채도 비율은 경험값 — 실제 영상 위 가독성·매핑 정확도 측정 후 조정. (2) 확인 UI(인물명·색상 수정, 화자 병합)와 수동 매핑 미구현. (3) Gemini 무료 티어가 수요 폭주(503)일 때 SDK 재시도로 수 분이 걸릴 수 있음 — 영상 검토는 첫 STT 패스 뒤 나머지 패스와 겹쳐 돌지만, 그보다 길어지거나 대사 기반 화자 추론(⑤)으로 넘어가면 작업 시간이 그만큼 늘어남. | 기획서 §다음 논의 필요 사항 |
 
 ---
 
@@ -34,15 +34,10 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 5 | [stt.py](../src/hearing_to_seeing/stt.py) | **디코딩 옵션 일부만 동작.** 다중 패스 병합(세 모델 5패스)·후처리로 CER 12.1% → 6.1%(4개 평균, 영상 검토 포함), 클립 1은 사람 검수 참조 대조 2.1%·화자 99%, 단어 시작 95%가 ±0.2초 안 ([STT_TUNING.md](STT_TUNING.md)). 남은 것: (1) 서버 수정 후 `initial_prompt`·`beam_size`는 동작하지만 `temperatures`·`hotwords`·`repetition_penalty`는 적용되지 않음(WhisperX 배치 디코딩 한계로 추정) — 반복 루프를 디코더에서 막으려면 서버에 temperature fallback 경로가 필요. 인물표 `initial_prompt`는 4개 클립으로 재측정 후 채택 여부 결정. (2) 화자 분리: 서버만으로는 클립 1에서 91%(`num_speakers=6`, pyannote 3.1 한계). Gemini 영상 검토([review.py](../src/hearing_to_seeing/review.py))로 99%가 되지만 키·한도(모델당 하루 20회)가 있을 때만 — 한도가 차면 91%로 돌아감. 유료 티어 전환이나 서버 `community-1`이 대안. (3) 사람이 검수한 참조는 클립 1(`human`)뿐. 검토 모델 `gemini-3.5-flash`가 클립 2–4에서 단어를 많이(10·43·16곳) 고치는데, 이게 맞는지는 Gemini 참조로만 쟀음 → 클립 2–4 중 하나를 사람이 검수해 확인 필요. 검토는 temperature 0에서도 결과가 매번 조금씩 다름. | 기획서 §10 (STT·화자 분리 정확도) |
-
----
-
-## 웹 화면
-
-| # | 파일 | 설명 | 기획서 참조 |
-|---|------|------|------------|
-| 6 | [src/web/](../src/web/) | **웹 UI 구현 완료.** 브라우저에서 입력·결과 확인이 가능한 웹 화면 구현됨 (유튜브 링크 입력 포함 — `yt-dlp`로 영상까지 함께 받아 오므로 별도 다운로드 불필요). 후속 개선 사항은 아래 TODO #10 참조. | — |
+| 5 | [stt.py](../src/hearing_to_seeing/stt.py) | **디코딩 옵션 일부만 동작** ([evaluation/README.md](../evaluation/README.md) 4.2절). (1) `temperatures`·`hotwords`·`repetition_penalty`가 적용되지 않음(WhisperX 배치 디코딩 한계로 추정) — 반복 루프를 디코더에서 막으려면 서버에 temperature fallback 경로가 필요. 인물표 `initial_prompt`는 재측정 후 채택 여부 결정. (2) 화자 분리: 리뷰 없이(목소리 화자 분리 `voice.diarize` + 목소리 병합) 평균 화자 정확도 0.804, Gemini 영상 검토([review.py](../src/hearing_to_seeing/review.py))까지 0.92 안팎(4.3절). 검토는 키·한도(모델당 하루 20회)가 있을 때만 돌아서, 한도가 차면 0.804로 돌아감. 유료 티어 전환이 대안. | 기획서 §10 (STT·화자 분리 정확도) |
+| 9 | [review.py](../src/hearing_to_seeing/review.py), [voice.py](../src/hearing_to_seeing/voice.py) | **화자 정확도 남은 오류** ([evaluation/README.md](../evaluation/README.md) 4.2절, 평균 0.932). (1) macro P/R/F1 0.9는 단어 1~9개뿐인 단역까지 맞혀야 도달한다. 1초 미만 발화는 목소리로 확인할 수 없어 리뷰의 판단에 달려 있다. (2) 마녀 정확도 0.886. 남은 오류의 절반은 gold와 리뷰·목소리가 엇갈리는 한 발화다. (3) 리뷰는 temperature 0에서도 실행마다 조금씩 달라진다. 위키 문서가 바뀌면 캐스트와 리뷰 프롬프트도 달라진다. | 기획서 §10 (STT·화자 분리 정확도) |
+| 12 | [stt.py](../src/hearing_to_seeing/stt.py) | **gold 이외 영상 검증 필요.** 현재 측정은 gold 클립에만 근거함. 다른 영상에서도 STT·화자 정확도를 확인해야 함. | 기획서 §10 (STT·화자 분리 정확도) |
+| 13 | [stt.py](../src/hearing_to_seeing/stt.py) | **긴 공백 뒤 대사 타이밍 어긋남.** 공백이 큰 시점에서 대사 시작 시각이 실제와 어긋남(예: "다친 다리로 심부름에 나선 김유정, 그 모습이 마음에 걸린 박진영 \| tvN 261018 방송"의 "여기는 왜 오셨어요?"). | — |
 
 ---
 
@@ -58,7 +53,9 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 8 | [src/web/](../src/web/) | **웹 UI 실사용 테스트 진행 중.** 기본 구현(업로드 → 파이프라인 실행 → 결과 확인/재생 흐름)은 완료됨. 실사용 테스트를 진행하면서 문구, 레이아웃, 디자인 등 세부 사항에 대한 수정 필요성이 확인됨 — 구체적인 개선 항목은 테스트 피드백을 취합한 후 정리 예정. | — |
+| 8 | [src/web/](../src/web/) | **웹 UI 실사용 테스트 진행 중.** 문구, 레이아웃, 디자인 등 세부 수정 필요 — 구체적인 개선 항목은 테스트 피드백을 취합한 후 정리 예정. | — |
+| 10 | [convert.py](../src/worker/convert.py), [watch.js](../src/web/static/watch.js) | **도메인 제한 영상을 요청 단계에서 못 거름.** yt-dlp `playable_in_embed`·oEmbed·임베드 클라이언트 모두 "허용"인데 플레이어에서 오류 150이 나는 영상이 있음(니켈로디언 클립). 현재는 시청 화면 안내만 하고 할당량은 쓰인 채로 남음. 배포 도메인에서 빈도를 본 뒤 플레이어 오류 시 자동 숨김 여부 결정. | — |
+| 11 | [watch.js](../src/web/static/watch.js), [convert.py](../src/worker/convert.py) | **YouTube 정책 검토 필요(공개 배포 전).** 임베드 플레이어 위 자막 오버레이는 Required Minimum Functionality의 오버레이 금지 조항과, 처리 중 영상 다운로드는 API 약관 III.E.1.a와 충돌. YouTube 자동자막 숨김은 비공개 API `unloadModule`에 의존. | — |
 
 ---
 
@@ -66,7 +63,7 @@
 
 코드 문제가 아닌 구현에 영향을 미치는 미결 제품 결정 사항:
 
-- **색상 배정 방식** — RAG 기반으로 구현됨. 임계값·밝기·채도 등 세부 값과 확인 UI 여부 확정 필요 (TODO #1 선행 조건).
+- **색상 배정 방식** — 임계값·밝기·채도 등 세부 값과 확인 UI 여부 확정 필요 (TODO #1 선행 조건).
 - **글자 크기·음량 분류 기준** — 접근성 표준 자막 크기 지침 조사 후 `BASE_FONT_SIZE`와 loud/whisper 임계값 확정 (TODO #2 선행 조건).
 - **대사 라인 분할 기준** — `MAX_GAP`/`MAX_WIDTH`/`MAX_DURATION`/`ROW_WIDTH` 등 분할 기준값과 분할 방식 자체를 실사용 테스트를 통해 확정 (TODO #7 선행 조건).
 - **웹 화면 문구·디자인** — 실사용 테스트 피드백을 바탕으로 문구, 레이아웃, 디자인 확정 (TODO #8 선행 조건).

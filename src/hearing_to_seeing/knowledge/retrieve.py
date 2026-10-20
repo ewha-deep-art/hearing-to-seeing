@@ -14,6 +14,7 @@ nothing about the characters, so each is cut to its overview, plot and cast
 sections under a character budget. Nothing here calls a model.
 """
 
+import difflib
 import html
 import json
 import re
@@ -30,6 +31,9 @@ TIMEOUT = 20.0
 
 WIKIPEDIA_API = "https://ko.wikipedia.org/w/api.php"
 NAMU_PAGE = "https://namu.wiki/w/"
+NAMU_SEARCH = "https://namu.wiki/Search?q="
+# Namu files a long cast list on its own page, "<work>/등장인물".
+NAMU_CAST_PAGE = "/등장인물"
 
 # How much of each document the model sees.
 NAMU_BUDGET = 24_000
@@ -47,6 +51,19 @@ _WIKI_HEADING = re.compile(r"^={2,4}\s*(.+?)\s*={2,4}\s*$", re.M)
 # table of contents repeats the titles without "[편집]", so it does not match.
 _NAMU_HEADING = re.compile(r"(?<!\S)\d+(?:\.\d+)*\.\s+([^\[\]\n]{1,60}?)\s*\[편집\]")
 _NAMU_MISSING = ("해당 문서를 찾을 수 없습니다", "문서가 존재하지 않습니다")
+_NAMU_LINK = re.compile(r'href="/w/([^"#?]+)"')
+# A search hit this close to the asked title is the work under its real
+# spelling (the title step wrote 슬기로운 for 슬기로울).
+SEARCH_MATCH = 0.85
+# Words of the clip title that can tell same-named works apart: the cast
+# ("박진영, 노정의") picks 마녀(드라마) over the 마녀 disambiguation page.
+_HINT_WORD = re.compile(r"[가-힣]{2,4}")
+# A clip title in pieces ("터널 – 극적인 첫 통화 (2/10) | 하정우 오달수"), and
+# what to trim off a piece ("(2/10)", "드라마 마녀").
+_TITLE_PARTS = re.compile(r"\s*[|｜–—\[\]#]\s*|\s+-\s+")
+_TITLE_NOISE = re.compile(r"\(\d+/\d+\)|^(?:드라마|영화|애니메이션)\s+")
+# A page with one of these headings is a work, not an actor or a channel.
+_WORK_HEADING = re.compile(r"줄거리|시놉시스|등장\s*인물")
 _TAG = re.compile(r"<[^>]+>")
 _SCRIPT = re.compile(r"<(script|style|noscript)[^>]*>.*?</\1>", re.S | re.I)
 
@@ -115,22 +132,84 @@ def wikipedia_document(title: str) -> str | None:
     return _select_sections(_split_sections(text, _WIKI_HEADING, lead=True), WIKIPEDIA_BUDGET)
 
 
-def namu_document(title: str) -> str | None:
+def _namu_text(name: str) -> str | None:
+    """A Namu page as text, or None when it is missing or carries no sections."""
+    body = fetch_url(NAMU_PAGE + urllib.parse.quote(name), BROWSER_AGENT)
+    if not body or any(marker in body for marker in _NAMU_MISSING):
+        return None
+    text = _html_to_text(body)
+    return text if len(text) >= 500 and _NAMU_HEADING.search(text) else None
+
+
+def namu_search(title: str) -> list[str]:
+    """Pages Namu's search finds for `title` with a name close to it, closest first."""
+    body = fetch_url(NAMU_SEARCH + urllib.parse.quote(title), BROWSER_AGENT)
+    names = dict.fromkeys(urllib.parse.unquote(n) for n in _NAMU_LINK.findall(body or ""))
+    wanted = _fold(title)
+    scored = [
+        (difflib.SequenceMatcher(None, _fold(_strip_qualifier(n)), wanted).ratio(), n)
+        for n in names if ":" not in n and "/" not in n
+    ]
+    return [n for score, n in sorted(scored, key=lambda sn: -sn[0]) if score >= SEARCH_MATCH]
+
+
+def _hint_hits(text: str, hint: str | None, title: str) -> int:
+    """How many of the clip title's words (beyond the work's own) `text` mentions."""
+    words = set(_HINT_WORD.findall(hint or "")) - set(_HINT_WORD.findall(title))
+    return sum(word in text for word in words)
+
+
+def namu_document(title: str, hint: str | None = None) -> str | None:
     """Namu wiki's article for `title`, cut to overview, plot and characters.
 
-    Also tries "(영화)"/"(드라마)" qualifiers, since Namu files the work under
-    whichever it needed to disambiguate.
+    Tries qualifier variants, then Namu's search; `hint` (the clip title) picks
+    among variants. A "/등장인물" page replaces the character section.
     """
     bare = _strip_qualifier(title)
+    pages: list[tuple[str, str]] = []
     for name in dict.fromkeys([title, f"{bare}(영화)", f"{bare}(드라마)", bare]):
-        body = fetch_url(NAMU_PAGE + urllib.parse.quote(name), BROWSER_AGENT)
-        if not body or any(marker in body for marker in _NAMU_MISSING):
-            continue
-        text = _html_to_text(body)
-        sections = _split_sections(text, _NAMU_HEADING) if len(text) >= 500 else []
-        if sections:
-            return _select_sections(sections, NAMU_BUDGET)
-    return None
+        text = _namu_text(name)
+        if text:
+            pages.append((name, text))
+            if not hint:
+                break
+    if not pages:
+        for found in namu_search(title):
+            text = _namu_text(found)
+            if text:
+                pages.append((found, text))
+                break
+    if not pages:
+        return None
+    name, text = max(pages, key=lambda page: _hint_hits(page[1], hint, title))
+    sections = _split_sections(text, _NAMU_HEADING)
+    cast = _namu_text(name + NAMU_CAST_PAGE)
+    if cast:
+        sections = [s for s in sections if not CHARACTER_HEADINGS.search(s[0])] + [
+            (f"등장인물 · {heading}", body)
+            for heading, body in _split_sections(cast, _NAMU_HEADING) if heading != "개요"
+        ]
+    return _select_sections(sections, NAMU_BUDGET)
+
+
+def _is_work(name: str) -> bool:
+    text = _namu_text(name)
+    return bool(text) and any(_WORK_HEADING.search(h) for h in _NAMU_HEADING.findall(text))
+
+
+def work_in_title(clip_title: str) -> str | None:
+    """The work named by the one clip-title piece that is exactly a Namu work page
+    name (evaluation/README.md 5.7); else None.
+    """
+    found = []
+    for part in _TITLE_PARTS.split(clip_title):
+        part = _TITLE_NOISE.sub("", part).strip()
+        if 2 <= len(part) <= 30 and "/" not in part and any(
+            _is_work(part + q) for q in ("", *_WORK_QUALIFIERS[:3])
+        ):
+            found.append(part)
+    found = list(dict.fromkeys(found))
+    return found[0] if len(found) == 1 else None
 
 
 def _html_to_text(body: str) -> str:
@@ -174,16 +253,16 @@ def _select_sections(sections: list[tuple[str, str]], budget: int) -> str:
     return "\n\n".join(out)
 
 
-def retrieve(title: str) -> str:
+def retrieve(title: str, hint: str | None = None) -> str:
     """What Namu wiki and Wikipedia say about `title`, ready for a prompt.
 
-    Wikipedia's search decides which page the title means. Returns "" when
-    nothing was found — the model is then asked from memory.
+    Wikipedia's search resolves the title; `hint` goes to `namu_document`.
+    Returns "" when nothing was found.
     """
     names = wikipedia_search(title)
     resolved = names[0] if names else title
-    namu = namu_document(resolved) or (
-        namu_document(title) if _fold(resolved) != _fold(title) else None
+    namu = namu_document(resolved, hint) or (
+        namu_document(title, hint) if _fold(resolved) != _fold(title) else None
     )
     wiki = wikipedia_document(resolved) if names else None
 

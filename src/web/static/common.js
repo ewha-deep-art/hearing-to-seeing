@@ -1,14 +1,18 @@
+// [status, what is happening, short step label]
 export const STEPS = [
-  ["queued", "대기 중"],
-  ["downloading", "영상 다운로드"],
-  ["preparing", "미디어 준비"],
-  ["transcribing", "음성 인식 · 화자 분리"],
-  ["finishing", "자막 생성"],
+  ["queued", "순서를 기다리는 중", "대기"],
+  ["downloading", "영상을 가져오는 중", "영상"],
+  ["preparing", "소리를 준비하는 중", "소리"],
+  ["transcribing", "대사와 화자를 알아보는 중", "대사·화자"],
+  ["finishing", "자막을 만드는 중", "자막"],
 ];
-const LABELS = Object.fromEntries(STEPS);
+const LABELS = Object.fromEntries(STEPS.map(([status, label]) => [status, label]));
 
 export const isPending = (status) => status in LABELS;
-export const statusLabel = (status) => LABELS[status] ?? (status === "error" ? "처리 실패" : "");
+export const statusLabel = (status) => LABELS[status] ?? "";
+export const stepIndex = (status) => STEPS.findIndex(([key]) => key === status);
+
+export const youtubeThumb = (youtubeId, size = "hqdefault") => `https://i.ytimg.com/vi/${youtubeId}/${size}.jpg`;
 
 export function formatTime(seconds) {
   if (!Number.isFinite(seconds)) return "0:00";
@@ -27,12 +31,18 @@ export function timeAgo(epochSeconds) {
   return `${Math.floor(diff / 86400)}일 전`;
 }
 
+// Failed requests throw an Error whose `detail` is the server's message for
+// the viewer (4xx only); status codes and raw errors go to the console.
 export async function api(path, options) {
   const res = await fetch(path, options);
   if (!res.ok) {
-    let message = `요청 실패 (${res.status})`;
-    try { message = (await res.json()).detail ?? message; } catch {}
-    throw new Error(message);
+    let detail = null;
+    try { detail = (await res.json()).detail ?? null; } catch {}
+    console.error(`${options?.method ?? "GET"} ${path} → ${res.status}`, detail ?? "");
+    const err = new Error(`${res.status} ${detail ?? res.statusText}`);
+    err.status = res.status;
+    err.detail = res.status < 500 && typeof detail === "string" ? detail : null;
+    throw err;
   }
   return res.status === 204 ? null : res.json();
 }
@@ -61,6 +71,8 @@ export const ICONS = {
   more: '<svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>',
   download: '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>',
+  close: '<svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>',
 };
 
 export function icon(name) {

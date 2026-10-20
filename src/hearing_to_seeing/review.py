@@ -1,29 +1,14 @@
-"""Checking the merged transcript against the clip itself, in one model call.
+"""Checks the merged transcript against the clip itself, in one model call.
 
-STT merges several Whisper passes by majority vote (`stt.merge_passes`), and
-the server's diarization labels the speakers. Both fail where the clip itself
-settles the question: diarization cannot tell apart two fish the screen shows
-plainly, and a word most passes misheard is often read right by a few.
-
-So the model is shown the clip (the video, or the audio when there is none)
-and the merged transcript cut into utterances, with every spot the passes
-disagree on marked with its readings, and asked
-  - who speaks each utterance, by whose mouth moves on screen, and
-  - where a reading other than the vote's is clearly what is said.
-It only chooses — a name per utterance, an option per spot, never new text —
-so it cannot put words in anyone's mouth, and every word keeps the timing the
-passes gave it. Measured in docs/STT_TUNING.md (4차).
-
-The answer's names replace the diarization labels: each name takes over the
-label it shares the most speaking time with, one to one, and a name left over
-gets a label of its own. `assign_speaker_colors` then gets the label → name
-map instead of guessing it from the dialogue (`identify_speakers`), so a
-reviewed clip costs no extra model call. Without a key, with a clip too long,
-or on any failure, the caller keeps the plain vote (None).
+The model sees the clip and the transcript cut into utterances, with every
+spot the passes disagree on marked, and picks a speaker per utterance and a
+reading per spot — never new text, so every word keeps its timing. Its names
+replace the diarization labels. Without a key, for a clip too long, or on any
+failure, the caller keeps the plain vote (None). See knowledge/README.md ④.
 """
 
+import itertools
 import mimetypes
-import os
 import re
 import sys
 from dataclasses import dataclass
@@ -32,29 +17,32 @@ from hearing_to_seeing import stt
 from hearing_to_seeing.knowledge import llm, prompts
 from hearing_to_seeing.schema import Transcript, WordEntry
 
-# The free tier allows each model about 20 requests a day, and the work and
-# cast lookups already spend two of `llm.MODEL`'s per clip; this model's quota
-# is its own. It also scored best on the human-checked clip, though it
-# overrules the vote far more often than `llm.MODEL` (docs/STT_TUNING.md, 4차).
-# H2S_REVIEW_MODEL overrides it.
-REVIEW_MODEL = os.environ.get("H2S_REVIEW_MODEL", "gemini-3.5-flash")
-# Picking among readings needs the model's full thinking: at the low level it
-# overruled the vote 52 times on clip 1 and CER went 2.5 → 4.1 %. But with no
-# cast list to go by, full (and medium) thinking ran past 30,000 tokens, cut
-# the answer short and once ran over ten minutes. Speakers come out as well at
-# the low level (99 %), so a clip with no cast is asked about speakers only.
-NO_CAST_THINKING = "low"
+# A daily quota of its own, apart from the cast lookup's `llm.MODEL`
+# (evaluation/README.md 5.5).
+REVIEW_MODEL = "gemini-3.7-flash"
+# Over quota or overloaded: Flash models only, each on its own quota.
+REVIEW_FALLBACKS = ("gemini-3.8-flash", "gemini-3.5-flash")
+# Word picks need full thinking (evaluation/README.md 5.1); without a cast or
+# past TEXT_MAX_SECONDS, only speakers are asked, at low thinking. Over the
+# four-pass vote the picks took 114 s on a 280 s clip and raised its WER
+# (0.196 → 0.200), so every clip is asked about speakers only — which lets
+# the review start on the first pass while the others decode (`pipeline.run`).
+SPEAKERS_THINKING = "low"
+TEXT_MAX_SECONDS = 0.0
 MAX_TOKENS = 16_000
+# One try, long enough for a ~10-minute clip at low thinking (~260 s).
+TIMEOUT_MS = 480_000
 
 # Utterances are cut wherever the label changes, at a pause this long, and
 # after a sentence ends. Cut that finely, labelling every utterance right
 # gets clip 1 to 100 % speaker accuracy (speaker change alone: 94 %).
 UTTERANCE_PAUSE = 0.5
 SENTENCE_END = re.compile(r"[.?!]$")
-# Measured on clips up to 4.6 min (≈ 115 input tokens a second at low
-# resolution); twice that is still far inside the context, but the answer
-# grows with the utterance count, so longer clips are not sent.
-MAX_SECONDS = 600.0
+# One answered utterance: "u12 이름" (a stray ":" or "=" after the id is let through).
+UTTERANCE_ANSWER = re.compile(r"\s*u?(\d+)\s*[:=]?\s*(\S.*)")
+# Longer clips than the longest measured (12.3 min) are not sent
+# (evaluation/README.md 5.1).
+MAX_SECONDS = 900.0
 
 
 @dataclass
@@ -162,18 +150,31 @@ def upload(media_path: str, seconds: float):
         return None
 
 
-def review_transcript(
+@dataclass
+class Answer:
+    """What the model said about one set of passes."""
+
+    spans: list[tuple[float, float]]  # each utterance's time span
+    named: dict[int, str]  # utterance index → the name it gave
+    chosen: dict[int, str]  # spot number → the option key it picked
+
+
+def ask_review(
     results: list[dict],
-    language: str | None,
     characters: list[dict] | None,
     media_path: str,
     uploaded=None,
-) -> Review | None:
-    """The transcript `stt.parse_result(results)` would give, checked against
-    `media_path` (video or audio); None when the review cannot run.
-    `uploaded` is `media_path` as `upload` already put it up."""
-    # Without a cast, speakers only (see NO_CAST_THINKING).
-    lines, spots, spans = _prompt_lines(results, mark=bool(characters))
+    words: bool = True,
+) -> Answer | None:
+    """The model's answer about `results`, checked against `media_path`
+    (video or audio); None when the review cannot run. `uploaded` is
+    `media_path` as `upload` already put it up. `words=False` asks about
+    speakers only."""
+    # Without a cast, or for a long clip, speakers only (see SPEAKERS_THINKING).
+    seconds = max((w.get("end") or 0.0 for r in results
+                   for seg in r.get("segments", []) for w in seg.get("words", [])), default=0.0)
+    text_task = words and bool(characters) and seconds <= TEXT_MAX_SECONDS
+    lines, spots, spans = _prompt_lines(results, mark=text_task)
     if not llm.configured() or not spans or spans[-1][1] > MAX_SECONDS:
         if uploaded:
             llm.discard(uploaded)
@@ -184,15 +185,16 @@ def review_transcript(
         how=prompts.REVIEW_HOW["video" if video else "audio"],
         text_task=prompts.REVIEW_TEXT_TASK if spots else "",
         cast=", ".join(c["name"] for c in characters or []) or "(모름)",
+        example=(characters or [{"name": "이름"}])[0]["name"],
         utterances="\n".join(lines),
     )
     print(f"… {'영상' if video else '음성'} 검토 중: 발화 {len(spans)}개, 엇갈린 자리 {len(spots)}개",
           file=sys.stderr, flush=True)
     try:
         answer = llm.ask(prompts.REVIEW_SYSTEM, prompt, prompts.REVIEW_SCHEMA, model=REVIEW_MODEL,
-                         media_path=media_path, media=uploaded, fallback=False, temperature=0,
-                         max_tokens=MAX_TOKENS,
-                         thinking_level=None if characters else NO_CAST_THINKING)
+                         media_path=media_path, media=uploaded, fallback=REVIEW_FALLBACKS, temperature=0,
+                         max_tokens=MAX_TOKENS, timeout_ms=TIMEOUT_MS,
+                         thinking_level=None if text_task else SPEAKERS_THINKING)
     except Exception as exc:  # network, quota, bad key — anything
         print(f"! 검토 실패, 다수결 결과 사용: {exc}", file=sys.stderr, flush=True)
         return None
@@ -203,22 +205,44 @@ def review_transcript(
         option = c.get("option")
         if n is not None and n < len(spots) and isinstance(option, int) and 1 <= option <= len(spots[n][0]):
             chosen[n] = spots[n][0][option - 1].key
-    asked = iter(range(len(spots)))
-    transcript = stt.parse_result(
-        results, language,
-        decide=(lambda options, pick, at: chosen.get(next(asked), pick)) if chosen else None,
-    )
-
     named: dict[int, str] = {}
     for u in answer.get("utterances") or []:
-        n = _number(u.get("id", ""), "u")
-        if n is not None and 1 <= n <= len(spans) and (u.get("speaker") or "").strip():
-            named[n - 1] = u["speaker"].strip()
+        match = UTTERANCE_ANSWER.match(str(u))
+        n = int(match[1]) if match else None
+        if n is not None and 1 <= n <= len(spans):
+            named[n - 1] = match[2].strip()
+    return Answer(spans, named, chosen)
+
+
+def apply_review(answer: Answer, results: list[dict], language: str | None) -> Review:
+    """`results` merged with the readings `answer` chose, and named by its
+    utterances' time spans. With no readings chosen, `results` may hold more
+    passes than the model was asked about (a speakers-only review of the
+    first pass, asked while the others decoded)."""
+    asked = itertools.count()
+    transcript = stt.parse_result(
+        results, language,
+        decide=(lambda options, pick, at: answer.chosen.get(next(asked), pick)) if answer.chosen else None,
+    )
+    spans = answer.spans
 
     def utterance(w: WordEntry) -> int:
         mid = (w.start + w.end) / 2
         return min(range(len(spans)), key=lambda k: max(spans[k][0] - mid, mid - spans[k][1], 0.0))
 
-    names = _relabel(transcript.words, [named.get(utterance(w)) for w in transcript.words])
-    print(f"… 검토 반영: 화자 {len(names)}명, 단어 {len(chosen)}곳 수정", file=sys.stderr, flush=True)
+    names = _relabel(transcript.words, [answer.named.get(utterance(w)) for w in transcript.words])
+    print(f"… 검토 반영: 화자 {len(names)}명, 단어 {len(answer.chosen)}곳 수정", file=sys.stderr, flush=True)
     return Review(transcript, names)
+
+
+def review_transcript(
+    results: list[dict],
+    language: str | None,
+    characters: list[dict] | None,
+    media_path: str,
+    uploaded=None,
+) -> Review | None:
+    """The transcript `stt.parse_result(results)` would give, checked against
+    `media_path`; None when the review cannot run (see `ask_review`)."""
+    answer = ask_review(results, characters, media_path, uploaded)
+    return apply_review(answer, results, language) if answer else None

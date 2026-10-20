@@ -14,22 +14,20 @@ import re
 import statistics
 import time
 from typing import Callable, NamedTuple
-from urllib.parse import urljoin
 
 import requests
-from dotenv import load_dotenv
 
 from hearing_to_seeing.schema import Transcript, WordEntry
 
-# The server processes roughly in real time (45 s of audio took ~50 s), so a
-# long input needs a generous read timeout.
+# A pass takes a few seconds per minute of audio, but a busy server or a slow
+# diarization (2 min for a 10-minute cartoon) needs a generous read timeout.
 REQUEST_TIMEOUT = 1800
-# The server now and then answers 503 while busy; a pass is retried this many
-# times, this many seconds apart, before the whole transcription fails.
-REQUEST_RETRIES = 3
-RETRY_WAIT = 10
-# The health check answers instantly when idle; a busy server is waited on anyway.
-HEALTH_TIMEOUT = 5
+# The server is shared and answers 503 while someone else's request waits;
+# a pass is retried this many times, this many seconds apart (each retry
+# uploads again), before the whole transcription fails. One busy spell held a
+# 15-minute clip's first pass for 53 s.
+REQUEST_RETRIES = 30
+RETRY_WAIT = 5
 
 # Forced-alignment model for word timings (the server's `align_model_name`).
 # WhisperX's Korean default (kresnik/wav2vec2-large-xlsr-korean) stretched
@@ -40,21 +38,28 @@ ALIGN_MODEL = "w11wo/wav2vec2-xls-r-300m-korean"
 # first with the fastest model.
 DETECTION_MODEL = "large-v3-turbo"
 
-# The audio is decoded once per (Whisper model, window length) pair — the
-# server's `model` and `chunk_size` (seconds) — and the passes merged region by
-# region (`merge_passes`). Long windows give Whisper context; short ones keep a
-# decoding loop from eating the lines after it and time words best; the models
-# mishear different words. Measured on dubbed-cartoon clips (docs/STT_TUNING.md).
+# The audio is decoded once per pass and the passes merged region by region
+# (`merge_passes`). The models mishear different words, and LOW_VAD reads
+# shouted and whispered lines the default drops (evaluation/README.md 5.2).
+# These four beat the six earlier ones (which added chunk-5 and chunk-20
+# windows) on every gold clip, mean WER 0.158 → 0.149, at half the GPU time.
 # The first pass is the primary one: it anchors speaker labels and wins ties.
-# It is also the only one diarized: every pass diarizes the same audio the
-# same way, so the others borrow its labels by time (`_borrow_speakers`) —
-# 97–100 % of words keep the speaker they had with every pass diarized, at
-# 6 s less per pass. The passes are sent grouped by model, starting with the
-# one the server holds (`_pass_order`): switching models costs 2–4 s.
+# It is also the only one labelled — diarized on the server, or by voice
+# (`voice.diarize`, `pipeline.run`) — and the others borrow its labels by time
+# (`_borrow_speakers`): 97–100 % of words keep the speaker they had with every
+# pass diarized. It goes first so a review can start on it while the rest
+# decode; the others follow grouped by model, since switching costs 2–4 s.
+# Each pass: the server's `model`, `chunk_size` (seconds) and VAD (onset,
+# offset), None for the server's default.
+LOW_VAD = (0.2, 0.15)
 PASSES = (
-    ("large-v3", 30), ("large-v2", 30), ("large-v2", 20),
-    ("large-v3", 5), ("large-v3-turbo", 5),
+    ("large-v3", 30, None), ("large-v3", 30, LOW_VAD), ("large-v2", 30, None), ("large-v3-turbo", 30, None),
 )
+# Past LONG_SECONDS the large-v2 pass is left out, which also saves a model
+# switch: all four would keep a 15-minute clip past 3 minutes, and these three
+# still beat the six earlier passes (mean WER 0.153).
+LONG_SECONDS = 600.0
+LONG_PASSES = tuple(p for p in PASSES if p[0] != "large-v2")
 
 # A syllable repeated past this inside one word ("하하하하하…") is a decoding
 # loop, not speech; the run is cut down to this many.
@@ -72,16 +77,16 @@ MIN_WORD_CAP = 1.0
 # Passes are compared region by region; a region ends where every pass is
 # silent for at least this long.
 REGION_GAP = 0.3
-# The first pass (the longest window) wins a region unless its disagreement
-# with the others exceeds the least disagreeing pass's by more than this much
-# per character it holds.
+# The first pass wins a region unless its disagreement with the others
+# exceeds the least disagreeing pass's by more than this much per character
+# it holds.
 PRIMARY_BIAS = 0.05
 # A spot where only one pass lacks a word all the others read (or reads one
 # none of the others do), with at least this many on the other side, is no
 # dispute: one pass dropping a line or hearing laughter is a decoding failure,
 # not a reading. Shown to the reviewer, a line one pass dropped came out as
 # nothing but such spots, and it picked "nothing" for every word.
-SETTLED_VOTES = 4
+SETTLED_VOTES = len(PASSES) - 1
 
 # Whisper's training data was full of broadcast credits, so silence and music
 # come back as these lines. They never occur as dialogue in practice.
@@ -109,12 +114,13 @@ class STTRequestError(RuntimeError):
 
 
 def _request(
-    wav: bytes,
+    audio: tuple[str, bytes, str],
     language: str | None,
     model: str | None = None,
     chunk_size: int | None = None,
     num_speakers: int | None = None,
     diarize: bool = True,
+    vad: tuple[float, float] | None = None,
 ) -> dict:
     # min/max_speakers hints changed nothing on the test clips, but an exact
     # count that is at least the real one splits voices diarization merged
@@ -130,33 +136,18 @@ def _request(
         data["chunk_size"] = str(chunk_size)
     if num_speakers and diarize:
         data["num_speakers"] = str(num_speakers)
-    return _post(wav, data)
+    if vad:
+        data["vad_onset"], data["vad_offset"] = (str(v) for v in vad)
+    return _post(audio, data)
 
 
-def _loaded_model() -> str | None:
-    """The Whisper model the server holds now (it keeps one), if it says."""
-    load_dotenv()
-    try:
-        response = requests.get(urljoin(os.environ["WHISPERX_API_URL"], "health"), timeout=HEALTH_TIMEOUT)
-        return response.json()["loaded_model"]["model"]
-    except Exception:  # only an ordering hint
-        return None
-
-
-def _pass_order(loaded: str | None) -> list[int]:
-    """Indices into PASSES, grouped by model, the `loaded` one's first."""
-    models = sorted(dict.fromkeys(m for m, _ in PASSES), key=lambda m: m != loaded)
-    return [i for m in models for i, (model, _) in enumerate(PASSES) if model == m]
-
-
-def _detect_language(wav: bytes) -> str | None:
+def _detect_language(audio: tuple[str, bytes, str]) -> str | None:
     """The spoken language, from a quick decode with nothing aligned or diarized
     (a few seconds for five minutes of audio)."""
-    return _post(wav, {"model": DETECTION_MODEL}).get("language")
+    return _post(audio, {"model": DETECTION_MODEL}).get("language")
 
 
-def _post(wav: bytes, data: dict) -> dict:
-    load_dotenv()
+def _post(audio: tuple[str, bytes, str], data: dict) -> dict:
     api_key = os.environ.get("WHISPERX_API_KEY")
     if not api_key:
         raise STTRequestError("WHISPERX_API_KEY is not set (see .env.example).")
@@ -171,7 +162,7 @@ def _post(wav: bytes, data: dict) -> dict:
                 url,
                 headers={"X-API-Key": api_key},
                 # The server accepts only parts typed audio/*.
-                files={"file": ("audio.wav", wav, "audio/wav")},
+                files={"file": audio},
                 data=data,
                 timeout=REQUEST_TIMEOUT,
             )
@@ -183,7 +174,10 @@ def _post(wav: bytes, data: dict) -> dict:
         except requests.RequestException as exc:
             raise STTRequestError(f"WhisperX API request failed: {exc}") from exc
         if response.status_code in (502, 503, 504) and retry:
-            time.sleep(RETRY_WAIT)
+            # Out of GPU memory (now and then on a 15-minute clip) the server
+            # frees it at once, so that retry goes straight away.
+            if "out of memory" not in response.text:
+                time.sleep(RETRY_WAIT)
             continue
         break
 
@@ -602,9 +596,25 @@ def parse_result(
     )
 
 
-def _read(path: str) -> bytes:
-    with open(path, "rb") as f:
-        return f.read()
+def _seconds(wav_path: str) -> float:
+    from scipy.io import wavfile
+
+    rate, samples = wavfile.read(wav_path, mmap=True)
+    return len(samples) / rate
+
+
+def _upload_audio(wav_path: str) -> tuple[str, bytes, str]:
+    """The audio as it goes to the server: FLAC, lossless at half the WAV's
+    size — every pass uploads it again, at ~1.3 MB/s. The WAV itself when
+    ffmpeg is missing."""
+    from hearing_to_seeing.render import MediaToolError, run_tool, tool
+
+    try:
+        flac = run_tool([tool("ffmpeg"), "-loglevel", "error", "-i", wav_path, "-c:a", "flac", "-f", "flac", "-"])
+        return "audio.flac", flac, "audio/flac"
+    except MediaToolError:
+        with open(wav_path, "rb") as f:
+            return "audio.wav", f.read(), "audio/wav"
 
 
 def transcribe(
@@ -615,20 +625,30 @@ def transcribe(
 
 
 def decode(
-    wav_path: str, language: str | None = None, num_speakers: int | None = None
+    wav_path: str,
+    language: str | None = None,
+    num_speakers: int | None = None,
+    on_first: Callable[[dict, str | None], None] | None = None,
+    diarize: bool = True,
 ) -> tuple[list[dict], str | None]:
     """Every pass's server response, and the language they were decoded in.
 
     `parse_result` merges them; `review.review_transcript` merges them again
-    with the clip's say on the disputed spots.
+    with the clip's say on the disputed spots. `on_first`, if given, gets the
+    first response and the language as soon as it is back, while the other
+    passes still decode. `diarize=False` leaves the first pass unlabelled too,
+    for the caller to label (`voice.diarize`) before merging.
     """
-    # Requests go one after another: the server handles one at a time anyway.
-    wav = _read(wav_path)
-    loaded = None if language else DETECTION_MODEL
-    language = language or _detect_language(wav)
-    results: list[dict] = [{}] * len(PASSES)
-    for i in _pass_order(loaded or _loaded_model()):
-        results[i] = _request(wav, language, *PASSES[i], num_speakers, diarize=i == 0)
+    passes = LONG_PASSES if _seconds(wav_path) > LONG_SECONDS else PASSES
+    audio = _upload_audio(wav_path)
+    language = language or _detect_language(audio)
+    # Requests go one after another: the server reads a request only once it
+    # is done with the one before, so sending the next early saves nothing.
+    results = []
+    for i, (model, size, vad) in enumerate(passes):
+        results.append(_request(audio, language, model, size, num_speakers, diarize=diarize and i == 0, vad=vad))
+        if i == 0 and on_first:
+            on_first(results[0], language)
     return results, language
 
 

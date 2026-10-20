@@ -26,18 +26,21 @@ import math
 import re
 import sys
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from functools import lru_cache
 
 import numpy as np
 
+from hearing_to_seeing import voice
 from hearing_to_seeing.schema import Transcript
-from hearing_to_seeing.review import review_transcript, upload as upload_for_review
+from hearing_to_seeing.review import (
+    TEXT_MAX_SECONDS, apply_review, ask_review, review_transcript, upload as upload_for_review,
+)
 from hearing_to_seeing.stt import correct_names, decode, parse_result
 from hearing_to_seeing.design.volume import annotate_volumes
 from hearing_to_seeing.converter.ass import write_ass
 from hearing_to_seeing.knowledge import llm, prompts
-from hearing_to_seeing.knowledge.retrieve import retrieve
+from hearing_to_seeing.knowledge.retrieve import retrieve, work_in_title
 
 # --- colour model --------------------------------------------------------------
 
@@ -234,15 +237,18 @@ def lookup_characters(title: str | None) -> list[dict] | None:
     if not title or not llm.configured():
         return None
     try:
-        work = llm.ask(prompts.TITLE_SYSTEM, prompts.TITLE_PROMPT.format(title=title), prompts.TITLE_SCHEMA)
-        work_title = (work.get("title") or "").strip()
+        # A title naming a Namu work page outright needs no model call.
+        work_title = work_in_title(title)
+        if not work_title:
+            work = llm.ask(prompts.TITLE_SYSTEM, prompts.TITLE_PROMPT.format(title=title), prompts.TITLE_SCHEMA)
+            work_title = (work.get("title") or "").strip()
         if not work_title:
             return None
         print(f"… 작품 검색 중: {work_title!r}", file=sys.stderr, flush=True)
-        documents = retrieve(work_title) or prompts.NO_DOCUMENTS
+        documents = retrieve(work_title, hint=title) or prompts.NO_DOCUMENTS
         cast = llm.ask(
             prompts.CAST_SYSTEM,
-            prompts.CAST_PROMPT.format(title=work_title, documents=documents),
+            prompts.CAST_PROMPT.format(title=work_title, clip=title, documents=documents),
             prompts.CAST_SCHEMA,
         )
     except Exception as exc:  # network, quota, bad key — anything
@@ -335,7 +341,7 @@ def _by_name(characters: list[dict]) -> dict[str, dict]:
 def named_speakers(names: dict[str, str], characters: list[dict]) -> dict[str, dict]:
     """Label → match, as `identify_speakers` gives, for labels already named
     by watching the clip (`review.review_transcript`). A name not in the cast
-    (손님1 …) matches no one."""
+    (간호사1, 경찰 …) matches no one."""
     by_name = _by_name(characters)
     return {
         label: {"character": by_name[_fold(name)], "confidence": 1.0,
@@ -468,28 +474,68 @@ def decode_audio(wav_path: str) -> tuple[int, np.ndarray]:
 
 def run(
     wav_path: str,
-    output_ass: str,
+    output_ass: str | None,
     language: str | None = None,
     output_json: str | None = None,
     title: str | None = None,
     num_speakers: int | None = None,
-    media_path: str | None = None,
+    media_path: str | Future | None = None,
 ) -> Transcript:
     """`media_path`, the source video when there is one, is what the review
-    watches; without it the review listens to `wav_path`."""
+    watches — a Future while it still downloads; without it the review
+    listens to `wav_path`."""
     # With a title (and GEMINI_API_KEY), the work's characters are looked up to
     # colour each speaker, and the review's clip is uploaded. Neither needs a
     # transcript, so both run alongside the remote STT call; the review and
     # matching speakers to characters wait for them.
     sample_rate, audio_data = decode_audio(wav_path)
-    review_media = media_path or wav_path
-    with ThreadPoolExecutor(max_workers=2) as pool:
+    seconds = len(audio_data) / sample_rate
+
+    def review_media() -> str:
+        return (media_path.result() if isinstance(media_path, Future) else media_path) or wav_path
+
+    # The first pass is labelled by voice here rather than diarized on the
+    # server, which took up to two minutes (`voice.diarize`).
+    by_voice = voice.available()
+    with ThreadPoolExecutor(max_workers=4) as pool:
         lookup = pool.submit(lookup_characters, title)
-        upload = pool.submit(upload_for_review, review_media, len(audio_data) / sample_rate)
-        results, language = decode(wav_path, language=language, num_speakers=num_speakers)
+        upload = pool.submit(lambda: upload_for_review(review_media(), seconds))
+        early: Future | None = None
+        labelled: Future | None = None
+
+        def first_pass(result: dict, language: str | None) -> None:
+            # A review of speakers only (every clip past TEXT_MAX_SECONDS)
+            # needs no more than the first, diarized pass: it runs while the
+            # other passes decode, and its names are laid over the merge by
+            # time — as accurate as asking about the merge (0.944 against
+            # 0.915–0.955 on one clip).
+            nonlocal early, labelled
+            if by_voice:
+                labelled = pool.submit(voice.diarize, result, sample_rate, audio_data, num_speakers)
+            if seconds > TEXT_MAX_SECONDS:
+                early = pool.submit(review_first, result)
+
+        def review_first(result: dict):
+            if labelled:
+                labelled.result()
+            return ask_review([result], lookup.result(), review_media(), upload.result(), words=False)
+
+        results, language = decode(wav_path, language=language, num_speakers=num_speakers,
+                                   on_first=first_pass, diarize=not by_voice)
+        if labelled:
+            labelled.result()
         characters = lookup.result()
-        review = review_transcript(results, language, characters, review_media, upload.result())
+        if early:
+            answer = early.result()
+            review = apply_review(answer, results, language) if answer else None
+        else:
+            review = review_transcript(results, language, characters, review_media(), upload.result())
         transcript = review.transcript if review else parse_result(results, language)
+        # The voices settle what neither the labels nor the review could.
+        if review:
+            voice.reassign_utterances(transcript, sample_rate, audio_data)
+        else:
+            voice.merge_labels(transcript, sample_rate, audio_data)
 
         annotate_volumes(transcript, sample_rate, audio_data)
 
@@ -507,5 +553,6 @@ def run(
         with open(output_json, "w", encoding="utf-8") as f:
             json.dump(transcript.to_dict(), f, ensure_ascii=False, indent=2)
 
-    write_ass(transcript, output_ass)
+    if output_ass:
+        write_ass(transcript, output_ass)
     return transcript

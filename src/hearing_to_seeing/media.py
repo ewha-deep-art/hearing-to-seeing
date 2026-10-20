@@ -1,38 +1,33 @@
-"""Getting media in and out of the shapes the pipeline and the browser need.
+"""Getting YouTube media into the shape the pipeline needs.
 
-The pipeline reads WAV only, and a browser plays H.264/AAC mp4 reliably, so each
-source is split into both: `audio.wav` for STT and volume, `media.mp4` for the
-player.
+The pipeline reads WAV only: each source's audio is downloaded on its own and
+turned into `audio.wav` for STT and volume; a small copy of the video, fetched
+alongside, is kept only while the review watches it.
 """
 
 import json
 import os
+import sys
 
 from hearing_to_seeing.render import run_tool, tool
 
-# Codecs every mainstream browser decodes inside an mp4 without re-encoding.
-_PLAYABLE_VIDEO = {"h264"}
-_PLAYABLE_AUDIO = {"aac", "mp3"}
 
-# A player needs a frame to show; audio-only sources get a black 16:9 still.
-AUDIO_ONLY_SIZE = (1280, 720)
+# The audio alone downloads in seconds, so STT can start before the video is in.
+AUDIO_FORMAT = "ba[ext=m4a]/ba"
+AUDIO_FALLBACK_FORMAT = "ba/b"
+# The review sees the video at Gemini's low resolution (66 tokens a frame), so
+# 360p loses nothing, and its upload shares the uplink with STT's: video-only
+# DASH (`bv`, so the throttled progressive 360p stream is not picked) with the
+# low-bitrate audio track. H.264 needs no transcode for the upload.
+VIDEO_FORMAT = "bv[height<=360][vcodec^=avc1]+ba[ext=m4a][abr<=64]/bv[height<=360][vcodec^=avc1]+ba[ext=m4a]"
+# When those streams are refused (403 now and then), anything up to 1080p.
+VIDEO_FALLBACK_FORMAT = "bv*[vcodec^=avc1][height<=1080]+ba[ext=m4a]/b[ext=mp4][height<=1080]/bv*[height<=1080]+ba/b"
 
 
-def download_youtube(url: str, dest_dir: str) -> tuple[str, str | None]:
-    """Downloads `url` as an mp4 into `dest_dir`; returns `(path, title)`.
-
-    Video is requested alongside audio because the player shows it, and H.264
-    is preferred so the file usually plays without a transcode.
-    """
-    from yt_dlp import YoutubeDL
-
+def _ydl_options(dest_dir: str | None = None, fmt: str = VIDEO_FALLBACK_FORMAT, name: str = "source") -> dict:
     options = {
-        "format": (
-            "bv*[vcodec^=avc1][height<=1080]+ba[ext=m4a]"
-            "/b[ext=mp4][height<=1080]/bv*[height<=1080]+ba/b"
-        ),
+        "format": fmt,
         "merge_output_format": "mp4",
-        "outtmpl": os.path.join(dest_dir, "source.%(ext)s"),
         "noplaylist": True,
         # Some videos (e.g. channel uploads restricted on the web player) come
         # back "not available" from the default clients; the android client
@@ -44,14 +39,60 @@ def download_youtube(url: str, dest_dir: str) -> tuple[str, str | None]:
         "color": {"stdout": "no_color", "stderr": "no_color"},
         "ffmpeg_location": tool("ffmpeg"),
         # YouTube hides formats behind a JS challenge; without a runtime many
-        # videos fail as "not available". yt-dlp only tries deno by default,
-        # so allow every runtime it supports (the solver is yt-dlp-ejs).
-        "js_runtimes": {"deno": {}, "node": {}, "bun": {}, "quickjs": {}},
+        # videos fail as "not available". The image ships node; yt-dlp only
+        # tries deno by default (the solver is yt-dlp-ejs).
+        "js_runtimes": {"node": {}},
     }
+    if dest_dir:
+        options["outtmpl"] = os.path.join(dest_dir, f"{name}.%(ext)s")
+    return options
+
+
+def youtube_info(url: str) -> dict:
+    """What YouTube says about `url`, without downloading it."""
+    from yt_dlp import YoutubeDL
+
+    with YoutubeDL(_ydl_options()) as ydl:
+        info = ydl.extract_info(url, download=False)
+    keys = ("id", "title", "channel", "description", "duration", "categories", "tags",
+            "playable_in_embed", "live_status")
+    return {key: info.get(key) for key in keys}
+
+
+def _download(url: str, options: dict) -> str:
+    from yt_dlp import YoutubeDL
+
     with YoutubeDL(options) as ydl:
         info = ydl.extract_info(url, download=True)
-        path = info.get("requested_downloads", [{}])[0].get("filepath") or ydl.prepare_filename(info)
-    return path, info.get("title")
+        return info.get("requested_downloads", [{}])[0].get("filepath") or ydl.prepare_filename(info)
+
+
+def download_audio(url: str, dest_dir: str) -> str:
+    """Downloads `url`'s audio track into `dest_dir`; returns its path.
+
+    A refused stream (403 now and then) is asked for again, which fetches
+    fresh stream links, then for anything with sound in it.
+    """
+    for fmt in (AUDIO_FORMAT, AUDIO_FORMAT, AUDIO_FALLBACK_FORMAT):
+        try:
+            return _download(url, _ydl_options(dest_dir, fmt, "audio-source"))
+        except Exception as exc:  # yt_dlp.DownloadError
+            error = exc
+            print(f"… 오디오 받기 실패, 다시 시도: {exc}", file=sys.stderr, flush=True)
+    raise error
+
+
+def download_youtube(url: str, dest_dir: str) -> str:
+    """Downloads `url` as a small mp4 for the review into `dest_dir`; returns its path.
+
+    Video is requested alongside audio because the review watches who is on
+    screen and listens to who speaks.
+    """
+    try:
+        return _download(url, _ydl_options(dest_dir, VIDEO_FORMAT))
+    except Exception as exc:  # yt_dlp.DownloadError, mostly a refused stream
+        print(f"… 작은 영상 받기 실패, 다른 형식으로 재시도: {exc}", file=sys.stderr, flush=True)
+        return _download(url, _ydl_options(dest_dir))
 
 
 def probe(media_path: str) -> dict:
@@ -86,54 +127,3 @@ def extract_wav(media_path: str, wav_path: str) -> str:
         wav_path,
     ])
     return wav_path
-
-
-def prepare_playback(media_path: str, output_path: str) -> str:
-    """Writes a browser-playable, seekable mp4 of `media_path` to `output_path`.
-
-    Streams already in browser codecs are copied as-is; anything else is
-    re-encoded. `+faststart` puts the index up front so playback and seeking
-    start before the whole file has loaded.
-    """
-    info = probe(media_path)
-    cmd = [tool("ffmpeg"), "-y", "-loglevel", "error"]
-
-    if info["video"] is None:
-        width, height = AUDIO_ONLY_SIZE
-        cmd += [
-            "-f", "lavfi", "-i", f"color=c=black:s={width}x{height}:r=1",
-            "-i", media_path,
-            "-map", "0:v:0", "-map", "1:a:0",
-            "-c:v", "libx264", "-tune", "stillimage", "-pix_fmt", "yuv420p",
-            "-shortest",
-        ]
-        cmd += _audio_args(info["audio"])
-    else:
-        cmd += ["-i", media_path, "-map", "0:v:0", "-map", "0:a:0?"]
-        if info["video"] in _PLAYABLE_VIDEO:
-            cmd += ["-c:v", "copy"]
-        else:
-            cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p"]
-        cmd += _audio_args(info["audio"])
-
-    cmd += ["-movflags", "+faststart", output_path]
-    run_tool(cmd)
-    return output_path
-
-
-def _audio_args(codec: str | None) -> list[str]:
-    if codec in _PLAYABLE_AUDIO:
-        return ["-c:a", "copy"]
-    return ["-c:a", "aac", "-b:a", "192k"]
-
-
-def extract_thumbnail(media_path: str, output_path: str, duration: float | None) -> str:
-    """One frame a little way in, past the black lead-in most videos open on."""
-    at = min(1.0, duration / 2) if duration else 0.0
-    run_tool([
-        tool("ffmpeg"), "-y", "-loglevel", "error",
-        "-ss", f"{at:.2f}", "-i", media_path,
-        "-frames:v", "1", "-vf", "scale=640:-2", "-q:v", "4",
-        output_path,
-    ])
-    return output_path

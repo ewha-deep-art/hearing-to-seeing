@@ -35,6 +35,8 @@ def model(monkeypatch):
 
     monkeypatch.setattr(review.llm, "configured", lambda: True)
     monkeypatch.setattr(review.llm, "ask", ask)
+    # Word picks are off (TEXT_MAX_SECONDS 0); these tests switch them on.
+    monkeypatch.setattr(review, "TEXT_MAX_SECONDS", 300.0)
     model.calls = calls
     model.answer = {"utterances": [], "corrections": []}
     return model
@@ -61,15 +63,15 @@ def test_the_prompt_marks_each_disputed_spot_in_place(model):
     assert "mouth moves on screen" in prompt  # judged by the picture, not the audio
 
 
-def test_the_model_watches_the_clip_without_a_fallback(model):
+def test_the_model_watches_the_clip_with_full_flash_fallbacks(model):
     review.review_transcript(_passes(), "ko", [{"name": "스폰지밥"}], "clip.mp4")
     call = model.calls[0]
-    assert (call["media_path"], call["fallback"], call["temperature"]) == ("clip.mp4", False, 0)
+    assert (call["media_path"], call["fallback"], call["temperature"]) == ("clip.mp4", review.REVIEW_FALLBACKS, 0)
     assert (call["model"], call["thinking_level"]) == (review.REVIEW_MODEL, None)
 
 
 def test_without_a_cast_only_speakers_are_asked_with_little_thinking(model):
-    model.answer = {"utterances": [{"id": "u2", "speaker": "스폰지밥"}], "corrections": [{"id": "d0", "option": 2}]}
+    model.answer = {"utterances": ["u2 스폰지밥"], "corrections": [{"id": "d0", "option": 2}]}
 
     result = review.review_transcript(_passes(), "ko", None, "clip.mp4")
 
@@ -80,6 +82,17 @@ def test_without_a_cast_only_speakers_are_asked_with_little_thinking(model):
     assert [w.text for w in result.transcript.words][2] == "파리가"  # the stray correction is ignored
 
 
+def test_by_default_only_speakers_are_asked_even_with_a_cast(model, monkeypatch):
+    monkeypatch.undo()
+    monkeypatch.setattr(review.llm, "configured", lambda: True)
+    monkeypatch.setattr(review.llm, "ask", lambda system, prompt, schema, **kw: model.calls.append(
+        {"prompt": prompt, **kw}) or {"utterances": [], "corrections": []})
+
+    review.review_transcript(_passes(), "ko", [{"name": "스폰지밥"}], "clip.mp4")
+
+    assert model.calls[0]["thinking_level"] == "low" and "⟨" not in model.calls[0]["prompt"]
+
+
 def test_an_audio_file_is_listened_to(model):
     review.review_transcript(_passes(), "ko", None, "clip.wav")
     assert "by the voice and the dialogue" in model.calls[0]["prompt"]
@@ -87,7 +100,7 @@ def test_an_audio_file_is_listened_to(model):
 
 def test_the_answer_relabels_speakers_and_picks_readings(model):
     model.answer = {
-        "utterances": [{"id": "u1", "speaker": "징징이"}, {"id": "u2", "speaker": "스폰지밥"}],
+        "utterances": ["u1 징징이", "u2: 스폰지밥"],
         "corrections": [{"id": "d0", "option": 2}],
     }
 
@@ -102,7 +115,7 @@ def test_the_answer_relabels_speakers_and_picks_readings(model):
 
 def test_answers_that_point_nowhere_are_ignored(model):
     model.answer = {
-        "utterances": [{"id": "u9", "speaker": "징징이"}, {"id": "x", "speaker": "뚱이"}],
+        "utterances": ["u9 징징이", "x 뚱이", "u1"],
         "corrections": [{"id": "d0", "option": 7}, {"id": "d5", "option": 2}, {"id": "zz", "option": 2}],
     }
 
@@ -111,6 +124,18 @@ def test_answers_that_point_nowhere_are_ignored(model):
     assert [w.text for w in result.transcript.words] == ["이거", "뭐야?", "파리가", "안", "떨어져요"]
     assert {w.speaker for w in result.transcript.words} == {"SPEAKER_00"}
     assert result.names == {}
+
+
+def test_a_first_pass_review_names_the_merged_passes(model):
+    model.answer = {"utterances": ["u1 징징이", "u2 스폰지밥"], "corrections": []}
+
+    answer = review.ask_review(_passes()[:1], [{"name": "스폰지밥"}], "clip.mp4", words=False)
+    result = review.apply_review(answer, _passes(), "ko")
+
+    assert model.calls[0]["thinking_level"] == "low" and "⟨" not in model.calls[0]["prompt"]
+    words = result.transcript.words
+    assert [w.text for w in words] == ["이거", "뭐야?", "파리가", "안", "떨어져요"]  # the vote of all three
+    assert result.names == {words[0].speaker: "징징이", words[2].speaker: "스폰지밥"}
 
 
 def test_a_failed_call_leaves_the_vote_to_the_caller(model):
@@ -154,7 +179,7 @@ def test_an_early_upload_is_discarded_when_there_is_nothing_to_review(model, mon
     discarded = []
     monkeypatch.setattr(review.llm, "discard", discarded.append)
 
-    assert review.review_transcript([_result(_word("x", 700.0, 700.5))], "ko", None, "clip.mp4", "up") is None
+    assert review.review_transcript([_result(_word("x", 1000.0, 1000.5))], "ko", None, "clip.mp4", "up") is None
     assert discarded == ["up"] and model.calls == []
 
 

@@ -2,7 +2,8 @@
 
 Each is a (SYSTEM, PROMPT, SCHEMA) triple for `llm.ask()`; PROMPT is filled in
 with `str.format`. The answers are plain dicts shaped by SCHEMA and are read
-directly by `pipeline.py` (1–3) and `review.py` (4).
+directly by `pipeline.py` (1–3), `review.py` (4) and the web
+catalogue, `web/catalog.py` (5).
 """
 
 # --- 1. clip title → work -----------------------------------------------------
@@ -46,10 +47,13 @@ CAST_SYSTEM = """\
 
 CAST_PROMPT = """\
 작품: {title}
+클립 제목: {clip}
 
 {documents}
 
-위 문서를 바탕으로 이 작품의 등장인물을 주연부터 정리하라. 인물마다:
+위 문서를 바탕으로 이 작품의 등장인물을 주연부터 정리하라. 영상 검토가 이 목록에서 말하는 사람의
+이름을 고르므로, 주연만이 아니라 이 클립에 나올 만한 조연까지 대사가 있을 법한 인물을 최대 15명
+빠짐없이 넣는다. 인물마다:
 1. 극중 이름 (자막에 표시될 이름)
 2. 대사에서 불리는 다른 호칭 (예: 아버지, 사장님, 전하) — aliases
 3. 주연/조연 (importance), 역할 한 줄, 성격, 다른 인물과의 관계
@@ -146,11 +150,8 @@ SPEAKERS_SCHEMA = {
 
 # --- 4. the clip itself → who speaks each utterance, which disputed reading ----
 # Asked with the video (or the audio) attached. The model only chooses: a name
-# per utterance and an option per disputed spot, never new text. Measured on
-# the test clips (docs/STT_TUNING.md, 4차): flash-lite answers every spot with
-# a junk option, so this question has no fallback model; and in English the
-# model leaves more spots alone than with the same instructions in Korean,
-# which overruled the vote more often and more often wrongly.
+# per utterance and an option per disputed spot, never new text. In English
+# it overrules the vote less often, and less often wrongly, than in Korean.
 
 REVIEW_SYSTEM = (
     "You check Korean subtitles of a Korean-dubbed video clip against the clip itself. "
@@ -159,9 +160,12 @@ REVIEW_SYSTEM = (
 )
 
 REVIEW_PROMPT = """\
-Task 1, speakers: for EVERY utterance id, name the character actually speaking it. {how} \
-Use the cast names below; for an unnamed character use 손님1, 손님2, … and keep the same \
-number for the same character throughout. Several utterances in a row may belong to \
+Task 1, speakers: for EVERY utterance id, name the character actually speaking it, \
+as "u<N> <name>" (e.g. "u1 {example}"). {how} \
+Use the cast names below. A character not in the cast gets a short label of their own \
+from how they look or what they do (간호사1, 경찰, 손님2, …): two different people never \
+share a label, even minor ones who speak once, and the same person keeps theirs \
+throughout. Several utterances in a row may belong to \
 different characters even when they share a SPEAKER label.
 {text_task}
 Cast: {cast}
@@ -185,17 +189,11 @@ that is not one of the options.
 REVIEW_SCHEMA = {
     "type": "object",
     "properties": {
+        # One short string per utterance: on a 239-utterance clip "u12 이름"
+        # came to 2,576 answer tokens against 6,383 as {"id", "speaker"}.
         "utterances": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string", "description": "u1, u2, …"},
-                    "speaker": {"type": "string", "description": "the speaking character"},
-                },
-                "required": ["id", "speaker"],
-                "additionalProperties": False,
-            },
+            "items": {"type": "string", "description": "u<N> <the speaking character>"},
         },
         "corrections": {
             "type": "array",
@@ -211,5 +209,31 @@ REVIEW_SCHEMA = {
         },
     },
     "required": ["utterances", "corrections"],
+    "additionalProperties": False,
+}
+
+# --- 5. clip metadata → genre (the web catalogue) ------------------------------
+# Only the shelves the catalogue has; films come first, and anything that is not
+# a clip of a film, drama or animation goes to 기타.
+
+GENRE_SYSTEM = """\
+당신은 유튜브 클립을 장르별로 분류하는 도구다. 클립이 어떤 작품에서 나왔는지 보고 장르를 고른다.
+- 영화의 장면·예고편이면 영화, TV·OTT 드라마면 드라마, 애니메이션(극장판 포함)이면 애니메이션.
+- 예능, 브이로그, 뉴스, 인터뷰, 강연 등 영화·드라마·애니메이션의 클립이 아니거나 판단할 수 없으면 기타."""
+
+GENRE_PROMPT = """\
+제목: {title}
+채널: {channel}
+유튜브 카테고리: {categories}
+태그: {tags}
+설명:
+{description}"""
+
+GENRE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "genre": {"type": "string"},  # the shelves (`web.db.GENRES`) are filled in as its enum
+    },
+    "required": ["genre"],
     "additionalProperties": False,
 }

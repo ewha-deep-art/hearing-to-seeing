@@ -7,28 +7,30 @@ lets the caller skip the lookup up front instead of failing mid-run.
 """
 
 import json
+import math
 import os
 import sys
+import threading
 import time
 from functools import lru_cache
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 API_KEY_VAR = "GEMINI_API_KEY"
-# ~30 s per call on the free tier. H2S_LLM_MODEL overrides it.
-MODEL = os.environ.get("H2S_LLM_MODEL", "gemini-3.6-flash")
+# ~30 s per call on the free tier.
+MODEL = "gemini-3.6-flash"
 # Where a request goes when the preferred model is over quota (429) or
 # overloaded (503): the lightest Flash, ~3 s per call.
 FALLBACK_MODEL = "gemini-3.5-flash-lite"
 
 MAX_TOKENS = 16000
+# Same question, same answer as far as Gemini allows (seed is best-effort).
+TEMPERATURE = 0.0
+SEED = 0
 REQUEST_TIMEOUT_MS = 180_000
 # Server trouble (5xx) usually clears in seconds, so the SDK retries it
-# briefly. A 429 is a quota, not worth waiting on: it goes to the fallback.
+# briefly. 429 (quota) and 503 (overloaded) go straight to the fallback: a
+# retried 503 kept the cast lookup waiting minutes before it got there.
 RETRY_ATTEMPTS = 4
-RETRY_STATUS_CODES = [500, 502, 503, 504]
+RETRY_STATUS_CODES = [500, 502, 504]
 # How often to check whether an uploaded video is ready to be asked about.
 UPLOAD_POLL_SECONDS = 2.0
 
@@ -37,8 +39,18 @@ def configured() -> bool:
     return bool(os.environ.get(API_KEY_VAR))
 
 
-@lru_cache(maxsize=1)
+# The cast lookup and the review upload ask for the client at once; built
+# twice, the copy the cache drops closes itself (`Client.__del__`) mid-request.
+_CLIENT_LOCK = threading.Lock()
+
+
 def _client():
+    with _CLIENT_LOCK:
+        return _new_client()
+
+
+@lru_cache(maxsize=1)
+def _new_client():
     # Imported lazily so a run without a key never pays for the SDK.
     from google import genai
     from google.genai import types
@@ -90,19 +102,19 @@ def ask(
     model: str | None = None,
     media_path: str | None = None,
     media=None,
-    fallback: bool = True,
-    temperature: float | None = None,
+    fallback: tuple[str, ...] = (FALLBACK_MODEL,),
+    temperature: float = TEMPERATURE,
+    seed: int = SEED,
     max_tokens: int = MAX_TOKENS,
     thinking_level: str | None = None,
+    timeout_ms: int | None = None,
 ) -> dict:
     """Asks `prompt` and returns an answer that satisfies `schema`.
 
-    Tries `model` (default `MODEL`), then `FALLBACK_MODEL` when the first is
-    over quota or overloaded — unless `fallback` is off, for questions the
-    lighter model answers badly. `media_path` (video or audio) is uploaded, sent at low
-    resolution ahead of the prompt, and deleted afterwards; `media`, a file
-    `upload` already put up, stands in for that upload. Any other failure
-    (bad key, blocked prompt, …) raises.
+    Tries `model` (default `MODEL`), then each `fallback` model on 429/503.
+    `media_path` is uploaded, sent at low resolution and deleted afterwards;
+    `media` is a file `upload` already put up. With `timeout_ms`, each model
+    gets one try of at most that long. Other failures raise.
     """
     from google.genai import errors, types
 
@@ -112,16 +124,26 @@ def ask(
         response_mime_type="application/json",
         response_json_schema=schema,
         temperature=temperature,
+        seed=seed,
         media_resolution=types.MediaResolution.MEDIA_RESOLUTION_LOW if media or media_path else None,
         thinking_config=(
             types.ThinkingConfig(thinking_level=types.ThinkingLevel(thinking_level.upper()))
             if thinking_level else None
         ),
+        # Sent per request: the SDK keeps the first request's X-Server-Timeout
+        # in the client's shared headers (evaluation/README.md 5.1).
+        http_options=(
+            types.HttpOptions(
+                timeout=timeout_ms,
+                headers={"X-Server-Timeout": str(math.ceil(timeout_ms / 1000))},
+                retry_options=types.HttpRetryOptions(attempts=1),
+            )
+            if timeout_ms else None
+        ),
     )
     media = media or (upload(media_path) if media_path else None)
     contents = [media, prompt] if media else prompt
-    first = model or MODEL
-    models = list(dict.fromkeys([first, FALLBACK_MODEL] if fallback else [first]))
+    models = list(dict.fromkeys([model or MODEL, *fallback]))
     try:
         for i, name in enumerate(models):
             try:

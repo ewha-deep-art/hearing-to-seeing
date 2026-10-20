@@ -46,6 +46,10 @@ def stt(monkeypatch):
 
     monkeypatch.setattr(pipeline, "review_transcript", review)
     monkeypatch.setattr(pipeline, "upload_for_review", lambda path, seconds: f"uploaded {path}")
+    # The voice model is tested in test_voice.py.
+    monkeypatch.setattr(pipeline.voice, "available", lambda: False)
+    monkeypatch.setattr(pipeline.voice, "merge_labels", lambda *_: {})
+    monkeypatch.setattr(pipeline.voice, "reassign_utterances", lambda *_: 0)
     return seen
 
 
@@ -183,6 +187,7 @@ def fake_llm(monkeypatch):
         fake = FakeLLM(**answers)
         monkeypatch.setattr(pipeline.llm, "ask", fake)
         monkeypatch.setattr(pipeline.llm, "configured", lambda: True)
+        monkeypatch.setattr(pipeline, "work_in_title", lambda title: None)
         return fake
     return install
 
@@ -227,7 +232,7 @@ def test_assign_hues_places_everyone_when_the_circle_is_crowded():
 # --- lookup --------------------------------------------------------------------
 
 def test_lookup_characters_adds_a_hue_per_character(fake_llm, monkeypatch):
-    monkeypatch.setattr(pipeline, "retrieve", lambda title: f"<document>{title}</document>")
+    monkeypatch.setattr(pipeline, "retrieve", lambda title, hint=None: f"<document>{title}</document>")
     fake = fake_llm(
         title={"title": "기생충"},
         characters={"characters": [
@@ -239,6 +244,14 @@ def test_lookup_characters_adds_a_hue_per_character(fake_llm, monkeypatch):
     assert fake.asked == ["title", "characters"]
     assert hue_distance(cast[0]["hue"], 29) < 5
     assert cast[1]["hue"] is None  # grey: no preference
+
+
+def test_lookup_characters_skips_the_title_call_when_the_wiki_names_the_work(fake_llm, monkeypatch):
+    monkeypatch.setattr(pipeline, "retrieve", lambda title, hint=None: f"<document>{title}</document>")
+    fake = fake_llm(characters={"characters": [_character("기택", None)]})
+    monkeypatch.setattr(pipeline, "work_in_title", lambda title: "기생충")
+    assert lookup_characters("기생충 – 명장면 (1/5)")[0]["name"] == "기택"
+    assert fake.asked == ["characters"]
 
 
 def test_lookup_characters_needs_a_title_and_a_key(monkeypatch):
@@ -310,3 +323,49 @@ def test_failed_inference_falls_back_to_even_vivid_hues(fake_llm):
     profiles = assign_speaker_colors(transcript, [_character("기택", 30.0)])
     assert profiles == assign_speaker_colors(transcript)
     assert all(p["name"] is None for p in profiles.values())
+
+
+def test_the_review_starts_on_the_first_pass_while_the_rest_decode(monkeypatch, tmp_path, stt):
+    asked = threading.Event()
+    seen = {}
+
+    def decode(*_, on_first=None, **__):
+        on_first("first", "ko")
+        assert asked.wait(timeout=5), "the review waited for every pass"
+        return ["first", "second"], "ko"
+
+    def ask(results, characters, media_path, uploaded, words):
+        asked.set()
+        seen.update(asked=results, words=words, media_path=media_path, uploaded=uploaded)
+        return "answer"
+
+    def apply(answer, results, language):
+        seen["applied"] = (answer, results)
+        return Review(_transcript(), {})
+
+    monkeypatch.setattr(pipeline, "decode", decode)
+    monkeypatch.setattr(pipeline, "ask_review", ask)
+    monkeypatch.setattr(pipeline, "apply_review", apply)
+
+    pipeline.run("a.wav", str(tmp_path / "a.ass"), media_path="a.mp4")
+
+    assert seen == {"asked": ["first"], "words": False, "media_path": "a.mp4", "uploaded": "uploaded a.mp4",
+                    "applied": ("answer", ["first", "second"])}
+
+
+def test_the_first_pass_is_labelled_by_voice_before_the_review_sees_it(monkeypatch, tmp_path, stt):
+    order = []
+
+    def decode(*_, on_first=None, diarize=True, **__):
+        order.append(("server diarizes", diarize))
+        on_first({"pass": 1}, "ko")
+        return [{"pass": 1}, {"pass": 2}], "ko"
+
+    monkeypatch.setattr(pipeline.voice, "available", lambda: True)
+    monkeypatch.setattr(pipeline.voice, "diarize", lambda result, *_: order.append(("voice", result)))
+    monkeypatch.setattr(pipeline, "decode", decode)
+    monkeypatch.setattr(pipeline, "ask_review", lambda results, *_, **__: order.append(("review", results)))
+
+    pipeline.run("a.wav", str(tmp_path / "a.ass"), media_path="a.mp4")
+
+    assert order == [("server diarizes", False), ("voice", {"pass": 1}), ("review", [{"pass": 1}])]
