@@ -38,8 +38,7 @@ function item(id, video) {
   let status, bar = null;
   if (isPending(video.status)) {
     const transcribing = video.status === "transcribing";
-    status = `${statusLabel(video.status)} (${step + 1}/${STEPS.length})` +
-      (transcribing && video.duration ? ` · 약 ${Math.max(1, Math.round(video.duration / 60))}분 걸려요` : "");
+    status = `${statusLabel(video.status)} (${step + 1}/${STEPS.length})`;
     bar = el("div", { class: transcribing ? "tray-bar running" : "tray-bar" },
       el("span", { style: `width:${((step + 1) / STEPS.length) * 100}%` }));
   } else if (video.status === "ready") {

@@ -147,6 +147,14 @@ def test_speakers_are_numbered_in_label_order():
     assert all(s["color"].startswith("#") and len(s["color"]) == 7 for s in legend)
 
 
+def test_speakers_use_character_names_and_most_talk_first():
+    transcript = _transcript()
+    transcript.words.append(WordEntry("again and again", 9.0, 12.0, "SPEAKER_01"))
+    transcript.speaker_profiles = {"SPEAKER_01": {"color": "#E69F00", "name": "기택"}}
+    legend = subtitles.speakers(transcript)
+    assert [s["name"] for s in legend] == ["기택", "화자 1"]
+
+
 def test_cues_match_ass_dialogue_lines():
     transcript = _transcript()
     cues = subtitles.cues(transcript)

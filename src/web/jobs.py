@@ -176,7 +176,7 @@ class Library:
         if not duration or duration > self.max_duration:
             raise Rejected(f"{int(self.max_duration // 60)}분 이하 영상만 자막을 만들 수 있어요.")
         if info.get("playable_in_embed") is False:
-            raise Rejected("영상 제공자가 다른 사이트에서는 재생할 수 없도록 설정한 영상이라 자막을 만들 수 없어요.")
+            raise Rejected("영상 제공자가 유튜브 외의 사이트에서는 재생할 수 없도록 설정한 영상이라 자막을 만들 수 없어요.")
 
     # --- processing ------------------------------------------------------
 

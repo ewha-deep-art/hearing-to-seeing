@@ -16,8 +16,10 @@ const SUBTITLE_FONT_NAME = "KoPubDotum Bold";
 const SUBTITLE_FONT = "/api/subtitle-font";
 // The ASS PlayRes (converter/ass.py); the stage is always this shape.
 const FRAME = { width: 1920, height: 1080 };
-const SUB_MODES = ["kinetic", "plain"];
-const SUB_MODE_LABELS = { kinetic: "키네틱 자막", plain: "일반 자막" };
+const SUB_MODES = ["kinetic", "plain", "off"];
+const SUB_MODE_LABELS = { kinetic: "키네틱 자막", plain: "일반 자막", off: "자막 끔" };
+// Subtitle size: the canvas scales about the lines' bottom-centre anchor (app.css).
+const SUB_SCALES = [0.75, 1, 1.25, 1.5];
 
 const videoId = location.pathname.split("/").pop();
 const searchQuery = (new URLSearchParams(location.search).get("q") ?? "").trim();
@@ -72,6 +74,9 @@ class YouTubeMedia extends EventTarget {
             resolve(this);
           },
           onStateChange: (e) => this._onState(e.data),
+          // Fires when a module (captions among them) finishes loading — often
+          // after PLAYING, which is why hiding there alone stopped working.
+          onApiChange: () => this._hideCaptions(),
           onError: (e) => { this.error = e.data; this._emit("error"); },
         },
       });
@@ -84,6 +89,7 @@ class YouTubeMedia extends EventTarget {
   // cc_load_policy alone doesn't stop them: a viewer's account setting or an
   // auto track turns them back on, and they reload once playback starts.
   _hideCaptions() {
+    this.player.setOption?.("captions", "track", {});
     for (const module of ["captions", "cc"]) this.player.unloadModule?.(module);
   }
 
@@ -169,7 +175,7 @@ class YouTubeMedia extends EventTarget {
 // (developers.google.com/youtube/iframe_api_reference#onError); the code
 // itself only goes to the console.
 const GONE = "YouTube에서 영상이 삭제되었거나 비공개로 바뀌었어요.";
-const BLOCKED = "영상 제공자가 다른 사이트에서는 재생할 수 없도록 설정했어요.";
+const BLOCKED = "영상 제공자가 유튜브 외의 사이트에서는 재생할 수 없도록 설정했어요.";
 const YOUTUBE_ERRORS = { 2: GONE, 100: GONE, 101: BLOCKED, 150: BLOCKED };
 const PLAYBACK_FAILED = "영상을 재생하지 못했어요. 새로고침해 주세요.";
 
@@ -225,8 +231,7 @@ function showProgress(meta) {
 
 async function setup(meta) {
   const colors = Object.fromEntries(meta.speakers.map((s) => [s.label, s]));
-  $("legend").replaceChildren(...meta.speakers.map((s) =>
-    el("span", { class: "chip" }, el("span", { class: "swatch", style: `background:${s.color}` }), s.name)));
+  setupLegend(meta.speakers);
 
   const parts = [meta.channel || "YouTube", meta.genre];
   if (meta.duration) parts.push(formatTime(meta.duration));
@@ -274,12 +279,35 @@ async function setup(meta) {
   syncScript();
 }
 
+// Speakers arrive most talk first; past LEGEND_SHOWN the rest fold into "외 n명".
+const LEGEND_SHOWN = 6;
+
+function setupLegend(speakers) {
+  const chips = speakers.map((s) =>
+    el("span", { class: "chip" }, el("span", { class: "swatch", style: `background:${s.color}` }), s.name));
+  const hidden = chips.length - LEGEND_SHOWN;
+  if (hidden <= 1) return $("legend").replaceChildren(...chips);
+  const more = el("button", {
+    class: "chip chip-more", type: "button", "aria-expanded": "false",
+    onclick: () => {
+      const open = more.getAttribute("aria-expanded") !== "true";
+      more.setAttribute("aria-expanded", open);
+      more.textContent = open ? "접기" : `외 ${hidden}명`;
+      for (const chip of chips.slice(LEGEND_SHOWN)) chip.hidden = !open;
+    },
+  }, `외 ${hidden}명`);
+  for (const chip of chips.slice(LEGEND_SHOWN)) chip.hidden = true;
+  $("legend").replaceChildren(...chips, more);
+}
+
 // --- subtitles (JASSUB) ------------------------------------------------------
 
 let jassub = null;
 let loadedTrack = null; // "kinetic" | "plain": the track JASSUB currently holds
 let subMode = "kinetic";
 try { subMode = SUB_MODES.includes(localStorage.subMode) ? localStorage.subMode : "kinetic"; } catch {}
+let subScale = 1;
+try { subScale = SUB_SCALES.includes(Number(localStorage.subScale)) ? Number(localStorage.subScale) : 1; } catch {}
 
 const trackUrl = (mode) =>
   new URL(`/api/videos/${videoId}/files/${mode === "plain" ? "plain" : "ass"}`, location.href).href;
@@ -322,13 +350,14 @@ async function setupSubtitles() {
     toast("자막을 불러오지 못했어요. 새로고침해 주세요.");
   }
   applySubMode(false);
+  applySubScale(false);
 }
 
 async function setSubMode(mode) {
   subMode = mode;
   try { localStorage.subMode = mode; } catch {}
   applySubMode(true);
-  if (jassub && mode !== loadedTrack) {
+  if (jassub && mode !== "off" && mode !== loadedTrack) {
     loadedTrack = mode;
     await jassub.ready;
     await jassub.renderer.setTrackByUrl(trackUrl(mode));
@@ -338,7 +367,22 @@ async function setSubMode(mode) {
 
 function applySubMode(announce) {
   for (const b of document.querySelectorAll("#sub-mode button")) b.setAttribute("aria-pressed", b.dataset.mode === subMode);
+  $("subs").hidden = subMode === "off";
   if (announce) toast(SUB_MODE_LABELS[subMode]);
+}
+
+function stepSubScale(step) {
+  const i = Math.min(Math.max(SUB_SCALES.indexOf(subScale) + step, 0), SUB_SCALES.length - 1);
+  subScale = SUB_SCALES[i];
+  try { localStorage.subScale = subScale; } catch {}
+  applySubScale(true);
+}
+
+function applySubScale(announce) {
+  $("subs").style.setProperty("--sub-scale", subScale);
+  $("sub-smaller").disabled = subScale === SUB_SCALES[0];
+  $("sub-larger").disabled = subScale === SUB_SCALES.at(-1);
+  if (announce) toast(`자막 크기 ${Math.round(subScale * 100)}%`);
 }
 
 // --- script panel -------------------------------------------------------------
@@ -435,6 +479,8 @@ function setupControls() {
   volume.oninput = () => { media.volume = Number(volume.value); media.muted = media.volume === 0; };
   fsBtn.onclick = () => toggleFullscreen();
   for (const b of document.querySelectorAll("#sub-mode button")) b.onclick = () => setSubMode(b.dataset.mode);
+  $("sub-smaller").onclick = () => stepSubScale(-1);
+  $("sub-larger").onclick = () => stepSubScale(1);
 
   for (const ev of ["play", "pause", "ended"]) media.addEventListener(ev, syncPlay);
   media.addEventListener("volumechange", syncVolume);
@@ -483,6 +529,8 @@ function setupControls() {
       f: toggleFullscreen,
       m: () => { media.muted = !media.muted; },
       c: () => setSubMode(SUB_MODES[(SUB_MODES.indexOf(subMode) + 1) % SUB_MODES.length]),
+      "-": () => stepSubScale(-1),
+      "=": () => stepSubScale(1), "+": () => stepSubScale(1),
     };
     const action = actions[e.key.length === 1 ? e.key.toLowerCase() : e.key];
     if (!action) return;

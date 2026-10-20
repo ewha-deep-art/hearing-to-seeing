@@ -127,7 +127,7 @@ function showQuota() {
   if (!quota) return;
   const left = Math.max(quota.limit - quota.used, 0);
   $("quota-note").textContent = left
-    ? `${Math.floor(quota.max_duration / 60)}분 이하 영상만 만들 수 있어요 · 오늘 ${left}건 더 만들 수 있어요`
+    ? `${Math.floor(quota.max_duration / 60)}분 이하 영상만 만들 수 있어요`
     : "오늘은 더 만들 수 없어요. 내일 다시 요청해 주세요.";
   submit.disabled = left === 0;
 }
