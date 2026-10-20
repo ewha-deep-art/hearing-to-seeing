@@ -1,6 +1,6 @@
 """The worker: converts the clips the web server queues, one at a time.
 
-Run with `uv run hearing-to-seeing-worker` on a machine with a residential
+Run with `docker compose up -d` on a machine with a residential
 connection (YouTube turns away most data-centre addresses). A clip's directory
 under the library root holds its downloaded source and audio only while it is
 processed.

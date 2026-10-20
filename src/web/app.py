@@ -1,6 +1,6 @@
 """HTTP layer: the catalogue and watch pages plus the JSON API behind them.
 
-Run with `uv run hearing-to-seeing-web`, alongside `uv run hearing-to-seeing-worker`
+Run with `docker compose --profile web up web`, alongside the `worker` service
 (which converts the clips this queues). On Vercel, `index.py` serves it.
 """
 

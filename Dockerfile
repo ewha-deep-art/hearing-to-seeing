@@ -1,6 +1,6 @@
-# The worker (`hearing-to-seeing-worker`): converts the clips the web app on
-# Vercel queues. Runs as an unprivileged user with no host files mounted.
-# Started with compose.yaml.
+# One image for everything, started with compose.yaml: the worker by default
+# (converts the clips the web app on Vercel queues), and the `web` and `cli`
+# services. Runs as an unprivileged user.
 FROM python:3.12-slim-trixie
 
 # ffmpeg for the audio; node for yt-dlp's YouTube challenge solver.
@@ -18,6 +18,7 @@ COPY --chown=worker pyproject.toml uv.lock README.md ./
 RUN uv sync --locked --no-dev --extra pipeline --no-install-project
 COPY --chown=worker src ./src
 RUN uv sync --locked --no-dev --extra pipeline
+ENV PATH=/home/worker/app/.venv/bin:$PATH
 
 # Below the STT server sharing the machine.
-CMD ["nice", "-n", "10", ".venv/bin/hearing-to-seeing-worker"]
+CMD ["nice", "-n", "10", "python", "-m", "worker.convert"]
