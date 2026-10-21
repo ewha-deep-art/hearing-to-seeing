@@ -1,5 +1,7 @@
 import numpy as np
 
+from hearing_to_seeing.schema import WordEntry
+
 from hearing_to_seeing.design.volume import (
     LOUD_SCALE_MAX,
     LOUD_SCALE_MIN,
@@ -14,6 +16,7 @@ from hearing_to_seeing.design.volume import (
     loud_tags,
     narrow_tag,
     normalize,
+    relative_volumes,
     whisper_lift,
     whisper_phases,
     whisper_return_tags,
@@ -82,3 +85,30 @@ def test_whisper_shrinks_holds_and_returns_within_its_spoken_time():
 
 def test_whisper_is_lifted_to_mid_row():
     assert whisper_lift(0.0, 100) == round(100 * (1 - WHISPER_SCALE_MIN / 100) * WHISPER_V_CENTER)
+
+
+def _words(volumes, speaker="S0"):
+    return [WordEntry(text="a", start=i, end=i + 0.5, speaker=speaker, volume=v)
+            for i, v in enumerate(volumes)]
+
+
+def test_relative_volumes_centre_each_speaker_on_their_median():
+    # S0 speaks quietly overall, S1 loudly: each one's own median becomes 0.5,
+    # and only their own outliers reach loud / whisper.
+    quiet = _words([0.1] * 12 + [0.5, 0.0], speaker="S0")
+    loud = _words([0.8] * 12 + [1.0, 0.6], speaker="S1")
+    rel = {(w.speaker, w.start): w.volume for w in relative_volumes(quiet + loud)}
+    assert rel[("S0", 0)] == rel[("S1", 0)] == 0.5
+    assert classify_volume(rel[("S0", 12)]) == classify_volume(rel[("S1", 12)]) == "loud"
+    assert classify_volume(rel[("S0", 13)]) == classify_volume(rel[("S1", 13)]) == "whisper"
+    assert quiet[0].volume == 0.1  # the words themselves are untouched
+
+
+def test_relative_volumes_leave_a_speaker_without_a_baseline_normal():
+    few = _words([1.0, 0.0, 0.5])
+    assert [w.volume for w in relative_volumes(few)] == [0.5, 0.5, 0.5]
+
+
+def test_relative_volumes_treat_an_unmeasured_word_as_normal():
+    words = _words([0.1] * 12 + [None])
+    assert relative_volumes(words)[-1].volume == 0.5

@@ -13,6 +13,7 @@ A, B = np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0])
 def voices(monkeypatch):
     """Whose voice each second of audio is: {second: print}, the rest A."""
     table: dict[int, np.ndarray] = {}
+    monkeypatch.setattr(voice, "_session", lambda: None)  # no model (or onnxruntime) needed
     monkeypatch.setattr(voice, "_embed", lambda samples, start, end: table.get(int(start), A))
     return table
 

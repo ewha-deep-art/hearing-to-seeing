@@ -11,12 +11,25 @@ from hearing_to_seeing.converter.ass import (
     subtitle_events,
 )
 from hearing_to_seeing.design.layout import FONT_NAME
-from hearing_to_seeing.design.volume import loud_scale, whisper_scale
+from hearing_to_seeing.design.volume import QUIET_ALPHA, loud_scale, whisper_scale
 from hearing_to_seeing.schema import Transcript, WordEntry
 
 
 def _word(text, start, end, speaker="SPEAKER_00", volume=0.5):
     return WordEntry(text=text, start=start, end=end, speaker=speaker, volume=volume)
+
+
+# Volume effects are relative to the speaker (volume.relative_volumes), and a
+# speaker with too few words has no baseline, so every word stays normal. These
+# ordinary words, said well after the line under test, give SPEAKER_00 one.
+_BASELINE_START = 10.0
+_BASELINE = [_word("음" if i < 11 else "음.", _BASELINE_START + 0.3 * i, _BASELINE_START + 0.3 * i + 0.2)
+             for i in range(12)]
+
+
+def _first_line(lines):
+    """The Dialogue events of the line under test (before the baseline words)."""
+    return [line for line in lines if not line.split(",")[1].startswith("0:00:1")]
 
 
 def testsplit_into_lines_keeps_short_line_together():
@@ -150,8 +163,9 @@ def test_generate_ass_draws_box_fill_and_pop_layers():
         _word("크게", 0.0, 0.4, volume=1.0),
         _word("작게", 0.4, 0.8, volume=0.0),
         _word("보통.", 0.8, 1.2, volume=0.5),
+        *_BASELINE,
     ])
-    lines = _dialogues(generate_ass(transcript))
+    lines = _first_line(_dialogues(generate_ass(transcript)))
     styles = [line.split(",")[3] for line in lines]
     assert styles[:2] == ["Box", "Fill"]
     pops = [line for line in lines if ",Pop," in line]
@@ -179,8 +193,10 @@ def test_generate_ass_draws_every_style_in_the_bundled_font():
 
 
 def test_whispered_word_keeps_its_full_width_and_shrinks_then_returns():
-    transcript = Transcript(words=[_word("작게", 0.0, 0.4, volume=0.0), _word("말해.", 0.4, 0.8)])
-    lines = _dialogues(generate_ass(transcript))
+    transcript = Transcript(words=[
+        _word("작게", 0.0, 0.4, volume=0.0), _word("말해.", 0.4, 0.8), *_BASELINE,
+    ])
+    lines = _first_line(_dialogues(generate_ass(transcript)))
     box, fill = lines[0], lines[1]
     assert box.endswith(",작게{\\fscx92} {\\fscx100}말해")  # no narrowing: the box keeps its size
     assert "\\t(0,1,\\alpha&HFF&)}작게" in fill               # white until said, then handed over
@@ -188,6 +204,8 @@ def test_whispered_word_keeps_its_full_width_and_shrinks_then_returns():
     scale = whisper_scale(0.0)
     assert f"\\t(0,80,\\fscx{scale}\\fscy{scale})" in shrink
     assert f"\\fscx{scale}\\fscy{scale}\\t(0,80,\\fscx100\\fscy100)" in restore
+    dim = f"\\alpha&H{QUIET_ALPHA:02X}&"
+    assert f"\\t(0,80,{dim})" in shrink and dim in restore    # dimmed as it shrinks, and stays dimmed
     assert shrink.split(",")[2] == restore.split(",")[1]       # the return picks up where the shrink ends
 
 
