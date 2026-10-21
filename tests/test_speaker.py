@@ -1,4 +1,4 @@
-from hearing_to_seeing.design.speaker import BASE_COLOUR, hex_to_ass, speaker_colors
+from hearing_to_seeing.design.speaker import BASE_COLOUR, FALLBACK_PALETTE, hex_to_ass, speaker_colors
 from hearing_to_seeing.schema import Transcript, WordEntry
 
 
@@ -22,4 +22,18 @@ def test_hex_to_ass_passes_ass_through_and_drops_junk():
 def test_speaker_colors_reads_the_profiles():
     transcript = _transcript("SPEAKER_00", "SPEAKER_01")
     transcript.speaker_profiles = {"SPEAKER_00": {"color": "#563412", "name": "기택"}}
-    assert speaker_colors(transcript) == {"SPEAKER_00": "&H00123456", "SPEAKER_01": BASE_COLOUR}
+    assert speaker_colors(transcript)["SPEAKER_00"] == "&H00123456"
+
+
+def test_speaker_without_a_colour_gets_one_from_the_fallback_palette():
+    # White would be wiped white -> white, so a missing or white colour is replaced.
+    transcript = _transcript("SPEAKER_00", "SPEAKER_01", "SPEAKER_02")
+    transcript.speaker_profiles = {
+        "SPEAKER_00": {"color": "#563412"},
+        "SPEAKER_01": {"color": "#FFFFFF"},
+    }
+    assert speaker_colors(transcript) == {
+        "SPEAKER_00": "&H00123456",
+        "SPEAKER_01": hex_to_ass(FALLBACK_PALETTE[0]),
+        "SPEAKER_02": hex_to_ass(FALLBACK_PALETTE[1]),
+    }

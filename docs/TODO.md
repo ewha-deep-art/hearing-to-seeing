@@ -17,8 +17,8 @@
 
 | # | 파일 | 설명 | 기획서 참조 |
 |---|------|------|------------|
-| 2 | [volume.py](../src/hearing_to_seeing/design/volume.py) | **`BASE_FONT_SIZE`(64, [layout.py](../src/hearing_to_seeing/design/layout.py))·분류 임계값 미확정.** 기본 글자 크기는 고정이고, 정규화 음량을 `LOUD_THRESHOLD`(0.7)/`QUIET_THRESHOLD`(0.3)로 loud/whisper/normal 세 단계로 나눠 loud=확대 후 복귀, whisper=작게 고정으로 표현함. 글자 크기와 임계값 모두 접근성 표준·사용자 검증에 근거하지 않은 값. | 기획서 §다음 논의 필요 사항 (표준 자막 크기 기준 조사) |
-| 3 | [volume.py](../src/hearing_to_seeing/design/volume.py) | **전체 min-max 정규화 + 고정 임계값 조합이 한쪽으로 쏠림.** 튀는 단어 하나가 최댓값을 차지하면 나머지가 모두 낮게 눌림 — 실제 라이브러리 영상(검사외전 클립)에서 443단어 중 434개가 whisper로 분류됨(정규화 음량 중앙값 0.12). 백분위 기반 정규화, 장면별/화자별 정규화 등 검토 필요. | 기획서 §4 (크기 — 음량 강조) |
+| 2 | [volume.py](../src/hearing_to_seeing/design/volume.py) | **`BASE_FONT_SIZE`(64, [layout.py](../src/hearing_to_seeing/design/layout.py))·분류 임계값 미확정.** 기본 글자 크기는 고정이고, 화자 기준 음량을 `LOUD_THRESHOLD`(0.9)/`QUIET_THRESHOLD`(0.1)로 loud/whisper/normal 세 단계로 나눠 loud=확대 후 복귀, whisper=작게 고정으로 표현함. 글자 크기와 임계값 모두 접근성 표준·사용자 검증에 근거하지 않은 값. | 기획서 §다음 논의 필요 사항 (표준 자막 크기 기준 조사) |
+| 3 | [volume.py](../src/hearing_to_seeing/design/volume.py) | **전체 min-max 정규화 + 고정 임계값 조합이 한쪽으로 쏠림.** 튀는 단어 하나가 최댓값을 차지하면 나머지가 모두 낮게 눌림 — 실제 라이브러리 영상(검사외전 클립)에서 443단어 중 434개가 whisper로 분류됨(정규화 음량 중앙값 0.12). **임시 대응:** ASS 변환 직전 `relative_volumes`가 저장된 음량을 화자별 백분위(중앙값 0.5, 5·95 백분위 0·1)로 다시 잡아 분류함. 근본 해결은 `annotate_volumes`에서 원시 RMS로 화자별 dB z-score를 구하는 것 — 장면별 정규화와 함께 검토 필요. | 기획서 §4 (크기 — 음량 강조) |
 
 ---
 
