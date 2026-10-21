@@ -7,24 +7,29 @@ full size. The font size itself never changes (layout.BASE_FONT_SIZE) — only
 this scale on top of it.
 """
 
+from dataclasses import replace
+
 import numpy as np
 
 from hearing_to_seeing.schema import Transcript
 
-# Normalised volume (0–1) at or above which a word counts as shouted, and at or
-# below which it counts as whispered.
+# Speaker-relative volume (0–1, see relative_volumes: 0.5 = that speaker's median)
+# at or above which a word counts as shouted, and at or below which as whispered.
 # TODO: 임계값 0.7/0.3은 경험값 — 실제 영상으로 분류 결과를 확인한 뒤 조정 필요.
-LOUD_THRESHOLD = 0.7
-QUIET_THRESHOLD = 0.3
+LOUD_THRESHOLD = 0.9
+QUIET_THRESHOLD = 0.1
 
 # Peak size (percent) is interpolated from the word's volume:
 #   loud    : volume LOUD_THRESHOLD → LOUD_SCALE_MIN, volume 1.0 → LOUD_SCALE_MAX
 #   whisper : volume 0.0 → WHISPER_SCALE_MIN, volume QUIET_THRESHOLD → WHISPER_SCALE_MAX
 #             (reached as the word is said, held, then back to 100%)
-LOUD_SCALE_MIN = 120
-LOUD_SCALE_MAX = 160
-WHISPER_SCALE_MIN = 65
-WHISPER_SCALE_MAX = 80
+LOUD_SCALE_MIN = 106
+LOUD_SCALE_MAX = 118
+WHISPER_SCALE_MIN = 86
+WHISPER_SCALE_MAX = 92
+
+# Extra transparency of a whispered word (ASS alpha, 0x30 = 19 % transparent).
+QUIET_ALPHA = 0x30
 
 # A whispered word is shrunk in both directions. Laid out by libass it would sit
 # on the baseline; raising it by this share of the height it lost
@@ -63,13 +68,59 @@ def normalize(values: list[float]) -> list[float]:
     return [(v - lo) / (hi - lo) for v in values]
 
 
-def classify_volume(volume: float) -> str:
+def classify_volume(
+    volume: float, loud_thr: float = LOUD_THRESHOLD, quiet_thr: float = QUIET_THRESHOLD,
+) -> str:
     """Sorts a normalised volume (0–1) into "loud", "whisper" or "normal"."""
-    if volume >= LOUD_THRESHOLD:
+    if volume >= loud_thr:
         return "loud"
-    if volume <= QUIET_THRESHOLD:
+    if volume <= quiet_thr:
         return "whisper"
     return "normal"
+
+
+def relative_volumes(words, min_words: int = 12, lo_pct: float = 5, hi_pct: float = 95):
+    """Copies of `words` with `volume` re-expressed relative to each speaker.
+
+    The stored volume is min-max normalised over the whole video, so one very
+    loud word squeezes everything else towards 0 (in the sample, 48 % of the
+    words were "whispers" at the 0.3 threshold). Here each speaker's own
+    median becomes 0.5 and their 5th / 95th percentile become 0 / 1, so only a
+    word that stands out *for that speaker* is loud or quiet. A speaker with
+    fewer than `min_words` words has no reliable baseline and stays at 0.5.
+
+    A proper fix belongs in `annotate_volumes` (per-speaker dB z-score from the
+    raw RMS); this works on the volumes already stored in the JSON.
+    """
+    by_speaker: dict[str, list[float]] = {}
+    missing = 0
+    for w in words:
+        if w.volume is None:  # never measured (e.g. no audio for this word)
+            missing += 1
+            continue
+        by_speaker.setdefault(w.speaker, []).append(w.volume)
+    if missing:
+        print(f"[volume] {missing} of {len(words)} words have no volume; they are drawn without volume effects")
+    stats = {}
+    for spk, vols in by_speaker.items():
+        if len(vols) < min_words:
+            stats[spk] = None
+            continue
+        stats[spk] = (
+            float(np.percentile(vols, lo_pct)), float(np.median(vols)),
+            float(np.percentile(vols, hi_pct)),
+        )
+
+    def rel(w):
+        st = stats.get(w.speaker)
+        if st is None or w.volume is None:
+            return 0.5
+        lo, med, hi = st
+        if w.volume >= med:
+            return 0.5 + 0.5 * min(1.0, (w.volume - med) / (hi - med)) if hi > med else 0.5
+        return 0.5 - 0.5 * min(1.0, (med - w.volume) / (med - lo)) if med > lo else 0.5
+
+    return [replace(w, volume=round(rel(w), 4)) for w in words]
 
 
 def annotate_volumes(
@@ -95,16 +146,22 @@ def _clamp01(x: float) -> float:
     return max(0.0, min(1.0, x))
 
 
-def loud_scale(volume: float) -> int:
+def loud_scale(
+    volume: float, lo: int = LOUD_SCALE_MIN, hi: int = LOUD_SCALE_MAX,
+    thr: float = LOUD_THRESHOLD,
+) -> int:
     """Peak size (percent) of a shouted word: louder is bigger."""
-    t = _clamp01((volume - LOUD_THRESHOLD) / (1.0 - LOUD_THRESHOLD))
-    return round(LOUD_SCALE_MIN + (LOUD_SCALE_MAX - LOUD_SCALE_MIN) * t)
+    t = _clamp01((volume - thr) / (1.0 - thr))
+    return round(lo + (hi - lo) * t)
 
 
-def whisper_scale(volume: float) -> int:
+def whisper_scale(
+    volume: float, lo: int = WHISPER_SCALE_MIN, hi: int = WHISPER_SCALE_MAX,
+    thr: float = QUIET_THRESHOLD,
+) -> int:
     """Size (percent) of a whispered word: quieter is smaller."""
-    t = _clamp01(volume / QUIET_THRESHOLD)
-    return round(WHISPER_SCALE_MIN + (WHISPER_SCALE_MAX - WHISPER_SCALE_MIN) * t)
+    t = _clamp01(volume / thr)
+    return round(lo + (hi - lo) * t)
 
 
 def width_scale(volume: float) -> float:
@@ -134,12 +191,12 @@ def _transition_ms(duration_ms: int, ratio: float) -> int:
     return max(1, min(wanted, round(duration_ms * SCALE_MAX_TRANSITION_SHARE)))
 
 
-def loud_tags(volume: float, spoken_seconds: float) -> str:
+def loud_tags(volume: float, spoken_seconds: float, scale: int | None = None) -> str:
     """Grow to `loud_scale` → hold → back to 100%, all within `spoken_seconds`.
 
     `\\t` times count from the event start, which is when the word is said.
     """
-    scale = loud_scale(volume)
+    scale = loud_scale(volume) if scale is None else scale
     duration_ms = max(3, round(spoken_seconds * 1000))
     in_ms = _transition_ms(duration_ms, SCALE_IN_RATIO)
     back_start = duration_ms - _transition_ms(duration_ms, SCALE_OUT_RATIO)
@@ -162,7 +219,7 @@ def whisper_phases(spoken_seconds: float) -> tuple[int, int, int]:
     return in_ms, duration_ms - out_ms, out_ms
 
 
-def whisper_tags(volume: float, spoken_seconds: float) -> str:
+def whisper_tags(volume: float, spoken_seconds: float, scale: int | None = None) -> str:
     """First part of a whispered word: shrink to `whisper_scale`, then hold.
 
     `\\t` times count from the event start, which is when the word is said. The
@@ -170,18 +227,19 @@ def whisper_tags(volume: float, spoken_seconds: float) -> str:
     `\\move`, and the word has to be lifted while it shrinks and lowered again
     while it returns.
     """
-    scale = whisper_scale(volume)
+    scale = whisper_scale(volume) if scale is None else scale
     in_ms = whisper_phases(spoken_seconds)[0]
     return f"\\t(0,{in_ms},\\fscx{scale}\\fscy{scale})"
 
 
-def whisper_return_tags(volume: float, spoken_seconds: float) -> str:
+def whisper_return_tags(volume: float, spoken_seconds: float, scale: int | None = None) -> str:
     """Second part: start at `whisper_scale`, return to 100%, stay there."""
-    scale = whisper_scale(volume)
+    scale = whisper_scale(volume) if scale is None else scale
     out_ms = whisper_phases(spoken_seconds)[2]
     return f"\\fscx{scale}\\fscy{scale}\\t(0,{out_ms},\\fscx100\\fscy100)"
 
 
-def whisper_lift(volume: float, font_size: float) -> int:
+def whisper_lift(volume: float, font_size: float, scale: int | None = None) -> int:
     """Pixels to raise a whispered word so it sits mid-row, not on the baseline."""
-    return round(font_size * (1 - whisper_scale(volume) / 100) * WHISPER_V_CENTER)
+    scale = whisper_scale(volume) if scale is None else scale
+    return round(font_size * (1 - scale / 100) * WHISPER_V_CENTER)
