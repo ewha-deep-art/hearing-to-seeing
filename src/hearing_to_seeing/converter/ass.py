@@ -18,6 +18,8 @@ from hearing_to_seeing.design.sync import (
 from hearing_to_seeing.design.volume import (
     classify_volume,
     loud_tags,
+    relative_volumes,
+    QUIET_ALPHA,
     narrow_tag,
     whisper_lift,
     whisper_phases,
@@ -262,6 +264,11 @@ def _box_text(
     return "".join(_separator(words, i, break_at) + _narrowed(w) for i, w in enumerate(words))
 
 
+def _kind(word: WordEntry) -> str:
+    """"loud" / "whisper" / "normal"; a word with no measured volume is normal."""
+    return "normal" if word.volume is None else classify_volume(word.volume)
+
+
 def _fill_text(words: list[WordEntry], break_at: int | None) -> str:
     """Layer 1: white before a word is said, hidden from the moment it is.
 
@@ -283,7 +290,7 @@ def _fill_text(words: list[WordEntry], break_at: int | None) -> str:
     parts = []
     for i, word in enumerate(words):
         parts.append(_separator(words, i, break_at))
-        if classify_volume(word.volume) == "normal":
+        if _kind(word) == "normal":
             for ch, at in zip(word.text, wave_hand_over_ms(word, line_start)):
                 parts.append(f"{{{head}{hide_tag(at)}}}{ch}")
         else:  # loud and whisper: the whole word is handed over when it is said
@@ -371,7 +378,7 @@ def _pop_events(
     is said and never shows it again.
     """
     word = words[index]
-    kind = classify_volume(word.volume)
+    kind = _kind(word)
     if kind == "normal":
         return _wave_events(words, break_at, index, color, line_end)
 
@@ -392,13 +399,16 @@ def _pop_events(
         # The wipe has to be finished when the second event takes over (it
         # cannot be resumed half way), so it runs until the return starts.
         lead, sweep = wipe_tags(word.start, word.start, back_at)
+        # Quiet words are also dimmed (QUIET_ALPHA); the dimming stays after the
+        # size has returned.
+        dim = f"\\alpha&H{QUIET_ALPHA:02X}&"
         shrink = _word_event_text(
             words, break_at, index, head_in,
-            f"\\c{color}{whisper_tags(word.volume, spoken)}", lead, sweep,
+            f"\\c{color}{whisper_tags(word.volume, spoken)}\\t(0,{in_ms},{dim})", lead, sweep,
         )
         restore = _word_event_text(
             words, break_at, index, head_out,
-            f"\\c{color}{whisper_return_tags(word.volume, spoken)}", "", "",
+            f"\\c{color}{dim}{whisper_return_tags(word.volume, spoken)}", "", "",
         )
         return [(word.start, back_at, shrink), (back_at, end, restore)]
 
@@ -420,7 +430,7 @@ def subtitle_events(
     """One `(words, start, end, karaoke centiseconds)` entry per on-screen subtitle."""
     groups = [
         [w for w in map(_display_word, g) if w.text]
-        for g in split_into_lines(transcript.words)
+        for g in split_into_lines(relative_volumes(transcript.words))
     ]
     groups = [g for g in groups if g]
     events = []
@@ -462,15 +472,18 @@ def generate_ass(transcript: Transcript) -> str:
     return "\n".join(lines) + "\n"
 
 
-def generate_plain_ass(transcript: Transcript) -> str:
+def generate_plain_ass(transcript: Transcript, font: str | None = None) -> str:
     """The same subtitles as `generate_ass` in plain white at one size.
 
     A baseline for comparison: identical line breaks and timing, with the
     speaker colour, box, fill and volume motion left out.
     """
-    lines = [_HEADER]
+    header = _HEADER
+    if font:
+        header = header.replace(f"Style: Default,{FONT_NAME},", f"Style: Default,{font},", 1)
+    lines = [header]
     for group, start, end, _ in subtitle_events(transcript):
-        text = _box_text(group, _row_break_index(group))
+        text = _box_text(group, _row_break_index(group)).replace("...", "\u2026")
         lines.append(_dialogue(start, end, group[0].speaker, text))
     return "\n".join(lines) + "\n"
 

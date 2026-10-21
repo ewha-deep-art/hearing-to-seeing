@@ -22,7 +22,7 @@ from hearing_to_seeing.schema import WordEntry
 # keeps such a word from animating (or hiding its fill) for tens of seconds.
 MAX_TRAILING_HOLD = 2.0
 
-WAVE_RISE_PX = round(18 * BASE_FONT_SIZE / 44)  # how far each character lifts (18 px at size 44)
+WAVE_RISE_PX = round(BASE_FONT_SIZE * 0.08)  # how far each character lifts (8 % of the font size)
 
 # Each character of a waved word gets an equal share ("slot") of the time the
 # word is spoken, and starts rising when its slot starts. A rise + fall lasts
@@ -159,13 +159,13 @@ def wave_chars(word: WordEntry) -> list[WaveChar]:
     return chars
 
 
-def rise_move(anchor: tuple[int, int], ms: int) -> str:
-    """`\\move` that lifts an event anchored at `anchor` by WAVE_RISE_PX."""
+def rise_move(anchor: tuple[int, int], ms: int, rise_px: int = WAVE_RISE_PX) -> str:
+    """`\\move` that lifts an event anchored at `anchor` by `rise_px`."""
     x, y = anchor
-    return f"\\move({x},{y},{x},{y - WAVE_RISE_PX},0,{ms})"
+    return f"\\move({x},{y},{x},{y - rise_px},0,{ms})"
 
 
-def fall_move(anchor: tuple[int, int], ms: int) -> str:
+def fall_move(anchor: tuple[int, int], ms: int, rise_px: int = WAVE_RISE_PX) -> str:
     """`\\move` that lands a lifted event back on `anchor` (and stays there)."""
     x, y = anchor
-    return f"\\move({x},{y - WAVE_RISE_PX},{x},{y},0,{ms})"
+    return f"\\move({x},{y - rise_px},{x},{y},0,{ms})"
