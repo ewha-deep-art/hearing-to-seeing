@@ -1,8 +1,11 @@
+import pytest
+
 from hearing_to_seeing.converter.ass import (
     MAX_DURATION,
     MAX_GAP,
     MAX_WIDTH,
     ROW_WIDTH,
+    Effects,
     _merge_unterminated_lines,
     _row_break_index,
     generate_ass,
@@ -11,6 +14,7 @@ from hearing_to_seeing.converter.ass import (
     subtitle_events,
 )
 from hearing_to_seeing.design.layout import FONT_NAME
+from hearing_to_seeing.design.speaker import HIGHLIGHT_COLOUR
 from hearing_to_seeing.design.volume import QUIET_ALPHA, loud_scale, whisper_scale
 from hearing_to_seeing.schema import Transcript, WordEntry
 
@@ -154,7 +158,8 @@ def test_plain_ass_matches_kinetic_timing_without_effects():
     for k, p in zip(kinetic, plain):
         k_fields, p_fields = k.split(",", 9), p.split(",", 9)
         assert k_fields[:3] + k_fields[4:9] == p_fields[:3] + p_fields[4:9]  # all but the style
-    assert plain[0].endswith(",hello world")
+    assert plain[0].endswith(",(인물 1) hello world")
+    assert plain[1].endswith(",(인물 2) bye")
     assert "{" not in "".join(plain)
 
 
@@ -198,7 +203,7 @@ def test_whispered_word_keeps_its_full_width_and_shrinks_then_returns():
     ])
     lines = _first_line(_dialogues(generate_ass(transcript)))
     box, fill = lines[0], lines[1]
-    assert box.endswith(",작게{\\fscx92} {\\fscx100}말해")  # no narrowing: the box keeps its size
+    assert box.endswith(",(인물 1) 작게{\\fscx92} {\\fscx100}말해")  # no narrowing: the box keeps its size
     assert "\\t(0,1,\\alpha&HFF&)}작게" in fill               # white until said, then handed over
     shrink, restore = [line for line in lines if ",Pop," in line][:2]  # the whisper's two events
     scale = whisper_scale(0.0)
@@ -225,3 +230,103 @@ def test_generate_ass_draws_no_full_stop():
     ass = generate_ass(Transcript(words=[_word("바뀌었습니다.", 0.0, 0.5)]))
     assert "바뀌었습니다." not in ass
     assert "바뀌었습니다" in ass
+
+
+def _effects_line(effects):
+    transcript = Transcript(
+        words=[
+            _word("크게", 0.0, 0.4, volume=1.0),
+            _word("작게", 0.4, 0.8, volume=0.0),
+            _word("보통.", 0.8, 1.2, volume=0.5),
+            *_BASELINE,
+        ],
+        speaker_profiles={"SPEAKER_00": {"color": "#563412"}},
+    )
+    return _first_line(_dialogues(generate_ass(transcript, effects)))
+
+
+def test_effects_from_off_turns_the_named_effects_off():
+    assert Effects.from_off("") == Effects()
+    assert Effects.from_off("wave, color") == Effects(wave=False, color=False)
+    with pytest.raises(ValueError, match="unknown effects"):
+        Effects.from_off("sparkle")
+
+
+def test_turning_motion_off_draws_those_words_still():
+    lines = _effects_line(Effects(wave=False, volume=False))
+    pops = [line for line in lines if ",Pop," in line]
+    assert len(pops) == 3                       # one still event per word
+    text = "".join(lines)
+    assert "\\move" not in text and "\\t(" not in "".join(pops)  # no motion, no growing or shrinking
+    assert f"\\alpha&H{QUIET_ALPHA:02X}&" not in text  # whispers are not dimmed either
+    assert all("\\pos(" in pop and "\\kf" in pop for pop in pops)  # still wiped in
+
+
+def test_wave_and_volume_turn_off_on_their_own():
+    no_wave = _effects_line(Effects(wave=False))
+    assert len([line for line in no_wave if ",Pop," in line]) == 1 + 2 + 1  # the waved word is still
+    no_volume = "".join(_effects_line(Effects(volume=False)))
+    assert f"\\fscx{loud_scale(1.0)}" not in no_volume and f"\\fscx{whisper_scale(0.0)}" not in no_volume
+    assert "\\move" in no_volume  # the normal word still waves
+
+
+def test_a_still_word_leaves_the_fill_layer_when_its_event_starts():
+    lines = _effects_line(Effects(wave=False))
+    fill = lines[1]
+    assert "\\t(800,801,\\alpha&HFF&)}보통" in fill  # handed over whole, at 0.8 s
+    still = [line for line in lines if ",Pop," in line][-1]
+    assert still.split(",")[1] == "0:00:00.80"
+
+
+def test_colour_off_draws_every_speaker_in_one_highlight():
+    pops = [line for line in _effects_line(Effects(color=False)) if ",Pop," in line]
+    assert "\\c&H00123456" not in "".join(pops)
+    assert all(f"\\c{HIGHLIGHT_COLOUR}" in pop for pop in pops[:3])  # loud, whisper x2
+
+
+def test_fill_off_shows_the_colour_at_once():
+    text = "".join(_effects_line(Effects(fill=False)))
+    assert "\\kf" not in text and "\\k" not in text.replace("\\kf", "")
+    assert "\\c&H00123456" in text
+
+
+def test_colour_and_fill_off_keep_words_white():
+    pops = [line for line in _effects_line(Effects(color=False, fill=False)) if ",Pop," in line]
+    assert HIGHLIGHT_COLOUR not in "".join(pops)
+
+
+def _talk():
+    return Transcript(
+        words=[
+            _word("hi.", 0.0, 0.4, speaker="SPEAKER_01"),
+            _word("again.", 0.5, 0.9, speaker="SPEAKER_01"),
+            _word("bye.", 1.0, 1.3, speaker="SPEAKER_00"),
+        ],
+        speaker_profiles={"SPEAKER_01": {"color": "#563412", "name": "민수"}},
+    )
+
+
+def test_the_name_opens_the_line_only_where_the_speaker_changes():
+    boxes = [line for line in _dialogues(generate_ass(_talk())) if ",Box," in line]
+    assert [b.split(",", 9)[9] for b in boxes] == ["(민수) hi", "again", "(인물 1) bye"]
+
+
+def test_the_name_is_in_every_layer_so_the_words_stay_put():
+    lines = _dialogues(generate_ass(_talk()))
+    first = [line for line in lines if line.split(",")[1] == "0:00:00.00"]
+    fill = next(line for line in first if ",Fill," in line)
+    assert "{\\fs64\\c&H00123456}(민수) " in fill  # drawn in the speaker's colour
+    pops = [line for line in first if ",Pop," in line]
+    assert pops and all("\\alpha&HFF&}(민수) " in pop for pop in pops)  # invisible, taking up its room
+
+
+def test_names_can_be_turned_off():
+    for ass in (generate_ass(_talk(), Effects(names=False)), generate_plain_ass(_talk(), effects=Effects(names=False))):
+        assert "(민수)" not in ass and "(인물 1)" not in ass
+
+
+def test_the_name_counts_towards_the_line_width():
+    long_name = "가" * 20  # 40 cells, leaving 44 of MAX_WIDTH for the words
+    words = [_word("a" * 30, 0.0, 0.4), _word("b" * 30 + ".", 0.4, 0.8)]
+    assert len(split_into_lines(words)) == 1
+    assert len(split_into_lines(words, {"SPEAKER_00": len(long_name) * 2 + 3})) == 2

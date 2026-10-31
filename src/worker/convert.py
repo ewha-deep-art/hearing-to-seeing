@@ -168,6 +168,12 @@ class Worker:
                     path(AUDIO), None, LANGUAGE, title=title, media_path=video,
                 )
 
+        if genre.result() == catalog.ANIMATION:
+            # Voices in animation are pitched for the character, so their pitch
+            # says nothing about 여자/남자 (pitch.py).
+            for profile in transcript.speaker_profiles.values():
+                profile["gender"] = None
+
         with self._timed_step(video_id, "finishing", timings):
             # The ASS files are generated from the transcript when requested.
             data = transcript.to_dict()

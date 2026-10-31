@@ -13,6 +13,7 @@ from fastapi import FastAPI, Form, Header, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from hearing_to_seeing.converter.ass import Effects
 from hearing_to_seeing.design.layout import FONT_FILE, FONTS_DIR
 from web import jobs, subtitles
 from web.db import GENRES
@@ -44,6 +45,10 @@ def create_app(library: jobs.Library | None = None) -> FastAPI:
     @app.get("/", include_in_schema=False)
     def index():
         return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+    @app.get("/about", include_in_schema=False)
+    def about():
+        return FileResponse(os.path.join(STATIC_DIR, "about.html"))
 
     @app.get("/watch/{video_id}", include_in_schema=False)
     def watch(video_id: str):
@@ -107,13 +112,17 @@ def create_app(library: jobs.Library | None = None) -> FastAPI:
         return FileResponse(os.path.join(FONTS_DIR, FONT_FILE), media_type="font/ttf")
 
     @app.get("/api/videos/{video_id}/files/{kind}")
-    def video_file(video_id: str, kind: str, download: bool = False):
+    def video_file(video_id: str, kind: str, download: bool = False, off: str = ""):
         meta = _meta(video_id)
         if meta["status"] != jobs.READY:
             raise HTTPException(404, "파일이 아직 준비되지 않았습니다.")
+        try:
+            effects = Effects.from_off(off)
+        except ValueError:
+            raise HTTPException(400, "알 수 없는 자막 효과입니다.") from None
         transcript = library.transcript(video_id)
         try:
-            content, suffix, media_type = subtitles.export(transcript, kind)
+            content, suffix, media_type = subtitles.export(transcript, kind, effects)
         except KeyError:
             raise HTTPException(404, "알 수 없는 파일 종류입니다.") from None
         headers = {}

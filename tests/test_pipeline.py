@@ -77,7 +77,9 @@ def test_lookup_runs_while_stt_is_in_flight(monkeypatch, tmp_path, stt):
     transcript = pipeline.run("a.wav", str(tmp_path / "a.ass"), title="기생충 명장면")
 
     assert seen["characters"] == [{"name": "기택"}]
-    assert transcript.speaker_profiles["SPEAKER_00"] == {"color": "#563412", "name": "기택"}
+    assert transcript.speaker_profiles["SPEAKER_00"] == {
+        "color": "#563412", "name": "기택", "pitch_hz": None, "gender": None,  # too little speech to hear a pitch
+    }
     assert "&H00123456" in (tmp_path / "a.ass").read_text(encoding="utf-8")
 
 
@@ -314,7 +316,17 @@ def test_speakers_named_by_the_review_need_no_inference(fake_llm):
     assert fake.asked == []
     assert profiles["SPEAKER_00"]["name"] == "충숙"
     assert hue_distance(_oklch(profiles["SPEAKER_00"]["color"])[2], 250.0) < 3
-    assert profiles["SPEAKER_02"]["name"] is None  # not in the cast
+    # Not in the cast: the review's name is kept, the colour muted.
+    assert profiles["SPEAKER_02"]["name"] == "손님1"
+    _, chroma, hue = _oklch(profiles["SPEAKER_02"]["color"])
+    assert chroma < pipeline._max_chroma(pipeline.LIGHTNESS, round(hue)) / 2
+
+
+def test_review_names_are_kept_without_a_cast(fake_llm):
+    transcript = _turns_transcript(("SPEAKER_00", "어디 가세요"), ("SPEAKER_01", "병원이요"))
+    profiles = assign_speaker_colors(transcript, None, {"SPEAKER_00": "간호사1"})
+    assert profiles["SPEAKER_00"]["name"] == "간호사1"
+    assert profiles["SPEAKER_01"]["name"] is None
 
 
 def test_failed_inference_falls_back_to_even_vivid_hues(fake_llm):
@@ -369,3 +381,14 @@ def test_the_first_pass_is_labelled_by_voice_before_the_review_sees_it(monkeypat
     pipeline.run("a.wav", str(tmp_path / "a.ass"), media_path="a.mp4")
 
     assert order == [("server diarizes", False), ("voice", {"pass": 1}), ("review", [{"pass": 1}])]
+
+
+def test_voices_name_the_speakers_by_pitch(monkeypatch, tmp_path, stt):
+    monkeypatch.setattr(pipeline.pitch, "speaker_pitches",
+                        lambda *_: {"SPEAKER_00": 120.0, "SPEAKER_01": 230.0})
+
+    profiles = pipeline.run("a.wav", None).speaker_profiles
+
+    assert profiles["SPEAKER_00"]["gender"] == "male" and profiles["SPEAKER_00"]["pitch_hz"] == 120
+    assert profiles["SPEAKER_01"]["gender"] == "female"
+

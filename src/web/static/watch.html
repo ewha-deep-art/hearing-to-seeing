@@ -41,15 +41,30 @@
             </div>
             <span class="time" id="time">0:00 / 0:00</span>
             <span class="spacer"></span>
-            <div class="sub-mode" id="sub-mode" role="group" aria-label="자막 (c)">
-              <button type="button" data-mode="kinetic">키네틱</button>
-              <button type="button" data-mode="plain">일반</button>
-              <button type="button" data-mode="off">끄기</button>
+            <div class="fx-chips" id="fx-chips" role="group" aria-label="자막 효과">
+              <button class="fx-chip" type="button" data-effect="color" title="누가 말하는지 색으로 구분해요">인물 색</button>
+              <button class="fx-chip" type="button" data-effect="names" title="말하는 사람이 바뀌면 줄 앞에 이름을 보여 줘요">인물 이름</button>
+              <button class="fx-chip" type="button" data-effect="fill" title="말하는 순간 글자가 채워져요">말 타이밍</button>
+              <button class="fx-chip" type="button" data-effect="volume" title="큰 소리는 커지고 작은 소리는 작아져요">소리 크기</button>
+              <button class="fx-chip" type="button" data-effect="wave" title="말소리가 물결처럼 움직여요">물결 효과</button>
             </div>
-            <div class="sub-mode" role="group" aria-label="자막 크기">
-              <button type="button" id="sub-smaller" aria-label="자막 작게 (-)">가−</button>
-              <button type="button" id="sub-larger" aria-label="자막 크게 (+)">가+</button>
-            </div>
+            <button class="icon-btn sub-toggle" id="sub-toggle" type="button" aria-label="자막 (c)"></button>
+            <details class="menu sub-settings" id="sub-settings">
+              <summary class="icon-btn" id="sub-settings-button" aria-label="자막 설정"></summary>
+              <div class="menu-list settings-panel">
+                <!-- On narrow screens the effect chips move in here (watch.js). -->
+                <div class="fx-chips-slot" id="fx-chips-slot"></div>
+                <div class="setting-row">
+                  <span>글자 크기</span>
+                  <div class="sub-mode" role="group" aria-label="자막 크기">
+                    <button type="button" id="sub-smaller" aria-label="자막 작게 (-)">가−</button>
+                    <span class="scale-label" id="sub-scale-label">100%</span>
+                    <button type="button" id="sub-larger" aria-label="자막 크게 (+)">가+</button>
+                  </div>
+                </div>
+                <button class="setting-reset" id="sub-reset" type="button">기본값으로</button>
+              </div>
+            </details>
             <button class="icon-btn" id="fullscreen" type="button" aria-label="전체 화면 (f)"></button>
           </div>
         </div>
@@ -62,9 +77,8 @@
           <details class="menu" id="downloads" hidden>
             <summary class="btn" id="downloads-button">자막 내려받기</summary>
             <div class="menu-list">
-              <a data-kind="ass">키네틱 자막 (.ass)<small>화자 색 · 말하는 타이밍 · 목소리 크기</small></a>
-              <a data-kind="plain">일반 자막 (.ass)<small>같은 타이밍, 효과 없음</small></a>
-              <a data-kind="json">대사 데이터 (.json)<small>단어별 화자 · 시간 · 음량</small></a>
+              <a data-kind="ass">키네틱 자막 (.ass)<small>지금 자막 설정 그대로</small></a>
+              <a data-kind="plain">일반 자막 (.ass)<small>효과 없음</small></a>
             </div>
           </details>
         </div>
