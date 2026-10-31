@@ -1,5 +1,6 @@
 import { STEPS, api, el, formatTime, icon, isPending, statusLabel, stepIndex } from "/static/common.js";
 import { mountTray } from "/static/tray.js";
+import { mountHelp, startTour } from "/static/tour.js";
 
 // Modules come from esm.sh, which keeps abslink a single shared instance
 // across JASSUB's entry points (jsDelivr's +esm inlines a second copy into
@@ -279,6 +280,7 @@ async function setup(meta) {
   setupControls();
   setupSubtitles();
   syncScript();
+  tour(false);
 }
 
 // Speakers arrive most talk first; past LEGEND_SHOWN the rest fold into "외 n명".
@@ -633,6 +635,46 @@ function toast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove("show"), 1200);
 }
+
+// --- tour -----------------------------------------------------------------------
+
+function tourSteps() {
+  const effects = NARROW.matches
+    ? { element: "#sub-settings-button", popover: { title: "자막 효과 켜고 끄기", description: "움직이는 자막이 읽기 불편하면 여기서 효과를 하나씩 끌 수 있어요." } }
+    : {
+      element: "#fx-chips",
+      advanceOnClick: true,
+      popover: {
+        title: "자막 효과 켜고 끄기",
+        description: "움직이는 자막이 읽기 불편하면 효과를 하나씩 끌 수 있어요. 버튼에 마우스를 올리면 설명이 나와요. 하나를 눌러 보세요!",
+      },
+    };
+  return [
+    {
+      element: "#stage",
+      popover: {
+        title: "자막 읽는 법",
+        description: "글자 색은 누가 말하는지, 글자가 채워지는 순간은 언제 말하는지, 커지고 작아지는 글자는 소리 크기를 보여 줘요.",
+      },
+    },
+    { element: "#legend", popover: { title: "인물과 색", description: "어떤 색이 누구인지 여기서 확인할 수 있어요." } },
+    effects,
+    { element: "#sub-toggle", popover: { title: "자막 끄기", description: "자막 전체를 켜고 끌 수 있어요. 키보드 c로도 돼요." } },
+    ...(NARROW.matches ? [] : [{
+      element: "#sub-settings-button",
+      popover: { title: "글자 크기", description: "자막 글자 크기를 바꾸거나 기본 설정으로 되돌릴 수 있어요. 키보드 -, +로도 돼요." },
+    }]),
+    { element: "#script", popover: { title: "스크립트", description: "대사를 누르면 그 장면으로 이동해요." } },
+    { element: "#downloads", popover: { title: "자막 내려받기", description: "지금 설정 그대로 자막 파일을 내려받을 수 있어요." } },
+  ];
+}
+
+// Waits for the player: the tour points at its controls.
+function tour(force) {
+  if (!media) return force && toast("영상이 준비되면 안내를 볼 수 있어요");
+  startTour("watch", tourSteps(), { force, onStart: () => media.pause() });
+}
+mountHelp(() => tour(true));
 
 mountTray();
 load();

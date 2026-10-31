@@ -121,7 +121,9 @@ def fake_media(monkeypatch):
 
     def run(wav, ass, language, title=None, media_path=None):
         runs.append({"ass": ass, "title": title, "media_path": media_path, "language": language})
-        return _transcript()
+        transcript = _transcript()
+        transcript.speaker_profiles = {"SPEAKER_00": {"pitch_hz": 120, "gender": "male"}}
+        return transcript
 
     monkeypatch.setattr(media, "youtube_info", info)
     monkeypatch.setattr(media, "download_youtube", download)
@@ -215,7 +217,7 @@ def test_url_runs_to_ready(library, worker, fake_media):
     assert meta["channel"] == "Clips"
     assert meta["duration"] == 1.3
     assert fake_media[0]["language"] == "ko"
-    assert library.transcript(video_id).to_dict() == _transcript().to_dict()
+    assert library.transcript(video_id).words == _transcript().words
 
 
 def test_nothing_stays_on_disk(worker, fake_media):
@@ -260,6 +262,13 @@ def test_genre_comes_from_the_model(library, worker, fake_media, monkeypatch):
     monkeypatch.setattr("hearing_to_seeing.knowledge.llm.configured", lambda: True)
     monkeypatch.setattr("hearing_to_seeing.knowledge.llm.ask", lambda *_, **__: {"genre": "영화"})
     assert library.get(_submit(worker))["genre"] == "영화"
+
+
+def test_animation_is_not_named_by_voice_pitch(library, worker, fake_media, monkeypatch):
+    monkeypatch.setattr("hearing_to_seeing.knowledge.llm.configured", lambda: True)
+    monkeypatch.setattr("hearing_to_seeing.knowledge.llm.ask", lambda *_, **__: {"genre": "애니메이션"})
+    profile = library.transcript(_submit(worker)).speaker_profiles["SPEAKER_00"]
+    assert profile == {"pitch_hz": 120, "gender": None}  # measured, but not used
 
 
 def test_dialogue_is_searchable(library, worker, fake_media):
@@ -579,3 +588,9 @@ def test_a_refused_audio_stream_is_asked_for_again(monkeypatch, tmp_path):
     monkeypatch.setattr(media, "_download", download)
     assert media.download_audio("https://youtu.be/x", str(tmp_path)) == "audio-source.webm"
     assert asked == [media.AUDIO_FORMAT, media.AUDIO_FORMAT, media.AUDIO_FALLBACK_FORMAT]
+
+
+def test_about_page_is_served(client):
+    res = client.get("/about")
+    assert res.status_code == 200
+    assert "자막 읽는 법" in res.text

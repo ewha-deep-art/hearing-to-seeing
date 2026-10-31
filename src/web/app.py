@@ -46,6 +46,10 @@ def create_app(library: jobs.Library | None = None) -> FastAPI:
     def index():
         return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
+    @app.get("/about", include_in_schema=False)
+    def about():
+        return FileResponse(os.path.join(STATIC_DIR, "about.html"))
+
     @app.get("/watch/{video_id}", include_in_schema=False)
     def watch(video_id: str):
         _meta(video_id)
