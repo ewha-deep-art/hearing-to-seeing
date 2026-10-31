@@ -16,10 +16,15 @@ const SUBTITLE_FONT_NAME = "KoPubDotum Bold";
 const SUBTITLE_FONT = "/api/subtitle-font";
 // The ASS PlayRes (converter/ass.py); the stage is always this shape.
 const FRAME = { width: 1920, height: 1080 };
-const SUB_MODES = ["kinetic", "plain", "off"];
-const SUB_MODE_LABELS = { kinetic: "키네틱 자막", plain: "일반 자막", off: "자막 끔" };
+// Effects the viewer can turn off one by one (converter/ass.py `Effects`); with
+// all the kinetic ones off the plain track is drawn instead (names apply to both).
+const EFFECTS = ["color", "fill", "volume", "wave", "names"];
+const KINETIC = EFFECTS.filter((e) => e !== "names");
+// Below this width the chips don't fit the control bar and move into the settings.
+const NARROW = matchMedia("(max-width: 600px)");
 // Subtitle size: the canvas scales about the lines' bottom-centre anchor (app.css).
 const SUB_SCALES = [0.75, 1, 1.25, 1.5];
+const SETTINGS_KEY = "h2s.subtitles";
 
 const videoId = location.pathname.split("/").pop();
 const searchQuery = (new URLSearchParams(location.search).get("q") ?? "").trim();
@@ -235,7 +240,7 @@ async function setup(meta) {
 
   const parts = [meta.channel || "YouTube", meta.genre];
   if (meta.duration) parts.push(formatTime(meta.duration));
-  parts.push(`화자 ${meta.speakers.length}명`);
+  parts.push(`인물 ${meta.speakers.length}명`);
   $("meta-sub").textContent = parts.filter(Boolean).join(" · ");
 
   const source = $("source-link");
@@ -246,9 +251,6 @@ async function setup(meta) {
   // Opens where the viewer is now, and pauses here so the two don't play at once.
   source.addEventListener("click", () => { source.href = sourceUrl(); media?.pause(); });
 
-  for (const link of document.querySelectorAll("#downloads a")) {
-    link.href = `/api/videos/${videoId}/files/${link.dataset.kind}?download=1`;
-  }
   $("downloads-button").prepend(icon("download"));
   $("downloads").hidden = false;
 
@@ -303,14 +305,50 @@ function setupLegend(speakers) {
 // --- subtitles (JASSUB) ------------------------------------------------------
 
 let jassub = null;
-let loadedTrack = null; // "kinetic" | "plain": the track JASSUB currently holds
-let subMode = "kinetic";
-try { subMode = SUB_MODES.includes(localStorage.subMode) ? localStorage.subMode : "kinetic"; } catch {}
-let subScale = 1;
-try { subScale = SUB_SCALES.includes(Number(localStorage.subScale)) ? Number(localStorage.subScale) : 1; } catch {}
+let loadedTrack = null; // the URL of the track JASSUB currently holds
 
-const trackUrl = (mode) =>
-  new URL(`/api/videos/${videoId}/files/${mode === "plain" ? "plain" : "ass"}`, location.href).href;
+// { on, off: [effects turned off], scale }, kept per browser. The first visit
+// after the old three-way switch (localStorage.subMode/subScale) carries it over.
+const subs = loadSubSettings();
+
+function loadSubSettings() {
+  const settings = { on: true, off: [], scale: 1 };
+  try {
+    const saved = JSON.parse(localStorage[SETTINGS_KEY] ?? "null");
+    if (saved) {
+      settings.on = saved.on !== false;
+      settings.off = EFFECTS.filter((e) => (saved.off ?? []).includes(e));
+      if (SUB_SCALES.includes(saved.scale)) settings.scale = saved.scale;
+    } else {
+      if (localStorage.subMode === "off") settings.on = false;
+      if (localStorage.subMode === "plain") settings.off = [...KINETIC];
+      if (SUB_SCALES.includes(Number(localStorage.subScale))) settings.scale = Number(localStorage.subScale);
+    }
+  } catch {}
+  return settings;
+}
+
+function saveSubSettings() {
+  try { localStorage[SETTINGS_KEY] = JSON.stringify(subs); } catch {}
+}
+
+const allOff = () => KINETIC.every((e) => subs.off.includes(e));
+
+// A subtitle file drawn with the viewer's settings (the plain one takes only "names").
+function filePath(kind, params = {}) {
+  const query = new URLSearchParams(params);
+  if (subs.off.length) query.set("off", subs.off.join(","));
+  const search = query.toString();
+  return `/api/videos/${videoId}/files/${kind}${search ? `?${search}` : ""}`;
+}
+// The kinetic track, or the plain one once every kinetic effect is off.
+const trackUrl = () => new URL(filePath(allOff() ? "plain" : "ass"), location.href).href;
+
+function syncDownloads() {
+  for (const link of document.querySelectorAll("#downloads a")) {
+    link.href = filePath(link.dataset.kind, { download: 1 });
+  }
+}
 
 // No <video> to follow: each animation frame hands JASSUB the player's clock.
 function renderSubtitles(repaint = false) {
@@ -328,10 +366,10 @@ function subtitleLoop() {
 async function setupSubtitles() {
   try {
     const { default: JASSUB } = await import(JASSUB_MODULE);
-    loadedTrack = subMode === "plain" ? "plain" : "kinetic";
+    loadedTrack = trackUrl();
     jassub = new JASSUB({
       canvas: $("subs"),
-      subUrl: trackUrl(loadedTrack),
+      subUrl: loadedTrack,
       workerUrl: new URL("/static/jassub-worker.js", location.href).href,
       wasmUrl: `${JASSUB_ASSETS}/wasm/jassub-worker.wasm`,
       modernWasmUrl: `${JASSUB_ASSETS}/wasm/jassub-worker-modern.wasm`,
@@ -349,40 +387,78 @@ async function setupSubtitles() {
     console.error(err);
     toast("자막을 불러오지 못했어요. 새로고침해 주세요.");
   }
-  applySubMode(false);
-  applySubScale(false);
 }
 
-async function setSubMode(mode) {
-  subMode = mode;
-  try { localStorage.subMode = mode; } catch {}
-  applySubMode(true);
-  if (jassub && mode !== "off" && mode !== loadedTrack) {
-    loadedTrack = mode;
+// Saves the settings, shows them, and swaps the track if it changed.
+async function changeSubs(message) {
+  saveSubSettings();
+  applySubSettings();
+  if (message) toast(message);
+  const url = trackUrl();
+  if (jassub && subs.on && url !== loadedTrack) {
+    loadedTrack = url;
     await jassub.ready;
-    await jassub.renderer.setTrackByUrl(trackUrl(mode));
+    await jassub.renderer.setTrackByUrl(url);
     renderSubtitles(true);
   }
 }
 
-function applySubMode(announce) {
-  for (const b of document.querySelectorAll("#sub-mode button")) b.setAttribute("aria-pressed", b.dataset.mode === subMode);
-  $("subs").hidden = subMode === "off";
-  if (announce) toast(SUB_MODE_LABELS[subMode]);
+function toggleSubs() {
+  subs.on = !subs.on;
+  changeSubs(subs.on ? "자막 켬" : "자막 끔");
+}
+
+function toggleEffect(chip) {
+  const effect = chip.dataset.effect;
+  const on = subs.off.includes(effect);
+  subs.off = on ? subs.off.filter((e) => e !== effect) : [...subs.off, effect];
+  changeSubs(`${chip.textContent} ${on ? "켬" : "끔"}`);
 }
 
 function stepSubScale(step) {
-  const i = Math.min(Math.max(SUB_SCALES.indexOf(subScale) + step, 0), SUB_SCALES.length - 1);
-  subScale = SUB_SCALES[i];
-  try { localStorage.subScale = subScale; } catch {}
-  applySubScale(true);
+  const i = Math.min(Math.max(SUB_SCALES.indexOf(subs.scale) + step, 0), SUB_SCALES.length - 1);
+  subs.scale = SUB_SCALES[i];
+  changeSubs(`자막 크기 ${Math.round(subs.scale * 100)}%`);
 }
 
-function applySubScale(announce) {
-  $("subs").style.setProperty("--sub-scale", subScale);
-  $("sub-smaller").disabled = subScale === SUB_SCALES[0];
-  $("sub-larger").disabled = subScale === SUB_SCALES.at(-1);
-  if (announce) toast(`자막 크기 ${Math.round(subScale * 100)}%`);
+function applySubSettings() {
+  $("subs").hidden = !subs.on;
+  $("sub-toggle").setAttribute("aria-pressed", subs.on);
+  $("subs").style.setProperty("--sub-scale", subs.scale);
+  $("sub-smaller").disabled = subs.scale === SUB_SCALES[0];
+  $("sub-larger").disabled = subs.scale === SUB_SCALES.at(-1);
+  $("sub-scale-label").textContent = `${Math.round(subs.scale * 100)}%`;
+
+  for (const chip of document.querySelectorAll("[data-effect]")) {
+    chip.setAttribute("aria-pressed", !subs.off.includes(chip.dataset.effect));
+    chip.disabled = !subs.on;
+  }
+  syncDownloads();
+}
+
+function setupSubSettings() {
+  const menu = $("sub-settings");
+  $("sub-toggle").append(icon("captions"));
+  $("sub-settings-button").append(icon("settings"));
+  $("sub-toggle").onclick = toggleSubs;
+
+  for (const chip of document.querySelectorAll("[data-effect]")) {
+    chip.onclick = () => toggleEffect(chip);
+  }
+  // The chips sit in the control bar, or in the settings on a narrow screen.
+  const placeChips = () => (NARROW.matches ? $("fx-chips-slot") : $("sub-toggle").parentNode)
+    .insertBefore($("fx-chips"), NARROW.matches ? null : $("sub-toggle"));
+  NARROW.addEventListener("change", placeChips);
+  placeChips();
+  $("sub-smaller").onclick = () => stepSubScale(-1);
+  $("sub-larger").onclick = () => stepSubScale(1);
+  $("sub-reset").onclick = () => {
+    Object.assign(subs, { on: true, off: [], scale: 1 });
+    changeSubs("기본 자막 설정");
+  };
+  // Closes on a click anywhere else, as a menu does.
+  document.addEventListener("click", (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+  applySubSettings();
 }
 
 // --- script panel -------------------------------------------------------------
@@ -478,9 +554,7 @@ function setupControls() {
   muteBtn.onclick = () => { media.muted = !media.muted; };
   volume.oninput = () => { media.volume = Number(volume.value); media.muted = media.volume === 0; };
   fsBtn.onclick = () => toggleFullscreen();
-  for (const b of document.querySelectorAll("#sub-mode button")) b.onclick = () => setSubMode(b.dataset.mode);
-  $("sub-smaller").onclick = () => stepSubScale(-1);
-  $("sub-larger").onclick = () => stepSubScale(1);
+  setupSubSettings();
 
   for (const ev of ["play", "pause", "ended"]) media.addEventListener(ev, syncPlay);
   media.addEventListener("volumechange", syncVolume);
@@ -512,9 +586,11 @@ function setupControls() {
   function wake() {
     player.classList.remove("idle", "hide-cursor");
     clearTimeout(idleTimer);
-    if (!media.paused) idleTimer = setTimeout(() => player.classList.add("idle", "hide-cursor"), 2500);
+    // The controls stay up while the settings are open.
+    if (!media.paused && !$("sub-settings").open) idleTimer = setTimeout(() => player.classList.add("idle", "hide-cursor"), 2500);
   }
   player.addEventListener("pointermove", wake);
+  $("sub-settings").addEventListener("toggle", wake);
   player.addEventListener("pointerleave", () => { if (!media.paused) player.classList.add("idle"); });
 
   document.addEventListener("keydown", (e) => {
@@ -528,7 +604,7 @@ function setupControls() {
       l: () => { media.currentTime += 10; },
       f: toggleFullscreen,
       m: () => { media.muted = !media.muted; },
-      c: () => setSubMode(SUB_MODES[(SUB_MODES.indexOf(subMode) + 1) % SUB_MODES.length]),
+      c: toggleSubs,
       "-": () => stepSubScale(-1),
       "=": () => stepSubScale(1), "+": () => stepSubScale(1),
     };

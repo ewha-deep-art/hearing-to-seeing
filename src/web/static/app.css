@@ -290,6 +290,46 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .sub-mode button[aria-pressed="true"] { background: #fff; color: #000; font-weight: 600; }
 .sub-mode button:disabled { opacity: 0.35; cursor: default; }
 
+/* CC: underlined while the subtitles are on, as in most players. */
+.sub-toggle { position: relative; }
+.sub-toggle[aria-pressed="false"] { opacity: 0.6; }
+.sub-toggle[aria-pressed="true"]::after {
+  content: ""; position: absolute; left: 9px; right: 9px; bottom: 5px;
+  height: 2px; border-radius: 1px; background: var(--accent);
+}
+.sub-settings summary { cursor: pointer; }
+.sub-settings[open] summary svg { transform: rotate(30deg); }
+.sub-settings summary svg { transition: transform 0.2s; }
+/* Opens upwards from the control bar and stays inside the player in fullscreen. */
+.sub-settings .settings-panel {
+  top: auto; bottom: calc(100% + 8px); width: 240px;
+  display: flex; flex-direction: column; gap: 4px; padding: 10px;
+  background: rgba(28, 28, 30, 0.96); color: var(--text); font-size: 14px;
+}
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 36px; padding: 0 6px;
+}
+
+/* Effect chips: on is filled, off is an outline. Each says what it shows. */
+.fx-chips { display: flex; gap: 6px; margin-right: 6px; }
+.fx-chip {
+  padding: 4px 12px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.35); background: transparent; color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap; transition: background 0.15s, color 0.15s;
+}
+.fx-chip[aria-pressed="true"] { background: #fff; border-color: #fff; color: #000; font-weight: 600; }
+.fx-chip:hover:not(:disabled) { border-color: #fff; }
+.fx-chip:disabled { opacity: 0.35; cursor: default; }
+.fx-chips-slot .fx-chips { flex-wrap: wrap; margin: 0 0 6px; padding: 0 6px; }
+.fx-chips-slot .fx-chips::before { content: "자막 효과"; flex-basis: 100%; color: var(--muted); font-size: 12px; }
+.scale-label { min-width: 44px; text-align: center; font-size: 13px; align-self: center; font-variant-numeric: tabular-nums; }
+.setting-reset {
+  margin-top: 4px; padding: 6px; border: 0; border-top: 1px solid var(--border);
+  background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 13px;
+}
+.setting-reset:hover { color: var(--text); }
+
 .toast {
   position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
   padding: 6px 14px; border-radius: 999px; background: rgba(0, 0, 0, 0.75);
@@ -324,6 +364,7 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
 .menu-list a { display: block; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
 .menu-list a:hover { background: var(--border); }
 .menu-list small { display: block; color: var(--muted); font-size: 12px; }
+
 
 /* --- script panel ------------------------------------------------------------ */
 
