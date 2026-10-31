@@ -55,6 +55,8 @@
 |---|------|------|------------|
 | 8 | [src/web/](../src/web/) | **웹 UI 실사용 테스트 진행 중.** 문구, 레이아웃, 디자인 등 세부 수정 필요 — 구체적인 개선 항목은 테스트 피드백을 취합한 후 정리 예정. | — |
 | 10 | [convert.py](../src/worker/convert.py), [watch.js](../src/web/static/watch.js) | **도메인 제한 영상을 요청 단계에서 못 거름.** yt-dlp `playable_in_embed`·oEmbed·임베드 클라이언트 모두 "허용"인데 플레이어에서 오류 150이 나는 영상이 있음(니켈로디언 클립). 현재는 시청 화면 안내만 하고 할당량은 쓰인 채로 남음. 배포 도메인에서 빈도를 본 뒤 플레이어 오류 시 자동 숨김 여부 결정. | — |
+| 12 | [pitch.py](../src/hearing_to_seeing/pitch.py) | **피치 성별 임계값 검증 필요.** 160/185Hz는 경험값이다. 로컬 클립 6개에서 실사 남자 배우 5명은 맞혔지만, 전화 통화 장면의 남자(174Hz)는 판정을 보류했다. 애니메이션은 크게 틀려서(집게사장 250Hz → 여자) 장르가 애니메이션이면 쓰지 않는다. 프로필에 남기는 `pitch_hz`로 더 모아서 조정한다. 정확도가 부족하면 Gemini 리뷰에 성별을 묻는 방안도 있지만, 프롬프트를 바꾸면 STT 평가를 다시 해야 해서 보류했다. | — |
+| 13 | [pipeline.py](../src/hearing_to_seeing/pipeline.py) | **대사에서 주변 인물 이름 찾기(미구현).** 호격("민수야", "김 형사님") 직후 `REPLY_WINDOW` 안에 답한 화자에게 이름 후보를 주는 규칙 기반 방법. 지금 `_anchors`는 등장인물 목록에 있는 이름만 찾으니, 이를 일반화하면 된다. 지금은 영상 검토가 붙인 이름(`간호사1` 등)만 남긴다. | — |
 | 11 | [watch.js](../src/web/static/watch.js), [convert.py](../src/worker/convert.py) | **YouTube 정책 검토 필요(공개 배포 전).** 임베드 플레이어 위 자막 오버레이는 Required Minimum Functionality의 오버레이 금지 조항과, 처리 중 영상 다운로드는 API 약관 III.E.1.a와 충돌. YouTube 자동자막 숨김은 비공개 API `unloadModule`에 의존. | — |
 
 ---
