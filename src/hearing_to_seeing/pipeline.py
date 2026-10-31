@@ -31,7 +31,7 @@ from functools import lru_cache
 
 import numpy as np
 
-from hearing_to_seeing import voice
+from hearing_to_seeing import pitch, voice
 from hearing_to_seeing.schema import Transcript
 from hearing_to_seeing.review import (
     TEXT_MAX_SECONDS, apply_review, ask_review, review_transcript, upload as upload_for_review,
@@ -411,8 +411,9 @@ def assign_speaker_colors(
     With `characters` (from `lookup_characters`), speakers the model matches
     with at least MIN_CONFIDENCE take their character's hue, vividly; the rest
     are muted. `names` (label → name, from the review) settles who is who
-    without asking the model again. Without characters, every speaker gets an
-    evenly spaced vivid hue.
+    without asking the model again; a speaker it named who is not in the cast
+    (간호사1, 경찰 …) keeps that name, with a muted colour. Without characters,
+    every speaker gets an evenly spaced vivid hue.
     """
     labels = transcript.speakers()
     if not characters:
@@ -444,8 +445,10 @@ def assign_speaker_colors(
         if match is None:
             # Muted only means something when someone else was named.
             ratio = MINOR_CHROMA_RATIO if matches else MAIN_CHROMA_RATIO
-            profiles[label] = {"color": hue_to_hex(hues[label], ratio), "name": None,
-                               "confidence": 0.0, "reason": None}
+            seen = (names or {}).get(label)
+            profiles[label] = {"color": hue_to_hex(hues[label], ratio), "name": seen or None,
+                               "confidence": 0.0,
+                               "reason": "영상 검토에서 붙인 이름 (등장인물 목록 밖)" if seen else None}
             continue
         c = match["character"]
         profiles[label] = {
@@ -456,6 +459,16 @@ def assign_speaker_colors(
         }
     return profiles
 
+
+
+def add_voice_pitches(transcript: Transcript, pitches: dict[str, float | None]) -> None:
+    """Adds each profile's median pitch ("pitch_hz", `pitch.speaker_pitches`)
+    and the gender it suggests ("gender": male / female / None), which names a
+    speaker with no character name 여자 1 / 남자 1 (design/speaker.py)."""
+    for label, f0 in pitches.items():
+        profile = transcript.speaker_profiles.setdefault(label, {})
+        profile["pitch_hz"] = round(f0) if f0 else None
+        profile["gender"] = pitch.gender(f0)
 
 
 # --- run ------------------------------------------------------------------------
@@ -536,6 +549,8 @@ def run(
             voice.reassign_utterances(transcript, sample_rate, audio_data)
         else:
             voice.merge_labels(transcript, sample_rate, audio_data)
+        # The labels are final: the pitches are measured while the speakers are matched.
+        pitches = pool.submit(pitch.speaker_pitches, transcript, sample_rate, audio_data)
 
         annotate_volumes(transcript, sample_rate, audio_data)
 
@@ -545,6 +560,7 @@ def run(
         transcript.speaker_profiles = assign_speaker_colors(
             transcript, characters, review.names if review else None
         )
+        add_voice_pitches(transcript, pitches.result())
 
     # Persist the intermediate schema (schema.py) — the central data contract —
     # right before handing it to the ASS converter, so it can be inspected
