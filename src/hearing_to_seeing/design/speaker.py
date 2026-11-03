@@ -1,10 +1,11 @@
-"""Speaker colours, as the ASS file draws them.
+"""Speaker colours and names, as the subtitles show them.
 
 Who each speaker is and what colour they get is decided by the pipeline
 (`pipeline.assign_speaker_colors`) and stored in the transcript's
-`speaker_profiles` as `#RRGGBB`. This module only reads those values and
-turns them into ASS colours, so the ASS converter and the web legend show
-the same ones.
+`speaker_profiles` as `#RRGGBB` (plus a character name, and a gender guessed
+from the voice). This module only reads those values and turns them into ASS
+colours and display names, so the ASS converter and the web legend show the
+same ones.
 """
 
 import re
@@ -30,6 +31,11 @@ def hex_to_ass(value: str | None) -> str:
         return BASE_COLOUR
     r, g, b = (digits.upper() for digits in match.groups())
     return f"&H00{b}{g}{r}"
+
+
+# The one colour every word is wiped into when the viewer turns speaker colours
+# off (converter/ass.py `Effects.color`); not white, or the fill could not be seen.
+HIGHLIGHT_COLOUR = hex_to_ass("#FFD60A")  # yellow
 
 
 # Used only when the transcript carries no colour for a speaker (e.g. a JSON run
@@ -66,3 +72,25 @@ def speaker_colors(transcript: Transcript) -> dict[str, str]:
     if missing:
         print(f"[speaker] no colour in speaker_profiles for {missing}; using fallback palette")
     return colours
+
+
+# A speaker with no character name is called by the gender the pipeline heard
+# in their voice ("여자 1", "남자 2"), or "인물 N" when that is unknown.
+GENDER_LABELS = {"female": "여자", "male": "남자"}
+UNKNOWN_LABEL = "인물"
+
+
+def speaker_names(transcript: Transcript) -> dict[str, str]:
+    """Label -> the name shown for that speaker, numbered in order of appearance."""
+    profiles = transcript.speaker_profiles or {}
+    order = list(dict.fromkeys(w.speaker for w in transcript.words))
+    names, counts = {}, {}
+    for label in order:
+        profile = profiles.get(label) or {}
+        name = (profile.get("name") or "").strip()
+        if not name:
+            kind = GENDER_LABELS.get(profile.get("gender"), UNKNOWN_LABEL)
+            counts[kind] = counts.get(kind, 0) + 1
+            name = f"{kind} {counts[kind]}"
+        names[label] = name
+    return names

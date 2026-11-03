@@ -121,7 +121,9 @@ def fake_media(monkeypatch):
 
     def run(wav, ass, language, title=None, media_path=None):
         runs.append({"ass": ass, "title": title, "media_path": media_path, "language": language})
-        return _transcript()
+        transcript = _transcript()
+        transcript.speaker_profiles = {"SPEAKER_00": {"pitch_hz": 120, "gender": "male"}}
+        return transcript
 
     monkeypatch.setattr(media, "youtube_info", info)
     monkeypatch.setattr(media, "download_youtube", download)
@@ -167,10 +169,10 @@ def test_ass_to_hex_reverses_byte_order():
     assert subtitles.ass_to_hex("&H00009FE6") == "#E69F00"
 
 
-def test_speakers_are_numbered_in_label_order():
+def test_speakers_without_a_name_are_numbered_in_order_of_appearance():
     legend = subtitles.speakers(_transcript())
     assert [s["label"] for s in legend] == ["SPEAKER_00", "SPEAKER_01"]
-    assert [s["name"] for s in legend] == ["화자 1", "화자 2"]
+    assert [s["name"] for s in legend] == ["인물 1", "인물 2"]
     assert all(s["color"].startswith("#") and len(s["color"]) == 7 for s in legend)
 
 
@@ -179,7 +181,7 @@ def test_speakers_use_character_names_and_most_talk_first():
     transcript.words.append(WordEntry("again and again", 9.0, 12.0, "SPEAKER_01"))
     transcript.speaker_profiles = {"SPEAKER_01": {"color": "#E69F00", "name": "기택"}}
     legend = subtitles.speakers(transcript)
-    assert [s["name"] for s in legend] == ["기택", "화자 1"]
+    assert [s["name"] for s in legend] == ["기택", "인물 1"]
 
 
 def test_cues_match_ass_dialogue_lines():
@@ -215,7 +217,7 @@ def test_url_runs_to_ready(library, worker, fake_media):
     assert meta["channel"] == "Clips"
     assert meta["duration"] == 1.3
     assert fake_media[0]["language"] == "ko"
-    assert library.transcript(video_id).to_dict() == _transcript().to_dict()
+    assert library.transcript(video_id).words == _transcript().words
 
 
 def test_nothing_stays_on_disk(worker, fake_media):
@@ -260,6 +262,13 @@ def test_genre_comes_from_the_model(library, worker, fake_media, monkeypatch):
     monkeypatch.setattr("hearing_to_seeing.knowledge.llm.configured", lambda: True)
     monkeypatch.setattr("hearing_to_seeing.knowledge.llm.ask", lambda *_, **__: {"genre": "영화"})
     assert library.get(_submit(worker))["genre"] == "영화"
+
+
+def test_animation_is_not_named_by_voice_pitch(library, worker, fake_media, monkeypatch):
+    monkeypatch.setattr("hearing_to_seeing.knowledge.llm.configured", lambda: True)
+    monkeypatch.setattr("hearing_to_seeing.knowledge.llm.ask", lambda *_, **__: {"genre": "애니메이션"})
+    profile = library.transcript(_submit(worker)).speaker_profiles["SPEAKER_00"]
+    assert profile == {"pitch_hz": 120, "gender": None}  # measured, but not used
 
 
 def test_dialogue_is_searchable(library, worker, fake_media):
@@ -500,10 +509,19 @@ def test_subtitle_download_is_an_attachment(client, fake_media):
     assert "talk.plain.ass" in download.headers["content-disposition"]
     assert "\\kf" not in download.text
 
-    transcript = client.get(f"/api/videos/{video_id}/files/json").json()
-    assert transcript == _transcript().to_dict()
-
+    assert client.get(f"/api/videos/{video_id}/files/json").status_code == 404
     assert client.get(f"/api/videos/{video_id}/files/exe").status_code == 404
+
+
+def test_subtitle_file_leaves_out_the_effects_turned_off(client, fake_media):
+    fake_media.infos[jobs.youtube_url("eeeeeeeeeee")] = _info("eeeeeeeeeee")
+    video_id = _post(client, "https://youtu.be/eeeeeeeeeee").json()["id"]
+
+    full = client.get(f"/api/videos/{video_id}/files/ass").text
+    calm = client.get(f"/api/videos/{video_id}/files/ass?off=wave,volume,fill").text
+    assert "\\kf" in full and "\\move" in full
+    assert "\\kf" not in calm and "\\move" not in calm
+    assert client.get(f"/api/videos/{video_id}/files/ass?off=sparkle").status_code == 400
 
 
 def test_subtitle_download_keeps_a_korean_title(client, fake_media):
@@ -570,3 +588,9 @@ def test_a_refused_audio_stream_is_asked_for_again(monkeypatch, tmp_path):
     monkeypatch.setattr(media, "_download", download)
     assert media.download_audio("https://youtu.be/x", str(tmp_path)) == "audio-source.webm"
     assert asked == [media.AUDIO_FORMAT, media.AUDIO_FORMAT, media.AUDIO_FALLBACK_FORMAT]
+
+
+def test_about_page_is_served(client):
+    res = client.get("/about")
+    assert res.status_code == 200
+    assert "자막 읽는 법" in res.text

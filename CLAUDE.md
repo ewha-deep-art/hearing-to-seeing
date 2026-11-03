@@ -35,6 +35,7 @@ Audio/Video input
   → Volume → size (loud grows / whisper shrinks) [src/hearing_to_seeing/design/volume.py]
   ∥ Work/character lookup (RAG, parallel to STT) [src/hearing_to_seeing/pipeline.py + knowledge/]
   → Speaker → character → color (OKLCH)      [src/hearing_to_seeing/pipeline.py]
+  → Voice pitch → 여자/남자 for unnamed speakers [src/hearing_to_seeing/pitch.py]
   → Profile colour → ASS colour              [src/hearing_to_seeing/design/speaker.py]
   → Timing → fill wipe + wave motion         [src/hearing_to_seeing/design/sync.py]
   → Font, size, word spacing (shared)        [src/hearing_to_seeing/design/layout.py]
@@ -50,6 +51,8 @@ The **intermediate JSON schema** (`schema.py`) is the central data contract: it 
 - **ASS format** is the primary output (over VTT/SRT) because it natively supports per-dialogue color, font size, and `\k` karaoke-style fill animations needed for the sync effect.
 - The three visual effects map directly to audio signals: speaker identity → color, word timestamp → fill animation, volume → motion (loud words pop bigger, whispers shrink, normal words wave character by character). Font size is fixed.
 - Each effect module owns one signal and nothing else: `sync.py` timing (fill wipe, wave), `volume.py` size, `speaker.py` colour. Code that needs more than one of them goes in `layout.py`, or in `converter/ass.py` if it is about the ASS format (assembling Dialogue events).
+- The viewer can turn each effect off (`converter/ass.py` `Effects`: wave, volume, color, fill, names; the web's `?off=` and effect chips). The ASS is generated per request from the stored transcript, so this needs no reconversion.
+- Netflix-style names: a line where the speaker changes opens with `(name) ` in all three layers (`design/speaker.py` `speaker_names`: character name, else 여자/남자 N from `pitch.py`'s median F0, else 인물 N; no gender for animation).
 - Each subtitle is three ASS layers: Box (opaque background), Fill (white → hidden while spoken), Pop (per-word events wiped into the speaker colour). A Pop event carries the whole line with every other word invisible, so libass places the word itself; nothing is measured.
 - One bundled font (`design/fonts/`, named in `design/layout.py`). ASS finds it by the family name inside the file, so `FONT_NAME` must match it (`tests/test_layout.py` checks).
 - Speaker colors: with `GEMINI_API_KEY` set, the worker looks up the work's characters (title → Wikipedia/Namu wiki → LLM cast sheet → per-character hue) in parallel with STT, then infers which speaker is which character. Without a key or on failure, hues are spread evenly. See [src/hearing_to_seeing/knowledge/README.md](src/hearing_to_seeing/knowledge/README.md), which covers every LLM call.

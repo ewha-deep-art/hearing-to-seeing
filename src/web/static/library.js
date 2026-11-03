@@ -1,5 +1,6 @@
 import { api, el, formatTime, icon, timeAgo, youtubeThumb } from "/static/common.js";
 import { mountTray, trackConversion } from "/static/tray.js";
+import { mountHelp, startTour } from "/static/tour.js";
 
 const GENRES = ["드라마", "영화", "애니메이션", "기타"];
 
@@ -106,7 +107,7 @@ async function refresh() {
     $("empty-text").textContent = "YouTube 링크로 자막을 만들어 보세요.";
   } else {
     $("empty-title").textContent = "아직 영상이 없어요";
-    $("empty-text").textContent = "YouTube 링크를 넣으면 누가, 언제, 얼마나 크게 말하는지 보이는 자막을 만들어 모두 함께 볼 수 있어요.";
+    $("empty-text").textContent = "영화나 드라마 장면의 YouTube 링크를 넣으면 누가, 언제, 얼마나 크게 말하는지 보이는 자막을 만들어 모두 함께 볼 수 있어요.";
   }
 }
 
@@ -152,7 +153,7 @@ function showQuota() {
   if (!quota) return;
   const left = Math.max(quota.limit - quota.used, 0);
   $("quota-note").textContent = left
-    ? `${Math.floor(quota.max_duration / 60)}분 이하 영상만 만들 수 있어요`
+    ? `영화·드라마 장면에 가장 잘 맞아요 · ${Math.floor(quota.max_duration / 60)}분 이하 영상만 만들 수 있어요`
     : "오늘은 더 만들 수 없어요. 내일 다시 요청해 주세요.";
   submit.disabled = left === 0;
 }
@@ -202,6 +203,36 @@ form.onsubmit = async (e) => {
   }
 };
 
+// --- tour -----------------------------------------------------------------------
+
+const TOUR = [
+  {
+    element: "#add-open",
+    popover: {
+      title: "자막 만들기",
+      description: "영화나 드라마 장면의 YouTube 링크를 넣으면 누가, 언제, 얼마나 크게 말하는지 보이는 자막을 만들어요.",
+    },
+  },
+  {
+    element: ".tray",
+    popover: { title: "만드는 중인 자막", description: "자막을 만드는 동안 여기서 진행 상황을 볼 수 있어요. 다 되면 바로 보러 갈 수 있어요." },
+  },
+  {
+    element: "#search",
+    popover: { title: "찾아보기", description: "제목, 인물 이름, 대사 한 구절로 찾을 수 있어요." },
+  },
+  {
+    element: "#genres",
+    popover: { title: "장르", description: "드라마, 영화, 애니메이션별로 모아 볼 수 있어요." },
+  },
+  {
+    element: ".card",
+    popover: { title: "영상 보기", description: "영상을 열면 자막과 함께 재생돼요. 재생 화면에서도 안내가 이어져요." },
+  },
+];
+const tour = (force) => startTour("home", TOUR, { force });
+mountHelp(() => tour(true));
+
 renderGenres();
-refresh();
+refresh().then(() => tour(false));
 mountTray();

@@ -8,6 +8,7 @@ from hearing_to_seeing.knowledge import llm, prompts
 from web.db import GENRES
 
 OTHER = GENRES[-1]
+ANIMATION = GENRES[2]
 GENRE_SCHEMA = {**prompts.GENRE_SCHEMA, "properties": {"genre": {"type": "string", "enum": list(GENRES)}}}
 DESCRIPTION_CHARS = 500
 
