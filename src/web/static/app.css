@@ -37,13 +37,8 @@ button, input, select { font: inherit; color: inherit; }
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
-.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
-.logo-mark {
-  display: grid; place-items: center;
-  width: 32px; height: 32px; border-radius: 8px;
-  background: linear-gradient(135deg, #e69f00, #56b4e9 55%, #009e73);
-  color: #000; font-size: 14px; font-weight: 800;
-}
+.logo { display: flex; align-items: center; flex-shrink: 0; }
+.logo img { display: block; height: 40px; width: auto; }
 
 .topbar-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .topbar-link { padding: 6px 12px; border-radius: 999px; color: var(--muted); font-size: 14px; }

@@ -209,8 +209,7 @@ def test_whispered_word_keeps_its_full_width_and_shrinks_then_returns():
     scale = whisper_scale(0.0)
     assert f"\\t(0,80,\\fscx{scale}\\fscy{scale})" in shrink
     assert f"\\fscx{scale}\\fscy{scale}\\t(0,80,\\fscx100\\fscy100)" in restore
-    dim = f"\\alpha&H{QUIET_ALPHA:02X}&"
-    assert f"\\t(0,80,{dim})" in shrink and dim in restore    # dimmed as it shrinks, and stays dimmed
+    assert f"\\alpha&H{QUIET_ALPHA:02X}&" not in shrink + restore  # it shrinks without dimming
     assert shrink.split(",")[2] == restore.split(",")[1]       # the return picks up where the shrink ends
 
 
@@ -288,6 +287,13 @@ def test_fill_off_shows_the_colour_at_once():
     text = "".join(_effects_line(Effects(fill=False)))
     assert "\\kf" not in text and "\\k" not in text.replace("\\kf", "")
     assert "\\c&H00123456" in text
+
+
+def test_fill_off_draws_the_line_in_its_colour_from_the_start():
+    lines = _effects_line(Effects(fill=False))
+    text = "".join(lines)
+    assert "\\c&H00FFFFFF&" not in text  # no word is ever white, so none changes colour
+    assert "\\c&H00123456" in lines[1]   # the Fill layer, before any word is said
 
 
 def test_colour_and_fill_off_keep_words_white():

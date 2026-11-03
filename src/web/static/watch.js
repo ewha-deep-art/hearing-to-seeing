@@ -18,7 +18,7 @@ const SUBTITLE_FONT = "/api/subtitle-font";
 // The ASS PlayRes (converter/ass.py); the stage is always this shape.
 const FRAME = { width: 1920, height: 1080 };
 // Effects the viewer can turn off one by one (converter/ass.py `Effects`); with
-// all the kinetic ones off the plain track is drawn instead (names apply to both).
+// all of them off the boxed white lines stay, still.
 const EFFECTS = ["color", "fill", "volume", "wave", "names"];
 const KINETIC = EFFECTS.filter((e) => e !== "names");
 // Below this width the chips don't fit the control bar and move into the settings.
@@ -334,17 +334,33 @@ function saveSubSettings() {
   try { localStorage[SETTINGS_KEY] = JSON.stringify(subs); } catch {}
 }
 
-const allOff = () => KINETIC.every((e) => subs.off.includes(e));
-
 // A subtitle file drawn with the viewer's settings (the plain one takes only "names").
-function filePath(kind, params = {}) {
+function filePath(kind, params = {}, off = subs.off) {
   const query = new URLSearchParams(params);
-  if (subs.off.length) query.set("off", subs.off.join(","));
+  if (off.length) query.set("off", off.join(","));
   const search = query.toString();
   return `/api/videos/${videoId}/files/${kind}${search ? `?${search}` : ""}`;
 }
-// The kinetic track, or the plain one once every kinetic effect is off.
-const trackUrl = () => new URL(filePath(allOff() ? "plain" : "ass"), location.href).href;
+const trackUrl = (off = subs.off) => new URL(filePath("ass", {}, off), location.href).href;
+
+// Tracks by URL. Every setting one chip away is fetched ahead, so a chip
+// switches the subtitles at once instead of waiting for the server.
+const tracks = new Map();
+function fetchTrack(url) {
+  if (!tracks.has(url)) {
+    tracks.set(url, fetch(url)
+      .then((res) => { if (!res.ok) throw new Error(`${res.status} ${url}`); return res.text(); })
+      .catch((err) => { tracks.delete(url); throw err; }));
+  }
+  return tracks.get(url);
+}
+
+function prefetchTracks() {
+  for (const effect of EFFECTS) {
+    const off = subs.off.includes(effect) ? subs.off.filter((e) => e !== effect) : [...subs.off, effect];
+    fetchTrack(trackUrl(off)).catch(() => {});
+  }
+}
 
 function syncDownloads() {
   for (const link of document.querySelectorAll("#downloads a")) {
@@ -385,6 +401,7 @@ async function setupSubtitles() {
     for (const ev of ["seeked", "pause"]) media.addEventListener(ev, () => renderSubtitles(true));
     renderSubtitles(true);
     requestAnimationFrame(subtitleLoop);
+    prefetchTracks();
   } catch (err) {
     console.error(err);
     toast("자막을 불러오지 못했어요. 새로고침해 주세요.");
@@ -399,8 +416,18 @@ async function changeSubs(message) {
   const url = trackUrl();
   if (jassub && subs.on && url !== loadedTrack) {
     loadedTrack = url;
+    prefetchTracks();
+    let content;
+    try {
+      content = await fetchTrack(url);
+    } catch (err) {
+      console.error(err);
+      if (url === loadedTrack) loadedTrack = null; // the old track is still up
+      return toast("자막을 불러오지 못했어요. 새로고침해 주세요.");
+    }
     await jassub.ready;
-    await jassub.renderer.setTrackByUrl(url);
+    if (url !== loadedTrack) return; // a later change took over
+    await jassub.renderer.setTrack(content);
     renderSubtitles(true);
   }
 }
