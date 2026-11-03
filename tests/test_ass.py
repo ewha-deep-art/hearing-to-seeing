@@ -290,6 +290,13 @@ def test_fill_off_shows_the_colour_at_once():
     assert "\\c&H00123456" in text
 
 
+def test_fill_off_draws_the_line_in_its_colour_from_the_start():
+    lines = _effects_line(Effects(fill=False))
+    text = "".join(lines)
+    assert "\\c&H00FFFFFF&" not in text  # no word is ever white, so none changes colour
+    assert "\\c&H00123456" in lines[1]   # the Fill layer, before any word is said
+
+
 def test_colour_and_fill_off_keep_words_white():
     pops = [line for line in _effects_line(Effects(color=False, fill=False)) if ",Pop," in line]
     assert HIGHLIGHT_COLOUR not in "".join(pops)

@@ -122,7 +122,7 @@ class Effects:
     `wave` is the ripple of normally spoken words, `volume` the growing of
     shouted and shrinking of whispered ones; a word whose motion
     is off is drawn still. `color` off draws every speaker in HIGHLIGHT_COLOUR,
-    `fill` off shows each word in its colour at once instead of wiping it in.
+    `fill` off draws the whole line in its colour from the start.
     `names` off leaves out the speaker's name in front of the line. The timing
     and layout are the same either way.
     """
@@ -339,7 +339,7 @@ def _wipe(
 
 def _fill_text(
     words: list[WordEntry], break_at: int | None, effects: Effects = Effects(),
-    name_lead: str = "", name_color: str = BASE_COLOUR,
+    name_lead: str = "", name_color: str = BASE_COLOUR, color: str = _WHITE,
 ) -> str:
     """Layer 1: white before a word is said, hidden from the moment it is.
 
@@ -354,11 +354,13 @@ def _fill_text(
     returns it. The placeholder keeps its full width, so the box does not
     change size. A still word is handed over whole, too. The speaker's name
     (`name_lead`) stays here, in `name_color`, for as long as the line is up.
+    With the fill off the words are already in the speaker's `color`, so the
+    hand-over shows no change.
     """
     if not words:
         return ""
     line_start = words[0].start
-    head = f"\\fs{BASE_FONT_SIZE}\\c{_WHITE}\\alpha&H00&"
+    head = f"\\fs{BASE_FONT_SIZE}\\c{_WHITE if effects.fill else color}\\alpha&H00&"
     parts = [f"{{\\fs{BASE_FONT_SIZE}\\c{name_color}}}{name_lead}"] if name_lead else []
     for i, word in enumerate(words):
         parts.append(_separator(words, i, break_at))
@@ -407,11 +409,12 @@ def _wave_events(
 
     Each event carries the whole line with one character visible (see
     `_word_event_text`), moved by sync.py's wave. ASS allows one \\move per
-    event, so each character is two events — the rise, white, then the fall,
-    in which it is wiped into `color`. A \\move stays at its end point, so the
-    fall event simply lasts until the line ends.
+    event, so each character is two events — the rise, white (`color` with the
+    fill off), then the fall, in which it is wiped into `color`. A \\move stays
+    at its end point, so the fall event simply lasts until the line ends.
     """
     word = words[index]
+    rise_color = _WHITE if effects.fill else color
     pieces = _invisible_pieces(words, break_at)
     before_word = name_lead + "".join(pieces[:index]) + _separator(words, index, break_at)
     after_word = "".join(pieces[index + 1:])
@@ -425,7 +428,7 @@ def _wave_events(
         events.append((
             c.rise_start, c.rise_end,
             f"{{\\an2{rise_move(_ANCHOR, c.rise_ms)}\\fs{BASE_FONT_SIZE}\\alpha&HFF&}}{before}"
-            f"{{\\alpha&H00&\\c{_WHITE}}}{ch}{{\\alpha&HFF&}}{after}",
+            f"{{\\alpha&H00&\\c{rise_color}}}{ch}{{\\alpha&HFF&}}{after}",
         ))
         lead, sweep = _wipe(effects, c.rise_end, c.wipe_start, c.wipe_end)
         events.append((
@@ -570,7 +573,7 @@ def generate_ass(transcript: Transcript, effects: Effects = Effects()) -> str:
         break_at = _row_break_index(group, name_lead)
         box = _box_text(group, break_at, True, name_lead)
         lines.append(_dialogue(start, end, speaker, box, "Box", 0))
-        fill = _fill_text(group, break_at, effects, name_lead, name_color)
+        fill = _fill_text(group, break_at, effects, name_lead, name_color, color)
         lines.append(_dialogue(start, end, speaker, fill, "Fill", 1))
         for idx in range(len(group)):
             pops = _pop_events(group, break_at, idx, color, start, end, effects, name_lead)
