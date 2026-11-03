@@ -19,7 +19,7 @@ docker compose run --rm cli data/input/sample.wav -o data/output/sample.ass --js
     --language ko --speakers 6 --video data/input/sample.mp4
 
 # 웹 — http://127.0.0.1:8080 (YouTube 링크로 자막을 만들고, 만들어 둔 영상을 검색·장르로 찾아 YouTube 플레이어에서 자막과 함께 재생)
-docker compose --profile web up web
+docker compose --profile web up --build web
 # 워커 — 웹이 큐에 넣은 영상을 하나씩 변환 (웹과 함께 실행)
 docker compose up -d worker
 ```
@@ -60,7 +60,7 @@ docker compose up -d worker
 |------|------|------|
 | `WHISPERX_API_KEY` | ✅ | 원격 WhisperX 서버(STT·정렬·화자 분리) API 키 |
 | `WHISPERX_API_URL` | ✅ | 원격 WhisperX 서버 주소 |
-| `GEMINI_API_KEY` | | 설정하면 워커가 영상 제목으로 작품의 등장인물을 찾아 화자별 색상을 정하고, 원본 영상을 보며 발화마다 화자를 확인하고, 장르를 분류함 ([knowledge/README.md](src/hearing_to_seeing/knowledge/README.md)). 없으면 색상환에 고르게 배정. [발급](https://aistudio.google.com/apikey) (무료 티어로 충분) |
+| `GEMINI_API_KEY` | | 설정하면 워커가 영상 제목으로 작품의 등장인물을 찾아 화자별 색상을 정하고, 원본 영상을 보며 발화마다 화자를 확인하고, 장르를 분류함 ([knowledge/README.md](src/hearing_to_seeing/knowledge/README.md)). 없으면 색상환에 고르게 배정. [발급](https://aistudio.google.com/apikey) (무료 티어로 충분). 쉼표로 여러 개를 넣으면 돌아가며 씀 |
 | `SUPABASE_URL` / `SUPABASE_SECRET_KEY` | 웹 ✅ | 웹 카탈로그를 저장할 Supabase 프로젝트 (`clips` 테이블). 키는 서버 전용 secret key |
 | `ADMIN_TOKEN` | | 웹에서 영상을 삭제할 때 묻는 관리자 토큰. 없으면 아무도 삭제할 수 없음 |
 

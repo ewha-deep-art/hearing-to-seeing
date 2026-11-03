@@ -92,21 +92,23 @@ def _words(volumes, speaker="S0"):
             for i, v in enumerate(volumes)]
 
 
-def test_relative_volumes_centre_each_speaker_on_their_median():
-    # S0 speaks quietly overall, S1 loudly: each one's own median becomes 0.5,
-    # and only their own outliers reach loud / whisper.
+def test_relative_volumes_centre_each_speaker_and_judge_whispers_alike():
+    # S0 speaks quietly overall, S1 loudly: each one's own median becomes 0.5
+    # and their own outliers are loud, but a whisper is the same raw volume
+    # for everyone, so S1's quietest word is still normal.
     quiet = _words([0.1] * 12 + [0.5, 0.0], speaker="S0")
     loud = _words([0.8] * 12 + [1.0, 0.6], speaker="S1")
     rel = {(w.speaker, w.start): w.volume for w in relative_volumes(quiet + loud)}
     assert rel[("S0", 0)] == rel[("S1", 0)] == 0.5
     assert classify_volume(rel[("S0", 12)]) == classify_volume(rel[("S1", 12)]) == "loud"
-    assert classify_volume(rel[("S0", 13)]) == classify_volume(rel[("S1", 13)]) == "whisper"
+    assert classify_volume(rel[("S0", 13)]) == "whisper"
+    assert classify_volume(rel[("S1", 13)]) == "normal"
     assert quiet[0].volume == 0.1  # the words themselves are untouched
 
 
-def test_relative_volumes_leave_a_speaker_without_a_baseline_normal():
+def test_relative_volumes_leave_a_speaker_without_a_baseline_normal_but_for_whispers():
     few = _words([1.0, 0.0, 0.5])
-    assert [w.volume for w in relative_volumes(few)] == [0.5, 0.5, 0.5]
+    assert [w.volume for w in relative_volumes(few)] == [0.5, 0.0, 0.5]
 
 
 def test_relative_volumes_treat_an_unmeasured_word_as_normal():

@@ -209,8 +209,7 @@ def test_whispered_word_keeps_its_full_width_and_shrinks_then_returns():
     scale = whisper_scale(0.0)
     assert f"\\t(0,80,\\fscx{scale}\\fscy{scale})" in shrink
     assert f"\\fscx{scale}\\fscy{scale}\\t(0,80,\\fscx100\\fscy100)" in restore
-    dim = f"\\alpha&H{QUIET_ALPHA:02X}&"
-    assert f"\\t(0,80,{dim})" in shrink and dim in restore    # dimmed as it shrinks, and stays dimmed
+    assert f"\\alpha&H{QUIET_ALPHA:02X}&" not in shrink + restore  # it shrinks without dimming
     assert shrink.split(",")[2] == restore.split(",")[1]       # the return picks up where the shrink ends
 
 
