@@ -19,7 +19,6 @@ from hearing_to_seeing.design.volume import (
     classify_volume,
     loud_tags,
     relative_volumes,
-    QUIET_ALPHA,
     narrow_tag,
     whisper_lift,
     whisper_phases,
@@ -121,7 +120,7 @@ class Effects:
     """Which effects the kinetic subtitle draws; the viewer can turn each off.
 
     `wave` is the ripple of normally spoken words, `volume` the growing of
-    shouted and shrinking (and dimming) of whispered ones; a word whose motion
+    shouted and shrinking of whispered ones; a word whose motion
     is off is drawn still. `color` off draws every speaker in HIGHLIGHT_COLOUR,
     `fill` off shows each word in its colour at once instead of wiping it in.
     `names` off leaves out the speaker's name in front of the line. The timing
@@ -475,16 +474,13 @@ def _pop_events(
         # The wipe has to be finished when the second event takes over (it
         # cannot be resumed half way), so it runs until the return starts.
         lead, sweep = _wipe(effects, word.start, word.start, back_at)
-        # Quiet words are also dimmed (QUIET_ALPHA); the dimming stays after the
-        # size has returned.
-        dim = f"\\alpha&H{QUIET_ALPHA:02X}&"
         shrink = _word_event_text(
             words, break_at, index, head_in,
-            f"\\c{color}{whisper_tags(word.volume, spoken)}\\t(0,{in_ms},{dim})", lead, sweep, name_lead,
+            f"\\c{color}{whisper_tags(word.volume, spoken)}", lead, sweep, name_lead,
         )
         restore = _word_event_text(
             words, break_at, index, head_out,
-            f"\\c{color}{dim}{whisper_return_tags(word.volume, spoken)}", "", "", name_lead,
+            f"\\c{color}{whisper_return_tags(word.volume, spoken)}", "", "", name_lead,
         )
         return [(word.start, back_at, shrink), (back_at, end, restore)]
 
