@@ -1,0 +1,17 @@
+{
+  "id": "b76bde70805f",
+  "youtube_id": "SMZFiqWFGLg",
+  "title": "안녕 자두야 - 새로운 옛 친구",
+  "channel": "Hello Jadoo TV",
+  "genre": "애니메이션",
+  "duration": 772.504671,
+  "created_at": 1794452782.698207,
+  "timings": {
+    "finishing": 0.16593526303768158,
+    "preparing": 1.0610336740501225,
+    "downloading": 17.30206812825054,
+    "transcribing": 587.8406397928484
+  },
+  "status": "ready",
+  "source_url": "https://www.youtube.com/watch?v=SMZFiqWFGLg"
+}

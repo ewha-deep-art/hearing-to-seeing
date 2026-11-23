@@ -1,0 +1,4002 @@
+{
+  "words": [
+    {
+      "end": 0.391,
+      "text": "제가",
+      "start": 0.031,
+      "volume": 0.2191,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 0.651,
+      "text": "이동을",
+      "start": 0.431,
+      "volume": 0.3787,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 1.031,
+      "text": "가져가는",
+      "start": 0.731,
+      "volume": 0.2859,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 1.732,
+      "text": "거고요.",
+      "start": 1.051,
+      "volume": 0.2848,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 2.632,
+      "text": "장로버프",
+      "start": 2.092,
+      "volume": 0.3269,
+      "speaker": "SPEAKER_32"
+    },
+    {
+      "end": 2.853,
+      "text": "하나",
+      "start": 2.692,
+      "volume": 0.3272,
+      "speaker": "SPEAKER_32"
+    },
+    {
+      "end": 3.213,
+      "text": "있다고",
+      "start": 2.893,
+      "volume": 0.2456,
+      "speaker": "SPEAKER_32"
+    },
+    {
+      "end": 3.492,
+      "text": "지금",
+      "start": 3.252,
+      "volume": 0.1751,
+      "speaker": "SPEAKER_32"
+    },
+    {
+      "end": 4.393,
+      "text": "의미가",
+      "start": 3.513,
+      "volume": 0.2943,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 4.833,
+      "text": "없죠?",
+      "start": 4.453,
+      "volume": 0.5021,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 5.913,
+      "text": "혼자!",
+      "start": 5.213,
+      "volume": 0.3809,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 6.354,
+      "text": "장로버프",
+      "start": 5.974,
+      "volume": 0.4641,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 6.595,
+      "text": "혼자서",
+      "start": 6.455,
+      "volume": 0.1907,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 6.795,
+      "text": "막을",
+      "start": 6.633,
+      "volume": 0.5385,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 7.075,
+      "text": "수",
+      "start": 6.975,
+      "volume": 0.1853,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 7.315,
+      "text": "있나요?",
+      "start": 7.095,
+      "volume": 0.3195,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 7.374,
+      "text": "숫자",
+      "start": 7.334,
+      "volume": 0.0988,
+      "speaker": "SPEAKER_15"
+    },
+    {
+      "end": 7.454,
+      "text": "앞에",
+      "start": 7.394,
+      "volume": 0.3334,
+      "speaker": "SPEAKER_15"
+    },
+    {
+      "end": 7.734,
+      "text": "장사",
+      "start": 7.474,
+      "volume": 0.2642,
+      "speaker": "SPEAKER_15"
+    },
+    {
+      "end": 7.814,
+      "text": "없긴",
+      "start": 7.754,
+      "volume": 0.3901,
+      "speaker": "SPEAKER_15"
+    },
+    {
+      "end": 8.094,
+      "text": "하거든요.",
+      "start": 7.854,
+      "volume": 0.3624,
+      "speaker": "SPEAKER_15"
+    },
+    {
+      "end": 8.273,
+      "text": "지금",
+      "start": 8.113,
+      "volume": 0.3456,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 8.513,
+      "text": "10초밖에",
+      "start": 8.313,
+      "volume": 0.4001,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 8.713,
+      "text": "안",
+      "start": 8.673,
+      "volume": 0.4381,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 9.056,
+      "text": "남아서",
+      "start": 8.733,
+      "volume": 0.53,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 9.616,
+      "text": "게임이",
+      "start": 9.356,
+      "volume": 0.4007,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 10.077,
+      "text": "끝나진",
+      "start": 9.816,
+      "volume": 0.4063,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 10.197,
+      "text": "않을",
+      "start": 10.097,
+      "volume": 0.3441,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 10.397,
+      "text": "것",
+      "start": 10.217,
+      "volume": 0.332,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 10.977,
+      "text": "같은데.",
+      "start": 10.417,
+      "volume": 0.396,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 11.137,
+      "text": "죽으면",
+      "start": 11.017,
+      "volume": 0.5593,
+      "speaker": "SPEAKER_25"
+    },
+    {
+      "end": 11.317,
+      "text": "안",
+      "start": 11.197,
+      "volume": 0.5862,
+      "speaker": "SPEAKER_25"
+    },
+    {
+      "end": 11.517,
+      "text": "되고요,",
+      "start": 11.337,
+      "volume": 0.4417,
+      "speaker": "SPEAKER_25"
+    },
+    {
+      "end": 12.076,
+      "text": "당연히.",
+      "start": 11.575,
+      "volume": 0.4076,
+      "speaker": "SPEAKER_25"
+    },
+    {
+      "end": 12.538,
+      "text": "지금",
+      "start": 12.378,
+      "volume": 0.3687,
+      "speaker": "SPEAKER_12"
+    },
+    {
+      "end": 12.798,
+      "text": "세게",
+      "start": 12.618,
+      "volume": 0.4519,
+      "speaker": "SPEAKER_12"
+    },
+    {
+      "end": 13.158,
+      "text": "세요.",
+      "start": 12.894,
+      "volume": 0.5564,
+      "speaker": "SPEAKER_12"
+    },
+    {
+      "end": 14.459,
+      "text": "이게",
+      "start": 14.215,
+      "volume": 0.411,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 15.199,
+      "text": "바로",
+      "start": 14.979,
+      "volume": 0.5433,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 15.44,
+      "text": "일행",
+      "start": 15.259,
+      "volume": 0.4501,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 16.14,
+      "text": "군단이죠!",
+      "start": 15.52,
+      "volume": 0.3875,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 16.947,
+      "text": "델탈",
+      "start": 16.587,
+      "volume": 0.5458,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 17.298,
+      "text": "사람",
+      "start": 17.057,
+      "volume": 0.6461,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 17.468,
+      "text": "없나?",
+      "start": 17.318,
+      "volume": 0.3298,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 17.638,
+      "text": "델타!",
+      "start": 17.598,
+      "volume": 0.487,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 25.584,
+      "text": "치는",
+      "start": 24.584,
+      "volume": 0.4756,
+      "speaker": "SPEAKER_03"
+    },
+    {
+      "end": 26.405,
+      "text": "거!",
+      "start": 26.325,
+      "volume": 0.4692,
+      "speaker": "SPEAKER_03"
+    },
+    {
+      "end": 27.065,
+      "text": "정말",
+      "start": 26.523,
+      "volume": 0.4767,
+      "speaker": "SPEAKER_23"
+    },
+    {
+      "end": 27.705,
+      "text": "드러났네!",
+      "start": 27.385,
+      "volume": 0.5031,
+      "speaker": "SPEAKER_23"
+    },
+    {
+      "end": 28.105,
+      "text": "그러니까",
+      "start": 27.765,
+      "volume": 0.3864,
+      "speaker": "SPEAKER_14"
+    },
+    {
+      "end": 28.145,
+      "text": "DRX",
+      "start": 28.105,
+      "volume": 0.3521,
+      "speaker": "SPEAKER_14"
+    },
+    {
+      "end": 28.445,
+      "text": "입장에서",
+      "start": 28.145,
+      "volume": 0.2591,
+      "speaker": "SPEAKER_14"
+    },
+    {
+      "end": 28.625,
+      "text": "이제",
+      "start": 28.465,
+      "volume": 0.1941,
+      "speaker": "SPEAKER_14"
+    },
+    {
+      "end": 28.925,
+      "text": "이거",
+      "start": 28.725,
+      "volume": 0.2217,
+      "speaker": "SPEAKER_14"
+    },
+    {
+      "end": 29.326,
+      "text": "전력",
+      "start": 28.985,
+      "volume": 0.4456,
+      "speaker": "SPEAKER_29"
+    },
+    {
+      "end": 29.906,
+      "text": "먹었거든.",
+      "start": 29.366,
+      "volume": 0.3496,
+      "speaker": "SPEAKER_29"
+    },
+    {
+      "end": 30.066,
+      "text": "이거",
+      "start": 29.926,
+      "volume": 0.4099,
+      "speaker": "SPEAKER_29"
+    },
+    {
+      "end": 30.346,
+      "text": "먹어야",
+      "start": 30.106,
+      "volume": 0.5075,
+      "speaker": "SPEAKER_29"
+    },
+    {
+      "end": 30.466,
+      "text": "돼.",
+      "start": 30.386,
+      "volume": 0.4663,
+      "speaker": "SPEAKER_29"
+    },
+    {
+      "end": 30.564,
+      "text": "우리",
+      "start": 30.494,
+      "volume": 0.3318,
+      "speaker": "SPEAKER_29"
+    },
+    {
+      "end": 30.844,
+      "text": "전력",
+      "start": 30.624,
+      "volume": 0.4209,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 31.104,
+      "text": "먹었어요.",
+      "start": 30.894,
+      "volume": 0.4223,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 31.362,
+      "text": "근데",
+      "start": 31.186,
+      "volume": 0.4895,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 31.546,
+      "text": "이거",
+      "start": 31.406,
+      "volume": 0.3558,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 31.846,
+      "text": "표식",
+      "start": 31.626,
+      "volume": 0.2673,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 32.086,
+      "text": "체력",
+      "start": 31.886,
+      "volume": 0.3478,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 32.707,
+      "text": "관리",
+      "start": 32.126,
+      "volume": 0.4708,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 33.363,
+      "text": "조심해야",
+      "start": 32.807,
+      "volume": 0.4553,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 34.407,
+      "text": "돼요.",
+      "start": 33.407,
+      "volume": 0.5334,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 36.088,
+      "text": "표식",
+      "start": 35.928,
+      "volume": 0.8598,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 36.486,
+      "text": "체력",
+      "start": 36.108,
+      "volume": 0.9701,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 36.576,
+      "text": "관리.",
+      "start": 36.576,
+      "volume": 0.0,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 36.576,
+      "text": "오징어!",
+      "start": 36.576,
+      "volume": 0.0,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 36.828,
+      "text": "오징어!",
+      "start": 36.588,
+      "volume": 0.936,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 37.328,
+      "text": "오징어!",
+      "start": 36.868,
+      "volume": 0.7832,
+      "speaker": "SPEAKER_15"
+    },
+    {
+      "end": 37.768,
+      "text": "표식이",
+      "start": 37.468,
+      "volume": 0.5084,
+      "speaker": "SPEAKER_15"
+    },
+    {
+      "end": 38.385,
+      "text": "체력이!",
+      "start": 37.808,
+      "volume": 0.6594,
+      "speaker": "SPEAKER_15"
+    },
+    {
+      "end": 39.497,
+      "text": "표식!",
+      "start": 38.547,
+      "volume": 0.7793,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 40.449,
+      "text": "와!",
+      "start": 40.349,
+      "volume": 0.6484,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 40.729,
+      "text": "와!",
+      "start": 40.689,
+      "volume": 0.565,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 41.149,
+      "text": "안",
+      "start": 40.769,
+      "volume": 0.7271,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 41.189,
+      "text": "돼!",
+      "start": 41.169,
+      "volume": 0.7906,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 47.59,
+      "text": "결국",
+      "start": 47.129,
+      "volume": 0.2587,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 47.87,
+      "text": "남은",
+      "start": 47.63,
+      "volume": 0.3043,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 48.01,
+      "text": "건",
+      "start": 47.89,
+      "volume": 0.2882,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 48.651,
+      "text": "쵸비.",
+      "start": 48.47,
+      "volume": 0.0672,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 48.951,
+      "text": "네",
+      "start": 48.831,
+      "volume": 0.2957,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 49.331,
+      "text": "쵸비",
+      "start": 49.191,
+      "volume": 0.1715,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 49.612,
+      "text": "또!",
+      "start": 49.392,
+      "volume": 0.4679,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 49.792,
+      "text": "쵸비",
+      "start": 49.672,
+      "volume": 0.552,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 50.092,
+      "text": "혼자",
+      "start": 49.832,
+      "volume": 0.4319,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 50.433,
+      "text": "남았고!",
+      "start": 50.112,
+      "volume": 0.7745,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 50.713,
+      "text": "쿼드라",
+      "start": 50.493,
+      "volume": 1.0,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 51.314,
+      "text": "타겟!",
+      "start": 50.713,
+      "volume": 0.8134,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 52.555,
+      "text": "아니",
+      "start": 52.475,
+      "volume": 0.721,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 52.675,
+      "text": "왜",
+      "start": 52.595,
+      "volume": 0.5496,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 52.835,
+      "text": "이렇게",
+      "start": 52.735,
+      "volume": 0.5664,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 53.076,
+      "text": "늦게",
+      "start": 52.875,
+      "volume": 0.2764,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 53.356,
+      "text": "나오죠?",
+      "start": 53.096,
+      "volume": 0.401,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 53.476,
+      "text": "깜짝",
+      "start": 53.416,
+      "volume": 0.5054,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 53.836,
+      "text": "놀랐습니다.",
+      "start": 53.496,
+      "volume": 0.3681,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 54.297,
+      "text": "이게",
+      "start": 53.876,
+      "volume": 0.2846,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 54.477,
+      "text": "딱",
+      "start": 54.357,
+      "volume": 0.2937,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 54.597,
+      "text": "봐도",
+      "start": 54.497,
+      "volume": 0.3519,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 55.438,
+      "text": "쿼드라였고.",
+      "start": 54.737,
+      "volume": 0.2168,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 56.94,
+      "text": "좀",
+      "start": 56.82,
+      "volume": 0.1644,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 57.08,
+      "text": "더",
+      "start": 57.0,
+      "volume": 0.2974,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 57.581,
+      "text": "자주",
+      "start": 57.24,
+      "volume": 0.1763,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 58.341,
+      "text": "쓸",
+      "start": 57.701,
+      "volume": 0.211,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 58.602,
+      "text": "것",
+      "start": 58.502,
+      "volume": 0.2749,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 58.982,
+      "text": "같다는",
+      "start": 58.622,
+      "volume": 0.2338,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 59.242,
+      "text": "예상을",
+      "start": 59.022,
+      "volume": 0.2127,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 59.443,
+      "text": "하고",
+      "start": 59.262,
+      "volume": 0.1657,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 61.165,
+      "text": "있었거든요.",
+      "start": 59.463,
+      "volume": 0.0987,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 61.945,
+      "text": "궁을",
+      "start": 61.785,
+      "volume": 0.1161,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 62.716,
+      "text": "꽂아버리고.",
+      "start": 62.005,
+      "volume": 0.2009,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 63.027,
+      "text": "궁",
+      "start": 62.967,
+      "volume": 0.1591,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 63.387,
+      "text": "교환.",
+      "start": 63.087,
+      "volume": 0.2062,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 64.348,
+      "text": "체력이.",
+      "start": 63.847,
+      "volume": 0.2462,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 64.809,
+      "text": "자",
+      "start": 64.728,
+      "volume": 0.2403,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 65.149,
+      "text": "불도",
+      "start": 64.889,
+      "volume": 0.2293,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 65.569,
+      "text": "지르고요!",
+      "start": 65.189,
+      "volume": 0.2893,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 67.631,
+      "text": "안",
+      "start": 66.906,
+      "volume": 0.076,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 68.384,
+      "text": "여기",
+      "start": 67.631,
+      "volume": 0.0817,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 68.704,
+      "text": "네",
+      "start": 68.444,
+      "volume": 0.2104,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 68.838,
+      "text": "뭐",
+      "start": 68.784,
+      "volume": 0.1928,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 69.078,
+      "text": "아트럭스",
+      "start": 68.838,
+      "volume": 0.0781,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 69.918,
+      "text": "니까",
+      "start": 69.098,
+      "volume": 0.1439,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 71.906,
+      "text": "어",
+      "start": 71.906,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 71.906,
+      "text": "기다렸다",
+      "start": 71.906,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 77.408,
+      "text": "땡큐죠?",
+      "start": 76.948,
+      "volume": 0.301,
+      "speaker": "SPEAKER_26"
+    },
+    {
+      "end": 78.849,
+      "text": "아",
+      "start": 78.629,
+      "volume": 0.2963,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 79.249,
+      "text": "아",
+      "start": 79.149,
+      "volume": 0.318,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 79.769,
+      "text": "아",
+      "start": 79.669,
+      "volume": 0.2912,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 80.15,
+      "text": "아",
+      "start": 79.99,
+      "volume": 0.3246,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 85.832,
+      "text": "아무튼",
+      "start": 84.332,
+      "volume": 0.0688,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 87.233,
+      "text": "그거",
+      "start": 86.773,
+      "volume": 0.1338,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 87.854,
+      "text": "죽어졌습니다.",
+      "start": 87.273,
+      "volume": 0.1847,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 88.741,
+      "text": "좋네요!",
+      "start": 87.874,
+      "volume": 0.2952,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 89.021,
+      "text": "하우르드",
+      "start": 88.794,
+      "volume": 0.2521,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 89.361,
+      "text": "옆에",
+      "start": 89.021,
+      "volume": 0.2036,
+      "speaker": "SPEAKER_21"
+    },
+    {
+      "end": 90.635,
+      "text": "유사치",
+      "start": 90.335,
+      "volume": 0.2048,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 91.055,
+      "text": "데뷔해서",
+      "start": 90.675,
+      "volume": 0.2413,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 91.956,
+      "text": "큐베",
+      "start": 91.695,
+      "volume": 0.25,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 92.796,
+      "text": "나이스!",
+      "start": 92.316,
+      "volume": 0.345,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 92.836,
+      "text": "아!",
+      "start": 92.816,
+      "volume": 0.3862,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 93.176,
+      "text": "썰러킹!",
+      "start": 92.876,
+      "volume": 0.2601,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 100.315,
+      "text": "앞으로",
+      "start": 99.695,
+      "volume": 0.5961,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 100.601,
+      "text": "가야",
+      "start": 100.391,
+      "volume": 0.4948,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 101.321,
+      "text": "되는데요.",
+      "start": 100.701,
+      "volume": 0.5758,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 102.497,
+      "text": "억제기는",
+      "start": 102.057,
+      "volume": 0.3821,
+      "speaker": "SPEAKER_36"
+    },
+    {
+      "end": 103.578,
+      "text": "날아갈게요.",
+      "start": 102.517,
+      "volume": 0.6509,
+      "speaker": "SPEAKER_36"
+    },
+    {
+      "end": 104.379,
+      "text": "범",
+      "start": 104.279,
+      "volume": 0.4541,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 104.453,
+      "text": "한",
+      "start": 104.399,
+      "volume": 0.315,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 104.453,
+      "text": "번",
+      "start": 104.453,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 104.999,
+      "text": "찔러봤는데.",
+      "start": 104.453,
+      "volume": 0.4948,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 106.66,
+      "text": "오르는",
+      "start": 106.34,
+      "volume": 0.482,
+      "speaker": "SPEAKER_35"
+    },
+    {
+      "end": 106.881,
+      "text": "일단",
+      "start": 106.7,
+      "volume": 0.4144,
+      "speaker": "SPEAKER_35"
+    },
+    {
+      "end": 107.381,
+      "text": "갔어요",
+      "start": 106.961,
+      "volume": 0.4812,
+      "speaker": "SPEAKER_35"
+    },
+    {
+      "end": 107.766,
+      "text": "집에.",
+      "start": 107.405,
+      "volume": 0.3274,
+      "speaker": "SPEAKER_35"
+    },
+    {
+      "end": 108.702,
+      "text": "4대4입니다.",
+      "start": 108.302,
+      "volume": 0.4348,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 109.016,
+      "text": "화면상",
+      "start": 108.716,
+      "volume": 0.3458,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 109.462,
+      "text": "찍으면요.",
+      "start": 109.062,
+      "volume": 0.4308,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 109.843,
+      "text": "근데",
+      "start": 109.723,
+      "volume": 0.3242,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 109.903,
+      "text": "이거",
+      "start": 109.863,
+      "volume": 0.3858,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 110.023,
+      "text": "한",
+      "start": 109.943,
+      "volume": 0.1712,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 110.103,
+      "text": "명",
+      "start": 110.043,
+      "volume": 0.3297,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 110.297,
+      "text": "더",
+      "start": 110.143,
+      "volume": 0.2202,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 110.443,
+      "text": "와야",
+      "start": 110.311,
+      "volume": 0.5352,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 110.572,
+      "text": "될",
+      "start": 110.471,
+      "volume": 0.207,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 110.718,
+      "text": "것",
+      "start": 110.657,
+      "volume": 0.4572,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 110.858,
+      "text": "같은데.",
+      "start": 110.757,
+      "volume": 0.1575,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 111.104,
+      "text": "그리고",
+      "start": 110.884,
+      "volume": 0.5451,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 111.524,
+      "text": "오르는",
+      "start": 111.164,
+      "volume": 0.6489,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 111.944,
+      "text": "순간이동",
+      "start": 111.564,
+      "volume": 0.47,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 112.525,
+      "text": "있거든요?",
+      "start": 112.024,
+      "volume": 0.4358,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 113.253,
+      "text": "카미는",
+      "start": 112.913,
+      "volume": 0.4811,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 113.385,
+      "text": "못",
+      "start": 113.305,
+      "volume": 0.5325,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 113.586,
+      "text": "오고",
+      "start": 113.426,
+      "volume": 0.4552,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 113.946,
+      "text": "오르는",
+      "start": 113.646,
+      "volume": 0.4483,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 114.346,
+      "text": "순간이동",
+      "start": 113.966,
+      "volume": 0.3738,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 115.027,
+      "text": "있어요.",
+      "start": 114.406,
+      "volume": 0.4198,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 115.427,
+      "text": "그게",
+      "start": 115.267,
+      "volume": 0.4462,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 115.567,
+      "text": "좀",
+      "start": 115.467,
+      "volume": 0.3377,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 116.148,
+      "text": "변수라서",
+      "start": 115.647,
+      "volume": 0.5394,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 116.498,
+      "text": "DRX도.",
+      "start": 116.432,
+      "volume": 0.2872,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 116.942,
+      "text": "어",
+      "start": 116.812,
+      "volume": 0.3231,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 117.142,
+      "text": "좋은",
+      "start": 116.942,
+      "volume": 0.5518,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 117.957,
+      "text": "변수.",
+      "start": 117.836,
+      "volume": 0.4881,
+      "speaker": "SPEAKER_28"
+    },
+    {
+      "end": 118.257,
+      "text": "근데",
+      "start": 118.097,
+      "volume": 0.5277,
+      "speaker": "SPEAKER_08"
+    },
+    {
+      "end": 118.557,
+      "text": "카미",
+      "start": 118.317,
+      "volume": 0.6557,
+      "speaker": "SPEAKER_08"
+    },
+    {
+      "end": 118.997,
+      "text": "노코드",
+      "start": 118.597,
+      "volume": 0.4895,
+      "speaker": "SPEAKER_08"
+    },
+    {
+      "end": 119.498,
+      "text": "넣었는데",
+      "start": 119.037,
+      "volume": 0.4091,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 119.75,
+      "text": "다시",
+      "start": 119.55,
+      "volume": 0.5068,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 120.138,
+      "text": "한",
+      "start": 120.058,
+      "volume": 0.6957,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 120.158,
+      "text": "번",
+      "start": 120.158,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 120.33,
+      "text": "싸움이!",
+      "start": 120.158,
+      "volume": 0.658,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 121.435,
+      "text": "들어갔다",
+      "start": 120.939,
+      "volume": 0.7294,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 121.625,
+      "text": "나이스!",
+      "start": 121.435,
+      "volume": 0.6124,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 122.019,
+      "text": "밀키",
+      "start": 121.919,
+      "volume": 0.4222,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 122.251,
+      "text": "뒤로",
+      "start": 122.051,
+      "volume": 0.4418,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 122.786,
+      "text": "삥돌기.",
+      "start": 122.476,
+      "volume": 0.5238,
+      "speaker": "SPEAKER_30"
+    },
+    {
+      "end": 123.921,
+      "text": "예",
+      "start": 123.1,
+      "volume": 0.5694,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 124.061,
+      "text": "bg",
+      "start": 123.921,
+      "volume": 0.3436,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 124.301,
+      "text": "차례",
+      "start": 124.061,
+      "volume": 0.6683,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 124.541,
+      "text": "기와",
+      "start": 124.341,
+      "volume": 0.758,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 124.962,
+      "text": "잔뜩",
+      "start": 124.801,
+      "volume": 0.7749,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 126.162,
+      "text": "아",
+      "start": 125.222,
+      "volume": 0.6853,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 127.203,
+      "text": "아",
+      "start": 126.203,
+      "volume": 0.5661,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 131.907,
+      "text": "아",
+      "start": 131.827,
+      "volume": 0.4352,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 132.127,
+      "text": "아",
+      "start": 132.027,
+      "volume": 0.7667,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 146.858,
+      "text": "바루스",
+      "start": 145.358,
+      "volume": 0.6857,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 157.487,
+      "text": "너무",
+      "start": 157.206,
+      "volume": 0.5776,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 158.327,
+      "text": "말렸는데요,",
+      "start": 157.527,
+      "volume": 0.4954,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 158.627,
+      "text": "이렇게",
+      "start": 158.407,
+      "volume": 0.256,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 159.668,
+      "text": "되면.",
+      "start": 158.668,
+      "volume": 0.1769,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 162.041,
+      "text": "블릭이",
+      "start": 161.681,
+      "volume": 0.3631,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 162.401,
+      "text": "한",
+      "start": 162.321,
+      "volume": 0.9452,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 162.541,
+      "text": "잔",
+      "start": 162.441,
+      "volume": 0.8329,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 163.007,
+      "text": "하고요.",
+      "start": 162.565,
+      "volume": 0.9833,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 172.971,
+      "text": "자",
+      "start": 172.831,
+      "volume": 0.3237,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 174.074,
+      "text": "반까지는",
+      "start": 173.464,
+      "volume": 0.4261,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 174.312,
+      "text": "백...",
+      "start": 174.172,
+      "volume": 0.4552,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 174.703,
+      "text": "아니다",
+      "start": 174.543,
+      "volume": 0.4521,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 175.273,
+      "text": "아니다",
+      "start": 174.735,
+      "volume": 0.3966,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 175.534,
+      "text": "끝까지",
+      "start": 175.333,
+      "volume": 0.2943,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 175.914,
+      "text": "치기는...",
+      "start": 175.594,
+      "volume": 0.2805,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 176.535,
+      "text": "그러면",
+      "start": 176.294,
+      "volume": 0.592,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 176.895,
+      "text": "싸움으로",
+      "start": 176.635,
+      "volume": 0.6923,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 177.416,
+      "text": "전환!",
+      "start": 176.935,
+      "volume": 0.6413,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 177.746,
+      "text": "한",
+      "start": 177.656,
+      "volume": 0.4456,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 177.976,
+      "text": "캐치",
+      "start": 177.776,
+      "volume": 0.4214,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 178.136,
+      "text": "쪽?",
+      "start": 178.036,
+      "volume": 0.5754,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 178.477,
+      "text": "네",
+      "start": 178.296,
+      "volume": 0.5515,
+      "speaker": "SPEAKER_24"
+    },
+    {
+      "end": 178.837,
+      "text": "오늘",
+      "start": 178.477,
+      "volume": 0.4508,
+      "speaker": "SPEAKER_24"
+    },
+    {
+      "end": 179.367,
+      "text": "순간이동",
+      "start": 178.887,
+      "volume": 0.6098,
+      "speaker": "SPEAKER_24"
+    },
+    {
+      "end": 179.818,
+      "text": "안쪽",
+      "start": 179.417,
+      "volume": 0.4911,
+      "speaker": "SPEAKER_27"
+    },
+    {
+      "end": 180.218,
+      "text": "스웨인",
+      "start": 179.958,
+      "volume": 0.5868,
+      "speaker": "SPEAKER_27"
+    },
+    {
+      "end": 180.659,
+      "text": "자",
+      "start": 180.499,
+      "volume": 0.5248,
+      "speaker": "SPEAKER_27"
+    },
+    {
+      "end": 180.999,
+      "text": "졸음",
+      "start": 180.739,
+      "volume": 0.5087,
+      "speaker": "SPEAKER_27"
+    },
+    {
+      "end": 181.64,
+      "text": "스웨인이",
+      "start": 181.339,
+      "volume": 0.4119,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 182.12,
+      "text": "안쪽으로",
+      "start": 181.68,
+      "volume": 0.4735,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 182.379,
+      "text": "와요",
+      "start": 182.16,
+      "volume": 0.5233,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 185.452,
+      "text": "일단",
+      "start": 185.032,
+      "volume": 0.4075,
+      "speaker": "SPEAKER_08"
+    },
+    {
+      "end": 186.393,
+      "text": "들어갔는데",
+      "start": 185.732,
+      "volume": 0.505,
+      "speaker": "SPEAKER_08"
+    },
+    {
+      "end": 186.853,
+      "text": "스웨인이",
+      "start": 186.473,
+      "volume": 0.7066,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 187.614,
+      "text": "위치가",
+      "start": 186.933,
+      "volume": 0.5394,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 187.894,
+      "text": "애매한데",
+      "start": 187.674,
+      "volume": 0.5228,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 188.394,
+      "text": "밀고",
+      "start": 188.234,
+      "volume": 0.5685,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 188.814,
+      "text": "내려올",
+      "start": 188.494,
+      "volume": 0.6049,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 188.954,
+      "text": "수",
+      "start": 188.874,
+      "volume": 0.5615,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 189.195,
+      "text": "있나요?",
+      "start": 188.994,
+      "volume": 0.4864,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 189.415,
+      "text": "자",
+      "start": 189.315,
+      "volume": 0.443,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 189.895,
+      "text": "룰러의",
+      "start": 189.455,
+      "volume": 0.659,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 190.615,
+      "text": "1대1",
+      "start": 190.295,
+      "volume": 0.5689,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 191.236,
+      "text": "엠피샷도",
+      "start": 190.696,
+      "volume": 0.4478,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 191.52,
+      "text": "왔고요",
+      "start": 191.26,
+      "volume": 0.6479,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 192.118,
+      "text": "버티고",
+      "start": 191.678,
+      "volume": 0.4477,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 192.317,
+      "text": "밀고",
+      "start": 192.168,
+      "volume": 0.5729,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 192.517,
+      "text": "내려올",
+      "start": 192.357,
+      "volume": 0.6429,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 192.657,
+      "text": "수",
+      "start": 192.577,
+      "volume": 0.4453,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 192.857,
+      "text": "있나요?",
+      "start": 192.717,
+      "volume": 0.48,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 193.157,
+      "text": "메가나는",
+      "start": 192.857,
+      "volume": 0.5441,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 193.437,
+      "text": "위치가",
+      "start": 193.177,
+      "volume": 0.5652,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 193.697,
+      "text": "너무",
+      "start": 193.477,
+      "volume": 0.4871,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 194.058,
+      "text": "좋아요",
+      "start": 193.737,
+      "volume": 0.5296,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 194.538,
+      "text": "메가나는",
+      "start": 194.058,
+      "volume": 0.5279,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 194.758,
+      "text": "위치가",
+      "start": 194.598,
+      "volume": 0.3756,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 195.178,
+      "text": "너무",
+      "start": 194.798,
+      "volume": 0.4747,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 195.32,
+      "text": "좋은데요",
+      "start": 195.198,
+      "volume": 0.5749,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 195.6,
+      "text": "이쪽에서",
+      "start": 195.32,
+      "volume": 0.5334,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 195.779,
+      "text": "밀고",
+      "start": 195.64,
+      "volume": 0.6609,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 196.101,
+      "text": "내려오는",
+      "start": 195.819,
+      "volume": 0.5603,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 196.321,
+      "text": "보도가",
+      "start": 196.141,
+      "volume": 0.4961,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 197.139,
+      "text": "어찌",
+      "start": 196.639,
+      "volume": 0.5838,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 198.601,
+      "text": "그래도",
+      "start": 198.441,
+      "volume": 0.6369,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 201.362,
+      "text": "안식",
+      "start": 201.082,
+      "volume": 0.6175,
+      "speaker": "SPEAKER_20"
+    },
+    {
+      "end": 201.462,
+      "text": "쳐",
+      "start": 201.462,
+      "volume": 0.0,
+      "speaker": "SPEAKER_20"
+    },
+    {
+      "end": 201.462,
+      "text": "그리고",
+      "start": 201.462,
+      "volume": 0.0,
+      "speaker": "SPEAKER_20"
+    },
+    {
+      "end": 201.462,
+      "text": "나서",
+      "start": 201.462,
+      "volume": 0.0,
+      "speaker": "SPEAKER_20"
+    },
+    {
+      "end": 202.783,
+      "text": "안식",
+      "start": 202.383,
+      "volume": 0.6329,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 203.003,
+      "text": "쳐",
+      "start": 202.863,
+      "volume": 0.839,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 214.891,
+      "text": "룰러가",
+      "start": 214.09,
+      "volume": 0.4894,
+      "speaker": "SPEAKER_17"
+    },
+    {
+      "end": 215.331,
+      "text": "딜!",
+      "start": 215.011,
+      "volume": 0.5819,
+      "speaker": "SPEAKER_17"
+    },
+    {
+      "end": 216.972,
+      "text": "날라갔다!",
+      "start": 215.631,
+      "volume": 0.6102,
+      "speaker": "SPEAKER_17"
+    },
+    {
+      "end": 228.168,
+      "text": "그게",
+      "start": 227.928,
+      "volume": 0.4677,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 228.738,
+      "text": "어디예요!",
+      "start": 228.278,
+      "volume": 0.3095,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 229.358,
+      "text": "맞아요",
+      "start": 228.787,
+      "volume": 0.2519,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 229.638,
+      "text": "우리가",
+      "start": 229.418,
+      "volume": 0.2147,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 229.858,
+      "text": "뭐",
+      "start": 229.698,
+      "volume": 0.1686,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 230.059,
+      "text": "많은",
+      "start": 229.908,
+      "volume": 0.2393,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 230.149,
+      "text": "거를...",
+      "start": 230.078,
+      "volume": 0.3253,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 230.356,
+      "text": "뭐",
+      "start": 230.279,
+      "volume": 0.3667,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 230.776,
+      "text": "과하게",
+      "start": 230.356,
+      "volume": 0.3191,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 231.016,
+      "text": "지금",
+      "start": 230.836,
+      "volume": 0.2485,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 231.236,
+      "text": "제가",
+      "start": 231.058,
+      "volume": 0.2981,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 231.769,
+      "text": "긍정적으로",
+      "start": 231.256,
+      "volume": 0.2486,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 232.101,
+      "text": "얘기하는",
+      "start": 231.821,
+      "volume": 0.2598,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 232.217,
+      "text": "게",
+      "start": 232.177,
+      "volume": 0.2969,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 232.601,
+      "text": "아니고요",
+      "start": 232.277,
+      "volume": 0.2299,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 232.859,
+      "text": "아까보단",
+      "start": 232.679,
+      "volume": 0.291,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 233.157,
+      "text": "다요",
+      "start": 232.897,
+      "volume": 0.268,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 233.389,
+      "text": "누가",
+      "start": 233.229,
+      "volume": 0.3497,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 233.878,
+      "text": "못",
+      "start": 233.437,
+      "volume": 0.2967,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 234.018,
+      "text": "오라고",
+      "start": 233.918,
+      "volume": 0.2712,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 234.25,
+      "text": "지금요!",
+      "start": 234.079,
+      "volume": 0.2646,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 235.06,
+      "text": "자!",
+      "start": 234.4,
+      "volume": 0.2841,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 235.982,
+      "text": "아",
+      "start": 235.678,
+      "volume": 0.3159,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 236.62,
+      "text": "피했고요",
+      "start": 236.13,
+      "volume": 0.3032,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 236.939,
+      "text": "일단은",
+      "start": 236.731,
+      "volume": 0.2481,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 237.959,
+      "text": "스토리를",
+      "start": 236.939,
+      "volume": 0.2515,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 239.422,
+      "text": "피했고요!",
+      "start": 238.981,
+      "volume": 0.2464,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 240.022,
+      "text": "맞힌",
+      "start": 239.531,
+      "volume": 0.2104,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 240.332,
+      "text": "다음에",
+      "start": 240.182,
+      "volume": 0.2419,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 240.961,
+      "text": "올라간",
+      "start": 240.961,
+      "volume": 0.0,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 240.992,
+      "text": "번!",
+      "start": 240.961,
+      "volume": 0.2016,
+      "speaker": "SPEAKER_22"
+    },
+    {
+      "end": 241.281,
+      "text": "아",
+      "start": 241.281,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 241.612,
+      "text": "무르고시",
+      "start": 241.281,
+      "volume": 0.1742,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 242.202,
+      "text": "무르고시",
+      "start": 241.652,
+      "volume": 0.2048,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 242.581,
+      "text": "자",
+      "start": 242.581,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 243.183,
+      "text": "고장빠져!",
+      "start": 242.581,
+      "volume": 0.3017,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 244.283,
+      "text": "고장빠져!",
+      "start": 243.243,
+      "volume": 0.2898,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 245.882,
+      "text": "아아!",
+      "start": 244.882,
+      "volume": 0.3342,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 247.103,
+      "text": "맞아!",
+      "start": 246.103,
+      "volume": 0.3491,
+      "speaker": "SPEAKER_01"
+    },
+    {
+      "end": 248.644,
+      "text": "글버전!",
+      "start": 247.675,
+      "volume": 0.3205,
+      "speaker": "SPEAKER_01"
+    },
+    {
+      "end": 249.794,
+      "text": "글버전!",
+      "start": 249.375,
+      "volume": 0.2598,
+      "speaker": "SPEAKER_01"
+    },
+    {
+      "end": 250.125,
+      "text": "아틀라가",
+      "start": 249.835,
+      "volume": 0.2821,
+      "speaker": "SPEAKER_01"
+    },
+    {
+      "end": 250.275,
+      "text": "세요!",
+      "start": 250.175,
+      "volume": 0.3003,
+      "speaker": "SPEAKER_01"
+    },
+    {
+      "end": 250.565,
+      "text": "아틀라가",
+      "start": 250.365,
+      "volume": 0.2769,
+      "speaker": "SPEAKER_01"
+    },
+    {
+      "end": 250.705,
+      "text": "세요!",
+      "start": 250.585,
+      "volume": 0.3602,
+      "speaker": "SPEAKER_01"
+    },
+    {
+      "end": 251.505,
+      "text": "아틀라가",
+      "start": 250.865,
+      "volume": 0.3241,
+      "speaker": "SPEAKER_17"
+    },
+    {
+      "end": 251.796,
+      "text": "세요!",
+      "start": 251.546,
+      "volume": 0.3664,
+      "speaker": "SPEAKER_17"
+    },
+    {
+      "end": 252.125,
+      "text": "아!",
+      "start": 252.025,
+      "volume": 0.1829,
+      "speaker": "SPEAKER_17"
+    },
+    {
+      "end": 253.406,
+      "text": "고장났다!",
+      "start": 252.566,
+      "volume": 0.3868,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 255.426,
+      "text": "아아아아",
+      "start": 253.426,
+      "volume": 0.3334,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 280.909,
+      "text": "자",
+      "start": 280.308,
+      "volume": 0.2785,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 281.549,
+      "text": "그라가스가",
+      "start": 280.949,
+      "volume": 0.2812,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 282.03,
+      "text": "죽었어요.",
+      "start": 281.609,
+      "volume": 0.2193,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 282.75,
+      "text": "그라가스가",
+      "start": 282.35,
+      "volume": 0.2973,
+      "speaker": "SPEAKER_29"
+    },
+    {
+      "end": 283.441,
+      "text": "죽었는데요?",
+      "start": 282.81,
+      "volume": 0.2769,
+      "speaker": "SPEAKER_29"
+    },
+    {
+      "end": 289.515,
+      "text": "제발!",
+      "start": 288.515,
+      "volume": 0.3161,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 290.057,
+      "text": "이게",
+      "start": 290.057,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 290.237,
+      "text": "16에서!",
+      "start": 290.057,
+      "volume": 0.2699,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 290.577,
+      "text": "16에서!",
+      "start": 290.237,
+      "volume": 0.2698,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 291.798,
+      "text": "16에서!",
+      "start": 291.378,
+      "volume": 0.3151,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 292.559,
+      "text": "오르니",
+      "start": 292.198,
+      "volume": 0.2309,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 292.899,
+      "text": "먹었어요.",
+      "start": 292.579,
+      "volume": 0.2149,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 293.86,
+      "text": "16에서!",
+      "start": 293.54,
+      "volume": 0.267,
+      "speaker": "SPEAKER_03"
+    },
+    {
+      "end": 294.38,
+      "text": "제가",
+      "start": 294.1,
+      "volume": 0.3061,
+      "speaker": "SPEAKER_03"
+    },
+    {
+      "end": 295.601,
+      "text": "봤어요!",
+      "start": 294.42,
+      "volume": 0.3087,
+      "speaker": "SPEAKER_03"
+    },
+    {
+      "end": 296.142,
+      "text": "이런",
+      "start": 295.822,
+      "volume": 0.2877,
+      "speaker": "SPEAKER_09"
+    },
+    {
+      "end": 296.562,
+      "text": "거는",
+      "start": 296.342,
+      "volume": 0.3899,
+      "speaker": "SPEAKER_09"
+    },
+    {
+      "end": 296.943,
+      "text": "조금",
+      "start": 296.722,
+      "volume": 0.258,
+      "speaker": "SPEAKER_09"
+    },
+    {
+      "end": 297.443,
+      "text": "변수가",
+      "start": 297.023,
+      "volume": 0.2989,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 297.563,
+      "text": "될",
+      "start": 297.483,
+      "volume": 0.3226,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 297.703,
+      "text": "수",
+      "start": 297.603,
+      "volume": 0.1616,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 297.943,
+      "text": "있긴",
+      "start": 297.763,
+      "volume": 0.1439,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 298.744,
+      "text": "해요.",
+      "start": 297.963,
+      "volume": 0.1521,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 298.944,
+      "text": "일단...",
+      "start": 298.784,
+      "volume": 0.2137,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 301.457,
+      "text": "일단",
+      "start": 300.457,
+      "volume": 0.1651,
+      "speaker": "SPEAKER_33"
+    },
+    {
+      "end": 303.438,
+      "text": "챔피언이",
+      "start": 302.697,
+      "volume": 0.3509,
+      "speaker": "SPEAKER_33"
+    },
+    {
+      "end": 303.998,
+      "text": "3밖에",
+      "start": 303.678,
+      "volume": 0.2978,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 304.758,
+      "text": "없으니까",
+      "start": 304.018,
+      "volume": 0.272,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 305.598,
+      "text": "이게",
+      "start": 305.478,
+      "volume": 0.2702,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 305.917,
+      "text": "스틸",
+      "start": 305.616,
+      "volume": 0.2339,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 306.298,
+      "text": "변수네",
+      "start": 305.938,
+      "volume": 0.3191,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 306.618,
+      "text": "뭐네",
+      "start": 306.358,
+      "volume": 0.4082,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 307.378,
+      "text": "해도",
+      "start": 306.658,
+      "volume": 0.3565,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 307.839,
+      "text": "우리가",
+      "start": 307.579,
+      "volume": 0.4125,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 308.177,
+      "text": "먹을",
+      "start": 307.879,
+      "volume": 0.4211,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 308.377,
+      "text": "확률이",
+      "start": 308.207,
+      "volume": 0.3498,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 308.737,
+      "text": "무조건",
+      "start": 308.438,
+      "volume": 0.3538,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 308.757,
+      "text": "높아.",
+      "start": 308.757,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 308.999,
+      "text": "돼지도",
+      "start": 308.757,
+      "volume": 0.3937,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 309.619,
+      "text": "하나",
+      "start": 309.439,
+      "volume": 0.4028,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 309.819,
+      "text": "있어!",
+      "start": 309.639,
+      "volume": 0.3192,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 310.549,
+      "text": "이거거든요?",
+      "start": 309.859,
+      "volume": 0.4247,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 310.719,
+      "text": "점둔나무",
+      "start": 310.719,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 310.789,
+      "text": "긁어주고!",
+      "start": 310.719,
+      "volume": 0.2515,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 312.62,
+      "text": "칼린",
+      "start": 312.54,
+      "volume": 0.5015,
+      "speaker": "SPEAKER_12"
+    },
+    {
+      "end": 312.78,
+      "text": "약간",
+      "start": 312.68,
+      "volume": 0.4849,
+      "speaker": "SPEAKER_12"
+    },
+    {
+      "end": 313.44,
+      "text": "위험하긴",
+      "start": 313.02,
+      "volume": 0.411,
+      "speaker": "SPEAKER_12"
+    },
+    {
+      "end": 313.78,
+      "text": "한데",
+      "start": 313.64,
+      "volume": 0.5366,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 314.26,
+      "text": "근데",
+      "start": 313.82,
+      "volume": 0.4678,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 314.42,
+      "text": "그냥",
+      "start": 314.32,
+      "volume": 0.1963,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 314.78,
+      "text": "버리는",
+      "start": 314.46,
+      "volume": 0.4769,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 315.06,
+      "text": "게",
+      "start": 314.98,
+      "volume": 0.5643,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 315.42,
+      "text": "맞는지",
+      "start": 315.1,
+      "volume": 0.5218,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 315.72,
+      "text": "이해해?",
+      "start": 315.44,
+      "volume": 0.4636,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 315.76,
+      "text": "아니",
+      "start": 315.72,
+      "volume": 0.3324,
+      "speaker": "SPEAKER_16"
+    },
+    {
+      "end": 315.84,
+      "text": "그냥",
+      "start": 315.78,
+      "volume": 0.4947,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 316.19,
+      "text": "벗고",
+      "start": 316.02,
+      "volume": 0.5394,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 316.33,
+      "text": "하는",
+      "start": 316.19,
+      "volume": 0.3101,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 316.53,
+      "text": "게",
+      "start": 316.37,
+      "volume": 0.3997,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 316.981,
+      "text": "맞는지!",
+      "start": 316.74,
+      "volume": 0.4489,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 317.221,
+      "text": "벗고",
+      "start": 317.021,
+      "volume": 0.3509,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 317.561,
+      "text": "빠져!",
+      "start": 317.241,
+      "volume": 0.4907,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 317.721,
+      "text": "벗고",
+      "start": 317.621,
+      "volume": 0.4562,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 317.821,
+      "text": "빠져!",
+      "start": 317.741,
+      "volume": 0.3118,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 317.901,
+      "text": "벗고",
+      "start": 317.861,
+      "volume": 0.3362,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 317.981,
+      "text": "빠져!",
+      "start": 317.921,
+      "volume": 0.3932,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 318.061,
+      "text": "벗고",
+      "start": 318.001,
+      "volume": 0.4498,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 318.201,
+      "text": "빠져!",
+      "start": 318.121,
+      "volume": 0.4613,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 318.321,
+      "text": "벗고",
+      "start": 318.321,
+      "volume": 0.0,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 318.321,
+      "text": "빠져!",
+      "start": 318.321,
+      "volume": 0.0,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 318.581,
+      "text": "벗고",
+      "start": 318.581,
+      "volume": 0.0,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 318.581,
+      "text": "빠져!",
+      "start": 318.581,
+      "volume": 0.0,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 319.041,
+      "text": "벗고",
+      "start": 318.981,
+      "volume": 0.2835,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 319.161,
+      "text": "빠져!",
+      "start": 319.081,
+      "volume": 0.6233,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 319.321,
+      "text": "벗고",
+      "start": 319.201,
+      "volume": 0.5598,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 319.501,
+      "text": "빠져!",
+      "start": 319.341,
+      "volume": 0.4547,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 332.073,
+      "text": "다음",
+      "start": 331.793,
+      "volume": 0.3591,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 336.354,
+      "text": "트랜사이드로",
+      "start": 333.354,
+      "volume": 0.4812,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 343.641,
+      "text": "돌아올",
+      "start": 343.541,
+      "volume": 0.0712,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 343.801,
+      "text": "거예요",
+      "start": 343.681,
+      "volume": 0.15,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 361.365,
+      "text": "아",
+      "start": 361.325,
+      "volume": 0.1112,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 361.681,
+      "text": "네",
+      "start": 361.621,
+      "volume": 0.1226,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 361.925,
+      "text": "지금",
+      "start": 361.725,
+      "volume": 0.1048,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 362.565,
+      "text": "약간의",
+      "start": 362.225,
+      "volume": 0.2318,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 362.825,
+      "text": "준비",
+      "start": 362.605,
+      "volume": 0.1488,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 363.186,
+      "text": "상태가",
+      "start": 362.845,
+      "volume": 0.2172,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 363.893,
+      "text": "이게",
+      "start": 363.732,
+      "volume": 0.2233,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 364.566,
+      "text": "라이브입니다",
+      "start": 364.146,
+      "volume": 0.2076,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 364.826,
+      "text": "원래",
+      "start": 364.666,
+      "volume": 0.2124,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 365.093,
+      "text": "인터뷰",
+      "start": 364.933,
+      "volume": 0.2256,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 365.173,
+      "text": "하기",
+      "start": 365.113,
+      "volume": 0.1381,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 365.426,
+      "text": "전에",
+      "start": 365.206,
+      "volume": 0.2315,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 366.507,
+      "text": "몸풀기가",
+      "start": 365.967,
+      "volume": 0.2647,
+      "speaker": "SPEAKER_06"
+    },
+    {
+      "end": 366.587,
+      "text": "좀",
+      "start": 366.527,
+      "volume": 0.1039,
+      "speaker": "SPEAKER_06"
+    },
+    {
+      "end": 366.847,
+      "text": "있어야",
+      "start": 366.627,
+      "volume": 0.1683,
+      "speaker": "SPEAKER_06"
+    },
+    {
+      "end": 367.674,
+      "text": "되거든요",
+      "start": 366.867,
+      "volume": 0.2064,
+      "speaker": "SPEAKER_06"
+    },
+    {
+      "end": 369.868,
+      "text": "몸을",
+      "start": 369.708,
+      "volume": 0.0733,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 369.968,
+      "text": "좀",
+      "start": 369.888,
+      "volume": 0.0975,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 370.448,
+      "text": "풀어놔야",
+      "start": 370.008,
+      "volume": 0.1772,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 370.848,
+      "text": "이런",
+      "start": 370.548,
+      "volume": 0.2613,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 371.468,
+      "text": "걸",
+      "start": 371.328,
+      "volume": 0.167,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 371.788,
+      "text": "당하지",
+      "start": 371.528,
+      "volume": 0.0867,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 371.888,
+      "text": "않는",
+      "start": 371.808,
+      "volume": 0.1318,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 372.109,
+      "text": "게",
+      "start": 372.049,
+      "volume": 0.0913,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 372.289,
+      "text": "좀",
+      "start": 372.149,
+      "volume": 0.0402,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 372.969,
+      "text": "중요할",
+      "start": 372.369,
+      "volume": 0.055,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 373.069,
+      "text": "것",
+      "start": 372.989,
+      "volume": 0.1162,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 374.549,
+      "text": "같은데요",
+      "start": 373.209,
+      "volume": 0.0897,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 375.17,
+      "text": "약간",
+      "start": 374.709,
+      "volume": 0.1771,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 375.31,
+      "text": "한",
+      "start": 375.21,
+      "volume": 0.0954,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 375.43,
+      "text": "발",
+      "start": 375.35,
+      "volume": 0.2709,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 375.81,
+      "text": "옆에",
+      "start": 375.45,
+      "volume": 0.1575,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 376.849,
+      "text": "있습니다",
+      "start": 375.85,
+      "volume": 0.2379,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 377.64,
+      "text": "깊어요",
+      "start": 376.889,
+      "volume": 0.3014,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 377.96,
+      "text": "깊어요",
+      "start": 377.7,
+      "volume": 0.2022,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 378.49,
+      "text": "깊어요",
+      "start": 378.01,
+      "volume": 0.276,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 379.411,
+      "text": "맞았어요",
+      "start": 378.891,
+      "volume": 0.1955,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 379.891,
+      "text": "그리고",
+      "start": 379.631,
+      "volume": 0.2415,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 380.171,
+      "text": "여기를",
+      "start": 379.911,
+      "volume": 0.249,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 380.451,
+      "text": "좌절로",
+      "start": 380.21,
+      "volume": 0.291,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 380.74,
+      "text": "탈출",
+      "start": 380.471,
+      "volume": 0.3103,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 380.87,
+      "text": "아",
+      "start": 380.79,
+      "volume": 0.2432,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 381.572,
+      "text": "중간에",
+      "start": 380.891,
+      "volume": 0.3107,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 382.072,
+      "text": "깎이네요",
+      "start": 381.612,
+      "volume": 0.1894,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 406.752,
+      "text": "의심해서",
+      "start": 406.191,
+      "volume": 0.2189,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 406.792,
+      "text": "죄송합니다!",
+      "start": 406.792,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 406.792,
+      "text": "스맵!",
+      "start": 406.792,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 406.792,
+      "text": "스맵!",
+      "start": 406.792,
+      "volume": 0.0,
+      "speaker": "SPEAKER_12"
+    },
+    {
+      "end": 406.792,
+      "text": "스맵!",
+      "start": 406.792,
+      "volume": 0.0,
+      "speaker": "SPEAKER_12"
+    },
+    {
+      "end": 406.792,
+      "text": "스맵!",
+      "start": 406.792,
+      "volume": 0.0,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 418.193,
+      "text": "아아아아!",
+      "start": 417.232,
+      "volume": 0.4255,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 449.445,
+      "text": "조-비!",
+      "start": 449.345,
+      "volume": 0.1296,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 471.198,
+      "text": "이번엔",
+      "start": 470.978,
+      "volume": 0.1811,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 471.339,
+      "text": "안",
+      "start": 471.218,
+      "volume": 0.2084,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 471.459,
+      "text": "할",
+      "start": 471.379,
+      "volume": 0.3047,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 471.779,
+      "text": "수가",
+      "start": 471.499,
+      "volume": 0.1796,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 472.621,
+      "text": "없었어요.",
+      "start": 471.88,
+      "volume": 0.3042,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 472.861,
+      "text": "그렇죠.",
+      "start": 472.681,
+      "volume": 0.2553,
+      "speaker": "SPEAKER_10"
+    },
+    {
+      "end": 473.222,
+      "text": "이건",
+      "start": 473.002,
+      "volume": 0.2514,
+      "speaker": "SPEAKER_37"
+    },
+    {
+      "end": 474.584,
+      "text": "해야죠.",
+      "start": 473.262,
+      "volume": 0.2703,
+      "speaker": "SPEAKER_37"
+    },
+    {
+      "end": 475.045,
+      "text": "더군다나",
+      "start": 474.765,
+      "volume": 0.223,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 475.245,
+      "text": "켄",
+      "start": 475.045,
+      "volume": 0.1616,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 475.306,
+      "text": "앤",
+      "start": 475.245,
+      "volume": 0.1891,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 475.726,
+      "text": "카소스와",
+      "start": 475.386,
+      "volume": 0.1561,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 476.027,
+      "text": "함께",
+      "start": 475.947,
+      "volume": 0.2262,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 476.708,
+      "text": "있으면",
+      "start": 476.067,
+      "volume": 0.1059,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 476.848,
+      "text": "또",
+      "start": 476.768,
+      "volume": 0.1097,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 477.129,
+      "text": "그런",
+      "start": 476.888,
+      "volume": 0.1638,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 477.65,
+      "text": "긍정적인",
+      "start": 477.249,
+      "volume": 0.1934,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 477.852,
+      "text": "변화도",
+      "start": 477.682,
+      "volume": 0.1593,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 478.271,
+      "text": "기대할",
+      "start": 478.07,
+      "volume": 0.1886,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 478.431,
+      "text": "수",
+      "start": 478.291,
+      "volume": 0.0832,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 478.571,
+      "text": "있기",
+      "start": 478.491,
+      "volume": 0.1464,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 478.932,
+      "text": "때문에",
+      "start": 478.631,
+      "volume": 0.1405,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 480.915,
+      "text": "계속",
+      "start": 480.354,
+      "volume": 0.3841,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 481.917,
+      "text": "눈여겨보게",
+      "start": 480.935,
+      "volume": 0.3255,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 482.588,
+      "text": "됩니다.",
+      "start": 481.957,
+      "volume": 0.2296,
+      "speaker": "SPEAKER_31"
+    },
+    {
+      "end": 483.641,
+      "text": "선수는",
+      "start": 483.46,
+      "volume": 0.2067,
+      "speaker": "SPEAKER_03"
+    },
+    {
+      "end": 483.8,
+      "text": "대기",
+      "start": 483.681,
+      "volume": 0.4023,
+      "speaker": "SPEAKER_03"
+    },
+    {
+      "end": 483.901,
+      "text": "중!",
+      "start": 483.841,
+      "volume": 0.3863,
+      "speaker": "SPEAKER_03"
+    },
+    {
+      "end": 487.065,
+      "text": "바로",
+      "start": 486.065,
+      "volume": 0.3658,
+      "speaker": "SPEAKER_19"
+    },
+    {
+      "end": 517.862,
+      "text": "이대로",
+      "start": 517.182,
+      "volume": 0.347,
+      "speaker": "SPEAKER_07"
+    },
+    {
+      "end": 518.263,
+      "text": "마무리해",
+      "start": 517.902,
+      "volume": 0.3557,
+      "speaker": "SPEAKER_07"
+    },
+    {
+      "end": 518.461,
+      "text": "줄",
+      "start": 518.301,
+      "volume": 0.2502,
+      "speaker": "SPEAKER_07"
+    },
+    {
+      "end": 518.623,
+      "text": "것",
+      "start": 518.503,
+      "volume": 0.3386,
+      "speaker": "SPEAKER_07"
+    },
+    {
+      "end": 519.263,
+      "text": "같죠?",
+      "start": 518.643,
+      "volume": 0.4194,
+      "speaker": "SPEAKER_07"
+    },
+    {
+      "end": 519.623,
+      "text": "자",
+      "start": 519.503,
+      "volume": 0.4034,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 519.723,
+      "text": "이렇게",
+      "start": 519.643,
+      "volume": 0.2858,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 520.024,
+      "text": "해서",
+      "start": 519.763,
+      "volume": 0.3623,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 521.384,
+      "text": "당겨주면서",
+      "start": 520.764,
+      "volume": 0.3203,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 521.785,
+      "text": "도이빙을",
+      "start": 521.444,
+      "volume": 0.3068,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 522.105,
+      "text": "끌어주면",
+      "start": 521.825,
+      "volume": 0.349,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 522.425,
+      "text": "에이서",
+      "start": 522.145,
+      "volume": 0.3639,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 522.645,
+      "text": "씨가",
+      "start": 522.445,
+      "volume": 0.3632,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 523.746,
+      "text": "파괴됩니다!",
+      "start": 522.685,
+      "volume": 0.4887,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 526.907,
+      "text": "SK가",
+      "start": 526.667,
+      "volume": 0.506,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 527.308,
+      "text": "승리를",
+      "start": 526.947,
+      "volume": 0.2963,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 529.368,
+      "text": "따냅니다!",
+      "start": 527.368,
+      "volume": 0.2627,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 531.71,
+      "text": "언제",
+      "start": 531.47,
+      "volume": 0.3089,
+      "speaker": "SPEAKER_07"
+    },
+    {
+      "end": 531.89,
+      "text": "또",
+      "start": 531.79,
+      "volume": 0.3075,
+      "speaker": "SPEAKER_07"
+    },
+    {
+      "end": 532.25,
+      "text": "내려갔죠?",
+      "start": 531.97,
+      "volume": 0.3439,
+      "speaker": "SPEAKER_07"
+    },
+    {
+      "end": 533.251,
+      "text": "한참",
+      "start": 532.33,
+      "volume": 0.2633,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 533.411,
+      "text": "뒤",
+      "start": 533.311,
+      "volume": 0.2595,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 533.971,
+      "text": "말을",
+      "start": 533.431,
+      "volume": 0.4151,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 534.271,
+      "text": "안",
+      "start": 533.991,
+      "volume": 0.3498,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 534.862,
+      "text": "하길래",
+      "start": 534.311,
+      "volume": 0.4176,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 535.472,
+      "text": "어디",
+      "start": 535.232,
+      "volume": 0.0916,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 535.882,
+      "text": "갔나",
+      "start": 535.503,
+      "volume": 0.0758,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 537.051,
+      "text": "했더니만",
+      "start": 537.051,
+      "volume": 0.0,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 537.051,
+      "text": "가서",
+      "start": 537.051,
+      "volume": 0.0,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 537.051,
+      "text": "지금",
+      "start": 537.051,
+      "volume": 0.0,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 537.433,
+      "text": "껴안고",
+      "start": 537.113,
+      "volume": 0.2338,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 537.973,
+      "text": "있습니다",
+      "start": 537.453,
+      "volume": 0.1569,
+      "speaker": "SPEAKER_13"
+    },
+    {
+      "end": 538.294,
+      "text": "이때는",
+      "start": 538.034,
+      "volume": 0.395,
+      "speaker": "SPEAKER_13"
+    },
+    {
+      "end": 538.474,
+      "text": "공을",
+      "start": 538.354,
+      "volume": 0.3767,
+      "speaker": "SPEAKER_13"
+    },
+    {
+      "end": 538.714,
+      "text": "좀",
+      "start": 538.554,
+      "volume": 0.3943,
+      "speaker": "SPEAKER_13"
+    },
+    {
+      "end": 539.995,
+      "text": "드러내야죠",
+      "start": 538.754,
+      "volume": 0.3942,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 540.915,
+      "text": "이게",
+      "start": 540.035,
+      "volume": 0.3958,
+      "speaker": "SPEAKER_18"
+    },
+    {
+      "end": 541.676,
+      "text": "감독의",
+      "start": 541.155,
+      "volume": 0.2782,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 541.856,
+      "text": "매력",
+      "start": 541.716,
+      "volume": 0.4093,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 542.736,
+      "text": "아니겠습니까?",
+      "start": 541.916,
+      "volume": 0.3391,
+      "speaker": "SPEAKER_11"
+    },
+    {
+      "end": 543.256,
+      "text": "터퓨의",
+      "start": 542.896,
+      "volume": 0.3829,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 543.917,
+      "text": "하드캐리!",
+      "start": 543.376,
+      "volume": 0.3282,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 552.531,
+      "text": "으",
+      "start": 552.511,
+      "volume": 0.6799,
+      "speaker": "SPEAKER_05"
+    }
+  ],
+  "language": "ko",
+  "speaker_profiles": {
+    "SPEAKER_00": {
+      "name": null,
+      "color": "#FC80AA",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_01": {
+      "name": null,
+      "color": "#FC8399",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_02": {
+      "name": null,
+      "color": "#FB8689",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_03": {
+      "name": null,
+      "color": "#FB8878",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_04": {
+      "name": null,
+      "color": "#FB8A65",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_05": {
+      "name": null,
+      "color": "#FB8C4C",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_06": {
+      "name": null,
+      "color": "#FB8E20",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_07": {
+      "name": null,
+      "color": "#ED9821",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_08": {
+      "name": null,
+      "color": "#E1A021",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_09": {
+      "name": null,
+      "color": "#D5A721",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_10": {
+      "name": null,
+      "color": "#C8AD21",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_11": {
+      "name": null,
+      "color": "#BAB421",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_12": {
+      "name": null,
+      "color": "#A8BA21",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_13": {
+      "name": null,
+      "color": "#90C122",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_14": {
+      "name": null,
+      "color": "#68CA22",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_15": {
+      "name": null,
+      "color": "#26D04C",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_16": {
+      "name": null,
+      "color": "#27CD7D",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_17": {
+      "name": null,
+      "color": "#27CB97",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_18": {
+      "name": null,
+      "color": "#27C9A9",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_19": {
+      "name": null,
+      "color": "#27C7B8",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_20": {
+      "name": null,
+      "color": "#26C6C5",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_21": {
+      "name": null,
+      "color": "#26C4D2",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_22": {
+      "name": null,
+      "color": "#26C2DE",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_23": {
+      "name": null,
+      "color": "#26BFEC",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_24": {
+      "name": null,
+      "color": "#2BBCFB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_25": {
+      "name": null,
+      "color": "#5AB7FB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_26": {
+      "name": null,
+      "color": "#72B2FB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_27": {
+      "name": null,
+      "color": "#84ADFB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_28": {
+      "name": null,
+      "color": "#94A8FB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_29": {
+      "name": null,
+      "color": "#A2A3FB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_30": {
+      "name": null,
+      "color": "#B09DFB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_31": {
+      "name": null,
+      "color": "#BF96FB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_32": {
+      "name": null,
+      "color": "#D08CFB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_33": {
+      "name": null,
+      "color": "#E77BFB",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_35": {
+      "name": null,
+      "color": "#FC6BF0",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_36": {
+      "name": null,
+      "color": "#FC75D3",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_37": {
+      "name": null,
+      "color": "#FC7BBD",
+      "reason": null,
+      "confidence": 0.0
+    }
+  }
+}

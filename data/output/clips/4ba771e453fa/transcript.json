@@ -1,0 +1,906 @@
+{
+  "words": [
+    {
+      "end": 1.19,
+      "text": "전",
+      "start": 1.03,
+      "volume": 0.7526,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 1.55,
+      "text": "세계에서",
+      "start": 1.23,
+      "volume": 0.5699,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 1.83,
+      "text": "가장",
+      "start": 1.59,
+      "volume": 0.4865,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 2.371,
+      "text": "로맨틱한",
+      "start": 1.87,
+      "volume": 0.3503,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 2.711,
+      "text": "곳으로",
+      "start": 2.451,
+      "volume": 0.3841,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 3.231,
+      "text": "꼽히는데요.",
+      "start": 2.751,
+      "volume": 0.5034,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 6.773,
+      "text": "바로",
+      "start": 6.533,
+      "volume": 0.4179,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 8.494,
+      "text": "베네치아입니다.",
+      "start": 7.833,
+      "volume": 0.3535,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 8.814,
+      "text": "그림",
+      "start": 8.674,
+      "volume": 0.7623,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 9.114,
+      "text": "같은",
+      "start": 8.894,
+      "volume": 0.3069,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 9.234,
+      "text": "도시.",
+      "start": 9.154,
+      "volume": 0.1724,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 11.435,
+      "text": "영화",
+      "start": 10.555,
+      "volume": 0.5852,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 11.875,
+      "text": "같다.",
+      "start": 11.815,
+      "volume": 0.1404,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 12.035,
+      "text": "진짜",
+      "start": 11.915,
+      "volume": 0.0099,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 12.235,
+      "text": "예쁘다.",
+      "start": 12.095,
+      "volume": 0.0999,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 13.496,
+      "text": "그런데",
+      "start": 13.056,
+      "volume": 0.5607,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 14.517,
+      "text": "베네치아에는",
+      "start": 13.776,
+      "volume": 0.5709,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 15.057,
+      "text": "상상도",
+      "start": 14.637,
+      "volume": 0.5214,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 15.317,
+      "text": "못할",
+      "start": 15.077,
+      "volume": 0.3715,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 15.417,
+      "text": "또",
+      "start": 15.357,
+      "volume": 0.4749,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 15.617,
+      "text": "이런",
+      "start": 15.437,
+      "volume": 0.3937,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 16.157,
+      "text": "반전의",
+      "start": 15.777,
+      "volume": 0.6594,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 16.678,
+      "text": "역사가",
+      "start": 16.197,
+      "volume": 0.4255,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 16.798,
+      "text": "또",
+      "start": 16.738,
+      "volume": 0.1207,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 17.058,
+      "text": "숨어",
+      "start": 16.818,
+      "volume": 0.4199,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 17.318,
+      "text": "있기도",
+      "start": 17.078,
+      "volume": 0.1913,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 17.698,
+      "text": "합니다.",
+      "start": 17.338,
+      "volume": 0.1717,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 18.999,
+      "text": "전쟁마저",
+      "start": 18.298,
+      "volume": 0.6481,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 19.119,
+      "text": "또",
+      "start": 19.059,
+      "volume": 0.4304,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 19.639,
+      "text": "자신들의",
+      "start": 19.199,
+      "volume": 0.5008,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 20.059,
+      "text": "이익을",
+      "start": 19.699,
+      "volume": 0.6705,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 20.359,
+      "text": "위해서",
+      "start": 20.119,
+      "volume": 0.4869,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 20.8,
+      "text": "이용하기도",
+      "start": 20.439,
+      "volume": 0.3471,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 21.18,
+      "text": "했고요.",
+      "start": 20.82,
+      "volume": 0.1945,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 22.54,
+      "text": "제4차",
+      "start": 21.94,
+      "volume": 0.436,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 22.901,
+      "text": "십자군",
+      "start": 22.56,
+      "volume": 0.5561,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 23.361,
+      "text": "원정이",
+      "start": 22.961,
+      "volume": 0.5506,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 24.021,
+      "text": "시작됩니다.",
+      "start": 23.421,
+      "volume": 0.4994,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 24.741,
+      "text": "하지만",
+      "start": 24.301,
+      "volume": 0.6203,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 25.622,
+      "text": "베네치아는",
+      "start": 25.142,
+      "volume": 0.4927,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 26.362,
+      "text": "자신들의",
+      "start": 25.882,
+      "volume": 0.4704,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 27.102,
+      "text": "곰벌이",
+      "start": 26.702,
+      "volume": 0.7158,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 27.463,
+      "text": "기회로",
+      "start": 27.143,
+      "volume": 0.3432,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 28.223,
+      "text": "바꿔버립니다.",
+      "start": 27.803,
+      "volume": 0.4087,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 29.044,
+      "text": "목적이",
+      "start": 28.703,
+      "volume": 0.6877,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 30.053,
+      "text": "달라졌는데.",
+      "start": 29.073,
+      "volume": 0.1517,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 30.702,
+      "text": "그래서",
+      "start": 30.322,
+      "volume": 0.8212,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 31.843,
+      "text": "베네치아와",
+      "start": 31.062,
+      "volume": 0.6432,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 32.563,
+      "text": "십자군은",
+      "start": 31.883,
+      "volume": 0.3425,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 33.824,
+      "text": "공격하는",
+      "start": 33.364,
+      "volume": 0.3857,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 34.044,
+      "text": "데",
+      "start": 33.884,
+      "volume": 0.5449,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 35.005,
+      "text": "총력을",
+      "start": 34.405,
+      "volume": 0.7183,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 36.446,
+      "text": "다했습니다.",
+      "start": 35.285,
+      "volume": 0.0956,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 36.606,
+      "text": "왜",
+      "start": 36.506,
+      "volume": 0.5929,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 36.926,
+      "text": "그러는",
+      "start": 36.646,
+      "volume": 0.8094,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 36.986,
+      "text": "거야?",
+      "start": 36.946,
+      "volume": 0.3242,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 37.567,
+      "text": "아이러니하다.",
+      "start": 37.006,
+      "volume": 0.3818,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 38.447,
+      "text": "그리고",
+      "start": 38.067,
+      "volume": 0.6734,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 39.328,
+      "text": "거래해서는",
+      "start": 38.607,
+      "volume": 0.5123,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 39.808,
+      "text": "안",
+      "start": 39.488,
+      "volume": 0.5409,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 40.028,
+      "text": "될",
+      "start": 39.868,
+      "volume": 0.9651,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 41.109,
+      "text": "것들에게까지",
+      "start": 40.108,
+      "volume": 0.5143,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 41.429,
+      "text": "손을",
+      "start": 41.129,
+      "volume": 0.435,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 41.589,
+      "text": "대기",
+      "start": 41.449,
+      "volume": 0.5617,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 41.95,
+      "text": "시작해요.",
+      "start": 41.629,
+      "volume": 0.0651,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 42.75,
+      "text": "바로",
+      "start": 42.49,
+      "volume": 0.5841,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 44.551,
+      "text": "이다.",
+      "start": 43.691,
+      "volume": 0.0,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 45.232,
+      "text": "미쳤는데",
+      "start": 44.611,
+      "volume": 0.3968,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 45.852,
+      "text": "장사에?",
+      "start": 45.332,
+      "volume": 0.2851,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 47.333,
+      "text": "저",
+      "start": 47.193,
+      "volume": 0.0986,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 47.873,
+      "text": "당시에...",
+      "start": 47.373,
+      "volume": 0.2395,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 48.514,
+      "text": "그런데",
+      "start": 48.354,
+      "volume": 0.404,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 48.654,
+      "text": "이",
+      "start": 48.554,
+      "volume": 0.2485,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 49.194,
+      "text": "베네치아가",
+      "start": 48.754,
+      "volume": 0.4755,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 49.635,
+      "text": "유럽의",
+      "start": 49.274,
+      "volume": 1.0,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 49.975,
+      "text": "돈을",
+      "start": 49.675,
+      "volume": 0.5987,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 50.795,
+      "text": "끌어모은",
+      "start": 50.295,
+      "volume": 0.6851,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 51.336,
+      "text": "방법은",
+      "start": 50.855,
+      "volume": 0.4288,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 52.917,
+      "text": "뉴욕뿐만이",
+      "start": 51.676,
+      "volume": 0.4956,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 53.577,
+      "text": "아니었습니다.",
+      "start": 52.957,
+      "volume": 0.2308,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 54.237,
+      "text": "화려한",
+      "start": 53.717,
+      "volume": 0.5748,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 55.118,
+      "text": "유흥문화로",
+      "start": 54.378,
+      "volume": 0.7036,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 55.859,
+      "text": "이름을",
+      "start": 55.638,
+      "volume": 0.6498,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 56.139,
+      "text": "날리게",
+      "start": 55.899,
+      "volume": 0.4199,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 56.559,
+      "text": "됩니다.",
+      "start": 56.179,
+      "volume": 0.0289,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 58.222,
+      "text": "왕과",
+      "start": 57.642,
+      "volume": 0.6401,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 58.623,
+      "text": "귀족,",
+      "start": 58.323,
+      "volume": 0.3532,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 59.263,
+      "text": "평민이",
+      "start": 58.883,
+      "volume": 0.5999,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 60.024,
+      "text": "뒤섞여서",
+      "start": 59.363,
+      "volume": 0.3509,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 61.004,
+      "text": "베네치아의",
+      "start": 60.344,
+      "volume": 0.6474,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 61.205,
+      "text": "그",
+      "start": 61.045,
+      "volume": 0.345,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 61.525,
+      "text": "유흥",
+      "start": 61.245,
+      "volume": 0.6198,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 62.025,
+      "text": "문화를",
+      "start": 61.585,
+      "volume": 0.514,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 62.486,
+      "text": "훨씬",
+      "start": 62.165,
+      "volume": 0.6888,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 62.606,
+      "text": "더",
+      "start": 62.526,
+      "volume": 0.8173,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 62.806,
+      "text": "좀",
+      "start": 62.646,
+      "volume": 0.354,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 63.306,
+      "text": "자유롭게",
+      "start": 62.966,
+      "volume": 0.6513,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 63.426,
+      "text": "할",
+      "start": 63.346,
+      "volume": 0.6416,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 63.546,
+      "text": "수",
+      "start": 63.446,
+      "volume": 0.1623,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 63.787,
+      "text": "있게",
+      "start": 63.566,
+      "volume": 0.2711,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 64.347,
+      "text": "만들었습니다.",
+      "start": 63.867,
+      "volume": 0.3772,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 65.348,
+      "text": "에?",
+      "start": 65.208,
+      "volume": 0.7364,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 66.929,
+      "text": "베네치아에",
+      "start": 66.388,
+      "volume": 0.7084,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 67.449,
+      "text": "뒷거래가",
+      "start": 67.009,
+      "volume": 0.58,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 67.89,
+      "text": "있었는지는",
+      "start": 67.489,
+      "volume": 0.3695,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 69.03,
+      "text": "몰랐다.",
+      "start": 67.95,
+      "volume": 0.0908,
+      "speaker": "SPEAKER_00"
+    },
+    {
+      "end": 69.15,
+      "text": "진짜",
+      "start": 69.07,
+      "volume": 0.3756,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 69.591,
+      "text": "상상도",
+      "start": 69.191,
+      "volume": 0.4085,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 69.965,
+      "text": "못했다.",
+      "start": 69.631,
+      "volume": 0.0837,
+      "speaker": "SPEAKER_05"
+    },
+    {
+      "end": 71.933,
+      "text": "그게",
+      "start": 71.832,
+      "volume": 0.4814,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 72.233,
+      "text": "사람",
+      "start": 71.973,
+      "volume": 0.6767,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 72.853,
+      "text": "욕심이라는",
+      "start": 72.293,
+      "volume": 0.3816,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 73.133,
+      "text": "게.",
+      "start": 72.973,
+      "volume": 0.1922,
+      "speaker": "SPEAKER_04"
+    },
+    {
+      "end": 75.055,
+      "text": "낭만에선",
+      "start": 74.514,
+      "volume": 0.8086,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 75.755,
+      "text": "베네치아에",
+      "start": 75.135,
+      "volume": 0.4999,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 76.116,
+      "text": "무슨",
+      "start": 75.875,
+      "volume": 0.5668,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 76.296,
+      "text": "일이",
+      "start": 76.156,
+      "volume": 0.7902,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 76.696,
+      "text": "있었던",
+      "start": 76.336,
+      "volume": 0.3155,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 77.116,
+      "text": "건지",
+      "start": 76.756,
+      "volume": 0.2967,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 78.117,
+      "text": "베네치아의",
+      "start": 77.637,
+      "volume": 0.4119,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 78.537,
+      "text": "놀라운",
+      "start": 78.157,
+      "volume": 0.7439,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 78.958,
+      "text": "역사를",
+      "start": 78.557,
+      "volume": 0.3117,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 79.298,
+      "text": "한번",
+      "start": 79.178,
+      "volume": 0.2239,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 79.858,
+      "text": "알고벗겨보도록",
+      "start": 79.318,
+      "volume": 0.3942,
+      "speaker": "SPEAKER_02"
+    },
+    {
+      "end": 82.04,
+      "text": "하겠습니다.",
+      "start": 79.898,
+      "volume": 0.2815,
+      "speaker": "SPEAKER_02"
+    }
+  ],
+  "language": "ko",
+  "speaker_profiles": {
+    "SPEAKER_00": {
+      "name": "규현",
+      "color": "#27CE70",
+      "reason": "영상 검토에서 말하는 인물로 확인 / 색(symbolic): 여행의 출발을 활기차게 안내하는 진행자 상징색",
+      "confidence": 1.0
+    },
+    "SPEAKER_02": {
+      "name": null,
+      "color": "#90B4C9",
+      "reason": null,
+      "confidence": 0.0
+    },
+    "SPEAKER_04": {
+      "name": "은지원",
+      "color": "#FB8E31",
+      "reason": "영상 검토에서 말하는 인물로 확인 / 색(symbolic): 유쾌한 진행 능력과 개성 넘치는 존재감을 나타내는 상징색",
+      "confidence": 1.0
+    },
+    "SPEAKER_05": {
+      "name": "이혜성",
+      "color": "#D986FB",
+      "reason": "영상 검토에서 말하는 인물로 확인 / 색(symbolic): 스마트함과 성실함으로 지식을 전달하는 인물의 상징색",
+      "confidence": 1.0
+    }
+  }
+}

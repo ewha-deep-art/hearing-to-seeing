@@ -1,5 +1,9 @@
 data/input/*
 data/output/*
+# evaluation data: gold transcripts and the clip snapshots they are scored against
+!data/output/golden/
+!data/output/clips/
+data/output/golden/*.bak
 !data/input/.gitkeep
 *.pt
 __pycache__/
