@@ -314,3 +314,33 @@ LLM 영상 리뷰를 쓰지 않고 STT와 목소리 보정만 적용한 결과�
 - **다운로드 분리**: 오디오만 먼저 받고(약 6초) 바로 STT를 시작한다. 리뷰용 영상은 360p(DASH, 낮은 비트레이트 오디오)로 병렬로 받는다. 거부(403)되면 이전 형식으로, 그것도 실패하면 음성으로 리뷰한다.
 - **목소리 임베딩 병렬화**: 5분 클립 3.5초 → 2.1초.
 - **재시도**: 서버 503은 5초 간격으로 30번까지 다시 보낸다(이전 10초 간격 3번). GPU 메모리 부족 503은 기다리지 않고 바로 다시 보낸다. 오디오 다운로드가 거부(403)되면 두 번 더 시도한다.
+
+## 6. 영상 특징별 성능
+
+Supabase `clips`에 쌓인 클립으로 장르·길이·화자 수·대사 밀도 등에 따라 성능이 어떻게 달라지는지 본다. 정답이 필요하므로 표본을 골라 gold를 만든다.
+
+```
+uv run evaluation/export_clips.py --sample 15   # 클립 내보내기 + features.csv + sample.txt
+uv run evaluation/gold_editor.py                # clips 그룹에서 sample.txt의 클립을 검수
+uv run evaluation/evaluate.py --gold-dir data/output/golden --library-dir data/output/clips --all-runs
+uv run evaluation/by_feature.py                 # 가장 최근 평가 결과를 특징별로 묶음
+```
+
+- **내보내기** (`export_clips.py`): ready 클립마다 `data/output/clips/<id>/{transcript.json, meta.json}`을 쓴다. library run과 같은 형식이다. 이미 gold가 있는 클립은 전사 텍스트 유사도(≥ 50)로 찾아 `features.csv`의 `gold`에 적는다.
+- **표본** (`--sample N`): gold가 없는 클립을 장르 × 길이(≤5분 / 5–10분 / >10분) × 화자 수(≤3 / 4–6 / ≥7명) 층에 나누고, 층마다 하나씩 돌아가며 뽑는다(`--seed`).
+- **검수**: gold_editor는 클립의 YouTube 영상을 자동으로 연다. 저장 이름 `<제목> [<id>].json`의 id로 evaluate.py가 짝짓는다.
+- **특징** (`clip_features.py`): gold 전사에서 잰다. 파이프라인이 놓친 화자나 대사가 특징에 섞이지 않게 하기 위해서다. `reviewed`(영상 리뷰가 화자를 정함)와 `character_confidence`만 파이프라인 결과에서 잰다.
+
+| 특징 | 의미 |
+|---|---|
+| genre, duration | 클립 메타데이터 |
+| speakers / minor_speakers | 화자 수 / 단어 10개 미만 단역 수 |
+| minor_word_share | 단역 단어 비율 |
+| speech_ratio | 단어 구간 합집합 ÷ 영상 길이 |
+| chars_per_sec | 발화 중 초당 글자 수(말 빠르기) |
+| turns_per_min | 분당 화자 전환 수 |
+| overlap_share | 다른 화자 단어와 시간이 겹치는 단어 비율 |
+| whisper_share / loud_share | `design/volume.py` 기준 속삭임 / 큰 소리 단어 비율 |
+
+- **출력** (`by_feature.py`): `data/output/eval/by_feature_<평가 날짜>.md`에 클립별 표, 구간별 평균(장르, 길이, 화자 수, 영상 리뷰 여부, 수치 특징의 3분위), 특징과 지표의 Spearman 상관을 쓴다. 표본이 수십 개라 회귀 모델은 쓰지 않는다. 방향만 본다.
+- **주의**: gold 중 일부는 같은 파이프라인 출력을 고쳐 만들었다. 그래서 고치지 않은 부분은 그대로 맞은 것으로 잡혀 WER이 낮게 나올 수 있다(예: 날아올라라 나비 0.01). gold는 출력을 그대로 믿지 말고 영상을 들으며 고친다.

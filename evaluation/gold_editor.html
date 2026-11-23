@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gold Editor</title>
+<style>
+  :root { --bg:#f6f6f4; --panel:#fff; --line:#ddd; --text:#222; --muted:#888; --accent:#2563eb; --active:#fff6d6; --changed:#e8f3ea; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background:var(--bg); color:var(--text); }
+  header { display:flex; gap:8px; align-items:center; padding:8px 12px; background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; flex-wrap:wrap; }
+  header select, header input[type=text] { font:inherit; padding:4px 6px; }
+  #file { max-width:420px; }
+  button { font:inherit; padding:3px 8px; border:1px solid var(--line); background:#fafafa; border-radius:4px; cursor:pointer; }
+  button:hover { background:#eef2ff; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  #status { color:var(--muted); margin-left:auto; }
+  main { display:grid; grid-template-columns: minmax(360px, 44%) 1fr; height:calc(100vh - 50px); }
+  #left { padding:12px; overflow:auto; border-right:1px solid var(--line); }
+  #player { width:100%; aspect-ratio:16/9; background:#000; }
+  #player video, #player iframe { width:100%; height:100%; display:block; }
+  #now { font-size:18px; min-height:2.6em; margin:8px 0; padding:6px 10px; background:#111; color:#fff; border-radius:4px; }
+  #now b { color:#ffd54a; }
+  .ctrl { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:6px 0; }
+  .help { color:var(--muted); font-size:12px; }
+  .help kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; background:#fff; }
+  h3 { margin:14px 0 6px; font-size:14px; }
+  .spk { display:grid; grid-template-columns: 14px 110px 1fr 40px auto; gap:6px; align-items:center; margin:3px 0; }
+  .sw { width:14px; height:14px; border-radius:3px; }
+  .spk input { font:inherit; padding:2px 4px; width:100%; }
+  .spk .n { color:var(--muted); text-align:right; }
+  #rows { overflow:auto; padding:8px 12px 40vh; }
+  .row { display:grid; grid-template-columns: 150px 170px 1fr auto; gap:6px; align-items:start; padding:5px 6px; border-bottom:1px solid #eee; border-left:4px solid transparent; }
+  .row.active { background:var(--active); }
+  .row.changed .txt { background:var(--changed); }
+  .row .time { display:flex; gap:2px; align-items:center; font-variant-numeric:tabular-nums; }
+  .row .time input { width:58px; font:12px monospace; padding:2px; }
+  .row select { font:inherit; width:100%; padding:2px; }
+  .txt { font:inherit; width:100%; padding:3px 5px; border:1px solid var(--line); border-radius:3px; }
+  .words { grid-column: 3 / 4; font-size:12px; color:var(--muted); }
+  .words span { cursor:pointer; margin-right:5px; }
+  .words span:hover { text-decoration:underline; }
+  .words span.on { color:#000; font-weight:700; background:#ffd54a; }
+  .acts { display:flex; gap:2px; }
+  .acts button { padding:2px 6px; font-size:12px; }
+  .gap { font-size:11px; color:#c00; padding-left:8px; }
+</style>
+</head>
+<body>
+<header>
+  <select id="file"><option>파일 불러오는 중…</option></select>
+  <button id="reload">원본 다시 열기</button>
+  <span>|</span>
+  <label>영상 <input type="file" id="localVideo" accept="video/*,audio/*"></label>
+  <input type="text" id="yt" placeholder="또는 YouTube 링크" size="28">
+  <button id="ytLoad">열기</button>
+  <span>|</span>
+  <label>저장 이름 <input type="text" id="saveName" size="30"></label>
+  <button class="primary" id="save">golden에 저장 (Ctrl+S)</button>
+  <button id="download">JSON 다운로드</button>
+  <span id="status"></span>
+</header>
+<main>
+  <section id="left">
+    <div id="player"><video id="video" controls></video></div>
+    <div id="now"></div>
+    <div class="ctrl">
+      속도 <select id="rate"><option>0.5</option><option>0.75</option><option selected>1</option><option>1.25</option><option>1.5</option><option>2</option></select>
+      <label><input type="checkbox" id="follow" checked> 자동 스크롤</label>
+      <label><input type="checkbox" id="stopEnd"> ▶는 줄 끝에서 멈춤</label>
+      <button id="addHere">현재 위치에 줄 추가</button>
+      <button id="undo">되돌리기</button>
+    </div>
+    <div class="help">
+      <kbd>Ctrl+Space</kbd> 재생/정지 · <kbd>Alt+←/→</kbd> 2초 이동 · <kbd>Alt+↑/↓</kbd> 이전/다음 줄 ·
+      <kbd>Ctrl+Enter</kbd> 커서 있는 줄 재생 · <kbd>Alt+[</kbd>/<kbd>Alt+]</kbd> 커서 줄 시작/끝 = 현재 시각 · <kbd>Ctrl+S</kbd> 저장<br>
+      텍스트를 고쳐 단어 수가 그대로면 단어 타이밍을 유지하고, 달라지면 줄 구간 안에서 글자 수 비율로 다시 나눕니다.
+      "분할"은 텍스트 커서 위치의 단어 경계에서 줄을 나눕니다.
+    </div>
+    <h3>화자</h3>
+    <div class="help">이름은 speaker_profiles의 name으로 저장됩니다. 오른쪽 선택으로 그 화자의 모든 줄을 다른 화자로 합칩니다.</div>
+    <div id="speakers"></div>
+  </section>
+  <section id="rows"></section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const PALETTE = ["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6","#9a6324","#469990","#808000","#000075","#a9a9a9"];
+let path = null, base = {}, rows = [], undoStack = [], dirty = false, activeIdx = -1, stopAt = null;
+
+/* ---------- player (HTML video or YouTube) ---------- */
+const video = $("#video");
+let yt = null;
+const player = {
+  time: () => yt ? (yt.getCurrentTime?.() || 0) : video.currentTime,
+  seek: t => { t = Math.max(0, t); yt ? yt.seekTo(t, true) : (video.currentTime = t); },
+  play: () => yt ? yt.playVideo() : video.play(),
+  pause: () => yt ? yt.pauseVideo() : video.pause(),
+  paused: () => yt ? yt.getPlayerState?.() !== 1 : video.paused,
+  rate: r => yt ? yt.setPlaybackRate(r) : (video.playbackRate = r),
+};
+function useVideo(src) {
+  if (yt) { yt.destroy(); yt = null; $("#player").innerHTML = ""; $("#player").append(video); }
+  video.src = src; video.playbackRate = +$("#rate").value;
+}
+function ytId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null;
+}
+function useYouTube(id) {
+  video.pause(); video.removeAttribute("src");
+  const make = () => {
+    $("#player").innerHTML = '<div id="ytp"></div>';
+    yt = new YT.Player("ytp", { videoId: id, playerVars: { rel: 0 }, events: { onReady: () => player.rate(+$("#rate").value) } });
+  };
+  if (window.YT?.Player) return make();
+  window.onYouTubeIframeAPIReady = make;
+  const s = document.createElement("script"); s.src = "https://www.youtube.com/iframe_api"; document.head.append(s);
+}
+$("#localVideo").onchange = e => { const f = e.target.files[0]; if (f) useVideo(URL.createObjectURL(f)); };
+$("#ytLoad").onclick = () => { const id = ytId($("#yt").value); id ? useYouTube(id) : alert("YouTube 링크를 알아보지 못했습니다"); };
+$("#rate").onchange = e => player.rate(+e.target.value);
+
+/* ---------- data ---------- */
+const r3 = x => Math.round(x * 1000) / 1000;
+const rowStart = r => r.words.length ? r.words[0].start : r.start;
+const rowEnd = r => r.words.length ? r.words[r.words.length - 1].end : r.end;
+const rowText = r => r.words.map(w => w.text).join(" ");
+
+function group(words) {
+  const out = [];
+  for (const w of [...words].sort((a, b) => a.start - b.start)) {
+    const last = out[out.length - 1];
+    if (last && last.speaker === w.speaker && w.start - rowEnd(last) < 1.0 && last.words.length < 25) last.words.push(w);
+    else out.push({ speaker: w.speaker, words: [w] });
+  }
+  return out;
+}
+function flatten() {
+  const words = [];
+  for (const r of rows) for (const w of r.words) words.push({ ...w, speaker: r.speaker });
+  return words;
+}
+function output() {
+  const { words, ...rest } = base;
+  return { ...rest, speaker_profiles: base.speaker_profiles || {}, words: flatten() };
+}
+function snapshot() {
+  undoStack.push(JSON.stringify({ rows, profiles: base.speaker_profiles }));
+  if (undoStack.length > 200) undoStack.shift();
+  dirty = true; saveDraft();
+}
+function undo() {
+  const s = undoStack.pop(); if (!s) return;
+  const o = JSON.parse(s); rows = o.rows; base.speaker_profiles = o.profiles; render(); saveDraft();
+}
+function saveDraft() {
+  try { localStorage.setItem("gold-draft:" + path, JSON.stringify({ at: Date.now(), data: output() })); } catch {}
+  status(dirty ? "저장 안 됨" : "");
+}
+function status(s) { $("#status").textContent = s; }
+
+/* retime words in a row */
+function setText(r, value) {
+  const toks = value.trim().split(/\s+/).filter(Boolean);
+  if (toks.length === r.words.length) { toks.forEach((t, i) => r.words[i].text = t); return; }
+  const s = rowStart(r), e = rowEnd(r);
+  const vols = r.words.map(w => w.volume).filter(v => v != null);
+  const vol = vols.length ? r3(vols.reduce((a, b) => a + b, 0) / vols.length) : 0.5;
+  const total = toks.reduce((a, t) => a + t.length, 0) || 1;
+  let t = s;
+  r.words = toks.map(text => {
+    const d = (e - s) * text.length / total, w = { text, start: r3(t), end: r3(t + d), volume: vol, speaker: r.speaker };
+    t += d; return w;
+  });
+  if (!toks.length) { r.start = s; r.end = e; }
+}
+function setSpan(r, s, e) {
+  if (!(e > s)) return;
+  const os = rowStart(r), oe = rowEnd(r), k = (oe - os) ? (e - s) / (oe - os) : 0;
+  if (!r.words.length) { r.start = s; r.end = e; return; }
+  r.words.forEach((w, i) => {
+    if (k) { w.start = r3(s + (w.start - os) * k); w.end = r3(s + (w.end - os) * k); }
+    else { const d = (e - s) / r.words.length; w.start = r3(s + i * d); w.end = r3(s + (i + 1) * d); }
+  });
+}
+
+/* ---------- speakers ---------- */
+function speakers() {
+  const set = new Set(Object.keys(base.speaker_profiles || {}));
+  rows.forEach(r => set.add(r.speaker));
+  return [...set].sort();
+}
+function color(label) {
+  const p = base.speaker_profiles?.[label]; if (p?.color) return p.color;
+  return PALETTE[speakers().indexOf(label) % PALETTE.length];
+}
+function display(label) { const n = base.speaker_profiles?.[label]?.name; return n ? `${label} (${n})` : label; }
+function profile(label) {
+  base.speaker_profiles ||= {};
+  return base.speaker_profiles[label] ||= { name: null, color: color(label), gender: null, reason: null, pitch_hz: null, confidence: 0 };
+}
+function newSpeaker() {
+  const label = prompt("새 화자 라벨 (예: SPEAKER_09 또는 이름)"); if (!label) return null;
+  const name = prompt("캐릭터 이름 (없으면 비워두기)") || null;
+  profile(label).name = name; return label;
+}
+function renderSpeakers() {
+  const counts = {}; rows.forEach(r => counts[r.speaker] = (counts[r.speaker] || 0) + r.words.length);
+  const box = $("#speakers"); box.innerHTML = "";
+  for (const s of speakers()) {
+    const d = document.createElement("div"); d.className = "spk";
+    d.innerHTML = `<span class="sw" style="background:${color(s)}"></span><span>${s}</span>
+      <input placeholder="이름" value="${(base.speaker_profiles?.[s]?.name || "").replace(/"/g, "&quot;")}">
+      <span class="n">${counts[s] || 0}</span><select><option value="">합치기 →</option>${speakers().filter(x => x !== s).map(x => `<option>${x}</option>`).join("")}</select>`;
+    d.querySelector("input").onchange = e => { snapshot(); profile(s).name = e.target.value.trim() || null; render(); };
+    d.querySelector("select").onchange = e => {
+      const to = e.target.value; if (!to) return;
+      snapshot(); rows.forEach(r => { if (r.speaker === s) r.speaker = to; });
+      if (base.speaker_profiles && !counts[to] && base.speaker_profiles[s]) profile(to);
+      if (base.speaker_profiles) delete base.speaker_profiles[s];
+      render();
+    };
+    box.append(d);
+  }
+}
+
+/* ---------- rows ---------- */
+const fmt = t => { const m = Math.floor(t / 60); return `${m}:${(t - m * 60).toFixed(2).padStart(5, "0")}`; };
+function render() {
+  renderSpeakers();
+  const box = $("#rows"); box.innerHTML = "";
+  const opts = speakers().map(s => `<option value="${s}">${display(s)}</option>`).join("") + `<option value="__new">+ 새 화자…</option>`;
+  rows.forEach((r, i) => {
+    const prev = rows[i - 1];
+    if (prev && rowStart(r) < rowEnd(prev) - 0.05) {
+      const g = document.createElement("div"); g.className = "gap"; g.textContent = "⚠ 앞 줄과 시간이 겹칩니다"; box.append(g);
+    }
+    const d = document.createElement("div"); d.className = "row" + (r.changed ? " changed" : ""); d.dataset.i = i;
+    d.style.borderLeftColor = color(r.speaker);
+    d.innerHTML = `
+      <div><div class="time"><button class="play" title="이 줄 재생">▶</button>
+        <input class="s" value="${rowStart(r).toFixed(2)}" title="시작(초)"><input class="e" value="${rowEnd(r).toFixed(2)}" title="끝(초)"></div>
+        <div class="help">${fmt(rowStart(r))}</div></div>
+      <select class="sp">${opts}</select>
+      <input class="txt" value="${rowText(r).replace(/"/g, "&quot;")}">
+      <div class="acts">
+        <button class="split" title="커서 위치에서 줄 나누기">분할</button>
+        <button class="merge" title="앞 줄과 합치기">↑합침</button>
+        <button class="add" title="아래에 빈 줄 추가">+</button>
+        <button class="del" title="줄 삭제">✕</button>
+      </div>
+      <div class="words">${r.words.map((w, j) => `<span data-j="${j}" title="${w.start.toFixed(2)}–${w.end.toFixed(2)}">${w.text}</span>`).join("")}</div>`;
+    d.querySelector(".sp").value = r.speaker;
+    box.append(d);
+  });
+  activeIdx = -1;
+}
+function rowOf(el) { const d = el.closest(".row"); return d ? +d.dataset.i : -1; }
+function playRow(i) {
+  const r = rows[i]; player.seek(rowStart(r)); player.play();
+  stopAt = $("#stopEnd").checked ? rowEnd(r) : null;
+}
+$("#rows").addEventListener("click", e => {
+  const i = rowOf(e.target); if (i < 0) return; const r = rows[i], t = e.target;
+  if (t.classList.contains("play")) playRow(i);
+  else if (t.dataset.j != null) player.seek(r.words[+t.dataset.j].start);
+  else if (t.classList.contains("del")) { if (r.words.length > 3 && !confirm("이 줄을 지울까요?")) return; snapshot(); rows.splice(i, 1); render(); }
+  else if (t.classList.contains("merge") && i > 0) { snapshot(); rows[i - 1].words.push(...r.words); rows[i - 1].changed = true; rows.splice(i, 1); render(); }
+  else if (t.classList.contains("add")) {
+    snapshot(); const s = rowEnd(r), e2 = rows[i + 1] ? Math.max(s + 0.1, rowStart(rows[i + 1])) : s + 1.5;
+    rows.splice(i + 1, 0, { speaker: r.speaker, words: [], start: r3(s), end: r3(Math.min(e2, s + 3)), changed: true });
+    render(); document.querySelector(`.row[data-i="${i + 1}"] .txt`).focus();
+  } else if (t.classList.contains("split")) {
+    const inp = t.closest(".row").querySelector(".txt");
+    commitText(i, inp.value);
+    const before = inp.value.slice(0, inp.selectionStart ?? 0).trim().split(/\s+/).filter(Boolean).length;
+    if (before <= 0 || before >= rows[i].words.length) return alert("텍스트 칸에서 나눌 단어 사이에 커서를 두고 누르세요");
+    snapshot(); const tail = rows[i].words.splice(before);
+    rows.splice(i + 1, 0, { speaker: r.speaker, words: tail, changed: true }); rows[i].changed = true; render();
+  }
+});
+function commitText(i, value) {
+  const r = rows[i]; if (value.trim() === rowText(r)) return false;
+  snapshot(); setText(r, value); r.changed = true; return true;
+}
+$("#rows").addEventListener("change", e => {
+  const i = rowOf(e.target); if (i < 0) return; const r = rows[i], t = e.target;
+  if (t.classList.contains("txt")) { if (commitText(i, t.value)) refreshRow(i); }
+  else if (t.classList.contains("sp")) {
+    let v = t.value; if (v === "__new") { v = newSpeaker(); if (!v) { t.value = r.speaker; return; } }
+    snapshot(); r.speaker = v; r.changed = true; render();
+  } else if (t.classList.contains("s") || t.classList.contains("e")) {
+    const d = t.closest(".row"), s = +d.querySelector(".s").value, en = +d.querySelector(".e").value;
+    if (!(en > s)) { alert("끝이 시작보다 뒤여야 합니다"); return render(); }
+    snapshot(); setSpan(r, s, en); r.changed = true; render();
+  }
+});
+function refreshRow(i) {   // re-render keeping focus where it is
+  const act = document.activeElement, cls = act?.className, ai = act ? rowOf(act) : -1;
+  const pos = act?.selectionStart;
+  render();
+  if (ai >= 0 && cls) { const el = document.querySelector(`.row[data-i="${ai}"] .${cls.split(" ")[0]}`); el?.focus(); try { el.setSelectionRange(pos, pos); } catch {} }
+}
+$("#addHere").onclick = () => {
+  const t = r3(player.time()); let i = rows.findIndex(r => rowStart(r) > t); if (i < 0) i = rows.length;
+  snapshot(); rows.splice(i, 0, { speaker: rows[Math.max(0, i - 1)]?.speaker || "SPEAKER_00", words: [], start: t, end: r3(t + 1.5), changed: true });
+  render(); document.querySelector(`.row[data-i="${i}"] .txt`).focus();
+};
+$("#undo").onclick = undo;
+
+/* ---------- playback follow ---------- */
+function tick() {
+  const t = player.time();
+  if (stopAt != null && t >= stopAt) { player.pause(); stopAt = null; }
+  let i = rows.findIndex(r => rowStart(r) <= t + 0.02 && t <= rowEnd(r) + 0.15);
+  if (i !== activeIdx) {
+    document.querySelector(".row.active")?.classList.remove("active");
+    activeIdx = i;
+    const d = document.querySelector(`.row[data-i="${i}"]`);
+    if (d) {
+      d.classList.add("active");
+      const focused = document.activeElement?.closest?.(".row");
+      if ($("#follow").checked && !player.paused() && !focused) d.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }
+  const now = $("#now");
+  if (i >= 0) {
+    const r = rows[i], d = document.querySelector(`.row[data-i="${i}"]`);
+    d?.querySelectorAll(".words span").forEach((s, j) => s.classList.toggle("on", r.words[j] && r.words[j].start <= t && t < r.words[j].end + 0.05));
+    const html = `<span style="color:${color(r.speaker)}">[${display(r.speaker)}]</span> ` +
+      r.words.map(w => w.start <= t && t < w.end + 0.05 ? `<b>${w.text}</b>` : w.text).join(" ");
+    if (now.innerHTML !== html) now.innerHTML = html;
+  } else if (now.innerHTML) now.innerHTML = "";
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ---------- keys ---------- */
+document.addEventListener("keydown", e => {
+  const focusRow = rowOf(document.activeElement || document.body);
+  if (e.ctrlKey && e.code === "Space") { e.preventDefault(); player.paused() ? player.play() : player.pause(); }
+  else if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); player.seek(player.time() - 2); }
+  else if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); player.seek(player.time() + 2); }
+  else if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+    e.preventDefault(); const t = player.time();
+    let i = rows.findIndex(r => rowStart(r) > t + 0.05);
+    if (i < 0) i = rows.length;
+    i = e.key === "ArrowDown" ? i : Math.max(0, (activeIdx >= 0 ? activeIdx : i) - 1);
+    if (rows[i]) { player.seek(rowStart(rows[i])); document.querySelector(`.row[data-i="${i}"]`)?.scrollIntoView({ block: "center" }); }
+  }
+  else if (e.ctrlKey && e.key === "Enter" && focusRow >= 0) { e.preventDefault(); document.activeElement.blur?.(); playRow(focusRow); document.querySelector(`.row[data-i="${focusRow}"] .txt`)?.focus(); }
+  else if (e.altKey && (e.key === "[" || e.key === "]") && focusRow >= 0) {
+    e.preventDefault(); const r = rows[focusRow], t = r3(player.time());
+    const s = e.key === "[" ? t : rowStart(r), en = e.key === "]" ? t : rowEnd(r);
+    if (en > s) { snapshot(); setSpan(r, s, en); r.changed = true; refreshRow(focusRow); }
+  }
+  else if (e.ctrlKey && e.key.toLowerCase() === "s") { e.preventDefault(); save(); }
+  else if (e.ctrlKey && e.key.toLowerCase() === "z" && !/INPUT|SELECT/.test(document.activeElement?.tagName)) { e.preventDefault(); undo(); }
+  else if (e.key === "Enter" && document.activeElement?.classList.contains("txt")) {
+    e.preventDefault(); const i = focusRow; commitText(i, document.activeElement.value); render();
+    document.querySelector(`.row[data-i="${i + 1}"] .txt`)?.focus();
+  }
+});
+window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- load / save ---------- */
+async function loadFiles() {
+  const files = await (await fetch("/api/files")).json();
+  const sel = $("#file"); sel.innerHTML = '<option value="">— 파일 선택 —</option>';
+  for (const src of ["library", "clips", "whisperx", "golden"]) {
+    const g = document.createElement("optgroup"); g.label = src;
+    files.filter(f => f.source === src).forEach(f => { const o = document.createElement("option"); o.value = f.path; o.textContent = f.name; g.append(o); });
+    sel.append(g);
+  }
+  const want = new URLSearchParams(location.search).get("path");
+  if (want) { sel.value = want; open(want); }
+}
+async function open(p, ignoreDraft) {
+  if (dirty && p !== path && !confirm("저장하지 않은 수정이 있습니다. 버릴까요?")) { $("#file").value = path || ""; return; }
+  const res = await (await fetch("/api/json?path=" + encodeURIComponent(p))).json();
+  path = p; undoStack = []; dirty = false;
+  let data = res.data;
+  try {
+    const d = JSON.parse(localStorage.getItem("gold-draft:" + p) || "null");
+    if (!ignoreDraft && d && confirm(`${new Date(d.at).toLocaleString()}에 자동 저장된 수정본이 있습니다. 이어서 할까요?`)) { data = d.data; dirty = true; }
+  } catch {}
+  base = data; rows = group(data.words || []);
+  $("#saveName").value = res.gold_name;
+  if (res.media) useVideo("/api/media?path=" + encodeURIComponent(p));
+  else if (res.youtube_id) { $("#yt").value = "https://youtu.be/" + res.youtube_id; useYouTube(res.youtube_id); }
+  render();
+  status((res.media || res.youtube_id ? "영상 자동 연결됨" : "영상을 직접 선택하세요") + (res.gold_exists ? " · golden에 같은 이름 파일 있음(저장 시 .bak 백업)" : ""));
+  window.history.replaceState(null, "", "?path=" + encodeURIComponent(p));
+}
+$("#file").onchange = e => e.target.value && open(e.target.value);
+$("#reload").onclick = () => {
+  if (!path || (dirty && !confirm("수정을 버리고 원본을 다시 열까요?"))) return;
+  dirty = false; try { localStorage.removeItem("gold-draft:" + path); } catch {} open(path, true);
+};
+async function save() {
+  if (!path) return;
+  document.activeElement?.classList?.contains("txt") && commitText(rowOf(document.activeElement), document.activeElement.value);
+  const res = await fetch("/api/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: $("#saveName").value, data: output() }) });
+  const j = await res.json(); dirty = false;
+  try { localStorage.removeItem("gold-draft:" + path); } catch {}
+  status("저장됨: " + j.saved);
+}
+$("#save").onclick = save;
+$("#download").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(output(), null, 2)], { type: "application/json" }));
+  a.download = $("#saveName").value || "gold.json"; a.click();
+};
+loadFiles();
+</script>
+</body>
+</html>

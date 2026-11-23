@@ -13,13 +13,18 @@
     uv run evaluation/evaluate.py                       # today's library runs
     uv run evaluation/evaluate.py --date 2026-10-13
     uv run evaluation/evaluate.py --pair "브래드 이발소.json=220ae5338289"
+    uv run evaluation/evaluate.py --gold-dir data/output/golden --library-dir data/output/whisperx --files
+    uv run evaluation/evaluate.py --gold-dir data/output/golden --library-dir data/output/clips --all-runs
 
-Metrics: README.md 2. --pair overrides the similarity-based pairing for a gold file.
+Metrics: README.md 2. A gold file named "... [<run id>].json" (gold_editor.py
+does this for clips) is paired with that run; --pair overrides the
+similarity-based pairing for any other gold file.
 """
 
 import argparse
 import csv
 import json
+import re
 import warnings
 from collections import Counter
 from datetime import date, datetime
@@ -46,6 +51,7 @@ NORMALIZE = jiwer.Compose([
 TO_WORDS = jiwer.Compose([NORMALIZE, jiwer.ReduceToListOfListOfWords()])
 TO_CHARS = jiwer.Compose([NORMALIZE, jiwer.ReduceToListOfListOfChars()])
 UNMAPPED = "<unmapped>"
+RUN_ID = re.compile(r"\[([0-9a-f]{12})\]$")  # gold_editor.py's "<title> [<id>]"
 
 # JER scores the union of both transcripts' extents; pyannote warns about it every call.
 warnings.filterwarnings("ignore", message="'uem' was approximated")
@@ -64,23 +70,31 @@ def joined(words: list[dict]) -> str:
 
 # --- selecting and pairing files -------------------------------------------
 
-def library_runs(day: date) -> dict[str, Path]:
-    """Finished library runs created on `day`: id → transcript path."""
+def library_runs(library_dir: Path, day: date | None, files: bool = False) -> dict[str, Path]:
+    """Finished runs (<id>/meta.json) created on `day`, or on any day without
+    one: id → transcript path. With `files`, the directory's plain transcript
+    files (*.json) instead, each named by its stem."""
+    if files:
+        return {p.stem: p for p in sorted(library_dir.glob("*.json"))}
     runs = {}
-    for meta_path in sorted(LIBRARY_DIR.glob("*/meta.json")):
+    for meta_path in sorted(library_dir.glob("*/meta.json")):
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         transcript = meta_path.parent / "transcript.json"
         created = datetime.fromtimestamp(meta["created_at"]).date()
-        if created == day and meta.get("status") == "ready" and transcript.exists():
+        if (day is None or created == day) and meta.get("status") == "ready" and transcript.exists():
             runs[meta["id"]] = transcript
     return runs
 
 
-def pair_files(runs: dict[str, Path], forced: dict[str, str], min_score: float):
+def pair_files(gold_dir: Path, runs: dict[str, Path], forced: dict[str, str], min_score: float):
     """Gold path → (library id | None, similarity score)."""
     texts = {rid: joined(load_words(p)) for rid, p in runs.items()}
     pairs = {}
-    for gold in sorted(GOLD_DIR.glob("*.json")):
+    for gold in sorted(gold_dir.glob("*.json")):
+        named = RUN_ID.search(gold.stem)
+        if named and named[1] in runs and gold.name not in forced:
+            pairs[gold] = (named[1], None)
+            continue
         if gold.name in forced:
             rid = forced[gold.name]
             pairs[gold] = (rid if rid in runs else None, None)
@@ -198,7 +212,7 @@ def evaluate(gold: Path, hyp: Path, ngram: int, collar: float, merge_gap: float)
     text, out = text_metrics(joined(ref_words), joined(hyp_words), ngram)
     return {
         "gold": gold.name,
-        "library": hyp.parent.name,
+        "library": hyp.parent.name if hyp.name == "transcript.json" else hyp.stem,
         "text": text,
         "speaker": speaker_metrics(ref_words, hyp_words, out, collar, merge_gap),
     }
@@ -215,6 +229,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--date", type=date.fromisoformat, default=date.today(),
                         help="library runs created on this day (YYYY-MM-DD, default today)")
+    parser.add_argument("--gold-dir", type=Path, default=GOLD_DIR)
+    parser.add_argument("--library-dir", type=Path, default=LIBRARY_DIR)
+    parser.add_argument("--files", action="store_true",
+                        help="compare every plain *.json in --library-dir instead of the runs (<id>/meta.json) of --date")
+    parser.add_argument("--all-runs", action="store_true",
+                        help="every run in --library-dir, whatever day it was made (e.g. data/output/clips)")
     parser.add_argument("--pair", action="append", default=[], metavar="GOLD_FILE=LIBRARY_ID",
                         help="pair a gold file with a library run by hand (repeatable)")
     parser.add_argument("--min-similarity", type=float, default=50.0,
@@ -227,11 +247,11 @@ def main():
     args = parser.parse_args()
 
     forced = dict(p.split("=", 1) for p in args.pair)
-    runs = library_runs(args.date)
-    print(f"library runs on {args.date}: {', '.join(runs) or '(none)'}")
+    runs = library_runs(args.library_dir, None if args.all_runs else args.date, files=args.files)
+    print(f"library runs in {args.library_dir}: {', '.join(runs) or '(none)'}")
 
     results = []
-    for gold, (rid, score) in pair_files(runs, forced, args.min_similarity).items():
+    for gold, (rid, score) in pair_files(args.gold_dir, runs, forced, args.min_similarity).items():
         if rid is None:
             print(f"  skip  {gold.name}  (no library run, best similarity {score})")
             continue
