@@ -15,7 +15,9 @@
 Each clip goes to data/output/clips/<id>/{transcript.json, meta.json}, the
 same layout as a library run, so gold_editor.py and evaluate.py read it.
 features.csv has every clip's features (clip_features.py, on the pipeline's
-transcript) and `gold`: the gold file whose text matches the clip, if any.
+transcript), `gold`: the gold file whose text matches the clip, if any, and
+the clip's hand-made subgenre / topic / format / tone from tags.json
+(clip_features.py CATEGORIES); a new clip needs a line there by hand.
 --sample picks clips without gold spread over genre × length × speaker count.
 """
 
@@ -29,7 +31,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from rapidfuzz import fuzz
 
-from clip_features import ROOT, duration_bin, features, joined, speakers_bin
+from clip_features import ROOT, TAGS, duration_bin, features, joined, load_tags, speakers_bin
 
 sys.path.insert(0, str(ROOT / "src"))
 from web.db import SupabaseStore  # noqa: E402
@@ -107,7 +109,9 @@ def main():
     clips = export(SupabaseStore(), args.out)
     gold = match_gold(clips, args.gold_dir, args.min_similarity)
 
-    rows = [{"id": m["id"], "title": m["title"], "gold": gold.get(m["id"], "")} | features(t, m)
+    tags = load_tags(args.out)
+    rows = [{"id": m["id"], "title": m["title"], "gold": gold.get(m["id"], "")}
+            | {k: tags.get(m["id"], {}).get(k, "") for k in TAGS} | features(t, m)
             for m, t in clips]
     with open(args.out / "features.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))

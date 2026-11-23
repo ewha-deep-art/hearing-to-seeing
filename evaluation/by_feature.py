@@ -15,7 +15,8 @@
 Video features (clip_features.py) are measured on the gold transcript, so the
 pipeline's own errors (a missed speaker, a dropped line) do not leak into
 them; `reviewed` and `character_confidence` describe the pipeline's run and
-come from its transcript. Only clip runs (export_clips.py) have a genre.
+come from its transcript. Only clip runs (export_clips.py) have a genre, and
+only tagged ones (tags.json) a subgenre, topic, format and tone.
 Writes data/output/eval/by_feature_<eval stem>.md. README.md 6.
 """
 
@@ -25,7 +26,7 @@ from pathlib import Path
 
 from scipy.stats import spearmanr
 
-from clip_features import ROOT, duration_bin, features, speakers_bin
+from clip_features import ROOT, TAGS, duration_bin, features, load_tags, speakers_bin
 
 EVAL_DIR = ROOT / "data/output/eval"
 CLIPS_DIR = ROOT / "data/output/clips"
@@ -41,6 +42,7 @@ PIPELINE = ("reviewed", "character_confidence")
 
 def rows_of(results: list[dict], clips_dir: Path, gold_dir: Path) -> list[dict]:
     rows = []
+    tags = load_tags(clips_dir)
     for r in results:
         run = clips_dir / r["library"]
         if not (run / "meta.json").is_file():
@@ -49,7 +51,8 @@ def rows_of(results: list[dict], clips_dir: Path, gold_dir: Path) -> list[dict]:
         meta = json.loads((run / "meta.json").read_text(encoding="utf-8"))
         gold = json.loads((gold_dir / r["gold"]).read_text(encoding="utf-8"))
         hyp = json.loads((run / "transcript.json").read_text(encoding="utf-8"))
-        row = {"id": r["library"], "title": meta["title"]} | features(gold, meta)
+        row = ({"id": r["library"], "title": meta["title"]}
+               | {k: tags.get(r["library"], {}).get(k) for k in TAGS} | features(gold, meta))
         run_features = features(hyp, meta)
         row |= {k: run_features[k] for k in PIPELINE}
         row |= {label: r[group][key] for group, key, label in METRICS}
@@ -92,13 +95,16 @@ def report(rows: list[dict]) -> str:
            "영상 특징은 gold 기준, `검토`(영상 리뷰가 화자를 정함)·`캐릭터 conf`는 파이프라인 결과 기준이다.", ""]
 
     out += ["## 클립별", ""]
-    cols = ["genre", "duration", "speakers", "minor_word_share", "chars_per_sec", "turns_per_min",
+    cols = ["genre", "subgenre", "topic", "format", "tone", "duration", "speakers", "minor_word_share", "chars_per_sec", "turns_per_min",
             "overlap_share", "whisper_share", "reviewed"]
     out += [table(["클립", *cols, *labels],
                   [[r["title"][:30], *(r[c] for c in cols), *(r[l] for l in labels)] for r in rows]), ""]
 
     out += ["## 구간별 평균", ""]
     out += [grouped(rows, "장르", lambda r: r["genre"] or "–"), ""]
+    out += [grouped(rows, "세부 장르", lambda r: r["subgenre"] or "–"), ""]
+    out += [grouped(rows, "형식", lambda r: r["format"] or "–"), ""]
+    out += [grouped(rows, "분위기", lambda r: r["tone"] or "–"), ""]
     out += [grouped(rows, "길이", lambda r: duration_bin(r["duration"])), ""]
     out += [grouped(rows, "화자 수", lambda r: speakers_bin(r["speakers"])), ""]
     out += [grouped(rows, "영상 리뷰", lambda r: fmt(r["reviewed"])), ""]

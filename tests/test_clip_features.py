@@ -40,3 +40,18 @@ def test_empty_transcript_and_bins():
     assert joined({"words": [word("안녕,", 0, 1), word("!", 1, 2)]}) == "안녕"
     assert [duration_bin(s) for s in (300, 301, 601)] == ["≤5분", "5–10분", ">10분"]
     assert [speakers_bin(n) for n in (3, 6, 7)] == ["≤3명", "4–6명", "≥7명"]
+
+
+def test_tags_must_come_from_the_lists(tmp_path):
+    import json
+
+    import pytest
+    from clip_features import load_tags
+
+    assert load_tags(tmp_path) == {}
+    good = {"subgenre": "코미디", "topic": "아무거나", "format": "연속 장면", "tone": "코믹·과장"}
+    (tmp_path / "tags.json").write_text(json.dumps({"a": good}), encoding="utf-8")
+    assert load_tags(tmp_path) == {"a": good}
+    (tmp_path / "tags.json").write_text(json.dumps({"a": good | {"tone": "웃김"}}), encoding="utf-8")
+    with pytest.raises(ValueError, match="tone"):
+        load_tags(tmp_path)

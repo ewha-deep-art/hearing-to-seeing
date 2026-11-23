@@ -7,6 +7,7 @@ the features). Metrics: README.md 6.
 
 import contextlib
 import io
+import json
 import re
 import sys
 from pathlib import Path
@@ -105,6 +106,32 @@ def features(data: dict, meta: dict | None = None) -> dict:
         "reviewed": any(REVIEWED in (p.get("reason") or "") for p in profiles.values()),
         "character_confidence": round(sum(confidences) / len(confidences), 3) if confidences else None,
     }
+
+
+# Hand-made tags in <clips dir>/tags.json, id → {subgenre, topic, format, tone}.
+# subgenre is the work's (every clip of a work gets the same one); topic, format
+# and tone are the clip's. topic is free text; the others come from these lists.
+CATEGORIES = {
+    "subgenre": ("로맨스·멜로", "코미디", "액션·범죄", "스릴러·미스터리", "판타지", "직업물",
+                 "가족·휴먼", "학원·청춘", "사극·시대극", "권력·재벌", "교양·정보",
+                 "예능·리얼리티", "게임·스포츠"),
+    # 연속 장면: one scene or episode played through; 여러 장면 모음: highlights or a
+    # compilation; 진행·해설: a host, lecturer or narrator carries it
+    "format": ("연속 장면", "여러 장면 모음", "진행·해설"),
+    "tone": ("잔잔한 대화", "갈등·대립", "코믹·과장", "긴장·액션", "감정·울음", "흥분·환호"),
+}
+TAGS = ("subgenre", "topic", "format", "tone")
+
+
+def load_tags(clips_dir: Path) -> dict[str, dict]:
+    """The clips' tags ({} without tags.json); a value outside CATEGORIES raises."""
+    path = clips_dir / "tags.json"
+    tags = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    for cid, t in tags.items():
+        for key, allowed in CATEGORIES.items():
+            if t.get(key) not in allowed:
+                raise ValueError(f"{path}: {cid} {key} {t.get(key)!r} is not one of {allowed}")
+    return tags
 
 
 def duration_bin(seconds: float) -> str:
