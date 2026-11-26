@@ -18,18 +18,29 @@ from hearing_to_seeing.schema import Transcript
 # Loud side: anchored to a z-score. A word whose raw volume is LOUD_Z standard
 # deviations above its speaker's mean is mapped to exactly LOUD_THRESHOLD, so
 # `volume >= LOUD_THRESHOLD` means "z >= LOUD_Z".
-# Quiet side: anchored to an absolute raw volume. A word whose raw (stored)
-# volume is QUIET_VOLUME or lower is mapped to at most QUIET_THRESHOLD, so
-# `volume <= QUIET_THRESHOLD` means "raw volume <= QUIET_VOLUME", whoever speaks.
-# TODO: LOUD_Z / LOUD_Z_FULL / QUIET_VOLUME는 경험값 — 실제 영상으로 분류 결과를 확인한 뒤 조정 필요.
+# Quiet side: anchored to a z-score as well. A word whose raw volume is QUIET_Z
+# standard deviations below its speaker's mean (QUIET_Z is negative) is mapped to
+# exactly QUIET_THRESHOLD, so `volume <= QUIET_THRESHOLD` means "z <= QUIET_Z".
+# On top of that an absolute floor (QUIET_VOLUME) still counts as whispered for
+# every speaker, including speakers with too few words for a z-score.
+# TODO: LOUD_Z / LOUD_Z_FULL / QUIET_Z / QUIET_Z_FULL / QUIET_VOLUME는 경험값 — 실제 영상으로 분류 결과를 확인한 뒤 조정 필요.
 LOUD_THRESHOLD = 0.9
 QUIET_THRESHOLD = 0.1
 
+# Quiet side of relative_volumes: z <= QUIET_Z counts as whispered; z <= QUIET_Z_FULL
+# gets the relative volume 0.0, i.e. WHISPER_SCALE_MIN (whisper_scale interpolates
+# between the two). Mirror image of LOUD_Z / LOUD_Z_FULL. QUIET_Z_FULL is a free
+# parameter, not derived from data. (QUIET_Z = -1.5 flags about 5-6 % of the words
+# in the sample videos, similar to the 6-7 % shouted at LOUD_Z = 1.5.)
+QUIET_Z = -1.5
+QUIET_Z_FULL = -2.5
+
 # Raw volume (the stored 0–1 value, min-max normalised over the whole video) at or
-# below which a word is whispered, for every speaker alike. The stored value is
-# scaled by each video's own loudest and quietest word, so the same number means
-# something different in every video.
-QUIET_VOLUME = 0.08
+# below which a word is always whispered, for every speaker alike. Only a safety
+# floor now (silence / misaligned words, speakers without a z-score baseline): the
+# stored value is scaled by each video's own loudest and quietest word, so a higher
+# number would mean something different in every video.
+QUIET_VOLUME = 0.03
 
 # Loud side of relative_volumes: z >= LOUD_Z counts as shouted; z >= LOUD_Z_FULL
 # gets the full relative volume 1.0, i.e. LOUD_SCALE_MAX (loud_scale interpolates
@@ -100,33 +111,33 @@ def classify_volume(
 def relative_volumes(
     words, min_words: int = 12, lo_pct: float = 5, hi_pct: float = 95,
     loud_z: float = LOUD_Z, loud_z_full: float = LOUD_Z_FULL,
+    quiet_z: float = QUIET_Z, quiet_z_full: float = QUIET_Z_FULL,
     quiet_volume: float = QUIET_VOLUME,
 ):
     """Copies of `words` with `volume` re-expressed on the 0–1 scale the rest of
     the code classifies and sizes by (QUIET_THRESHOLD / LOUD_THRESHOLD).
 
     The stored volume is min-max normalised over the whole video, so one very
-    loud word squeezes everything else towards 0. The two ends are therefore
-    anchored differently:
-
-    Quiet end, absolute and the same for every speaker (so also for a speaker
-    with fewer than `min_words` words):
-        raw 0            -> 0.0
-        raw quiet_volume -> QUIET_THRESHOLD  (so raw <= quiet_volume is whispered)
-
-    Everything above that is relative to the speaker, piecewise linear:
-        raw quiet_volume                 -> QUIET_THRESHOLD
+    loud word squeezes everything else towards 0. Both ends are therefore
+    anchored to the speaker's own mean and standard deviation (z-scores),
+    piecewise linear:
+        mean + quiet_z_full * std        -> 0.0             (and below, clipped)
+        mean + quiet_z * std             -> QUIET_THRESHOLD (so z <= quiet_z is whispered)
         the speaker's median             -> 0.5
         mean + loud_z * std              -> LOUD_THRESHOLD  (so z >= loud_z is loud)
         mean + loud_z_full * std         -> 1.0             (and above, clipped)
-    If the speaker's median is itself at or below `quiet_volume`, 0.5 sits at
-    `quiet_volume` instead and the first segment is empty (the scale jumps from
-    QUIET_THRESHOLD to 0.5 there). A speaker with fewer than `min_words` words
-    has no reliable baseline, and a speaker whose volume never varies (std 0)
-    has none either: their words above `quiet_volume` stay at 0.5.
 
-    `loud_z` has to be above 1: the median is never more than one standard
-    deviation from the mean, which keeps the loud segment well defined.
+    On top of that, raw volume <= quiet_volume is always whispered (an absolute
+    floor, the same for every speaker): raw 0 -> 0.0, raw quiet_volume ->
+    QUIET_THRESHOLD. A speaker with fewer than `min_words` words has no reliable
+    baseline, and a speaker whose volume never varies (std 0) has none either:
+    only the absolute floor applies to them, their other words stay at 0.5.
+    If the speaker's median is itself at or below `quiet_volume`, 0.5 sits at
+    `quiet_volume` instead.
+
+    `loud_z` has to be above 1 and `quiet_z` below -1: the median is never more
+    than one standard deviation from the mean, which keeps the segments between
+    the median and the two thresholds well defined.
 
     `lo_pct` and `hi_pct` are no longer used (the scale used to run between
     those percentiles); they are kept so existing callers do not break.
@@ -136,6 +147,8 @@ def relative_volumes(
     """
     if not 1 < loud_z < loud_z_full:
         raise ValueError(f"need 1 < loud_z < loud_z_full, got {loud_z}, {loud_z_full}")
+    if not quiet_z_full < quiet_z < -1:
+        raise ValueError(f"need quiet_z_full < quiet_z < -1, got {quiet_z_full}, {quiet_z}")
     if quiet_volume <= 0:
         raise ValueError(f"quiet_volume has to be above 0, got {quiet_volume}")
     by_speaker: dict[str, list[float]] = {}
@@ -155,28 +168,37 @@ def relative_volumes(
         stats[spk] = (float(np.median(vols)), float(np.mean(vols)), float(np.std(vols)))
 
     def rel(w):
-        if w.volume is None:
+        v = w.volume
+        if v is None:
             return 0.5
-        if w.volume <= quiet_volume:
-            return QUIET_THRESHOLD * (w.volume / quiet_volume)
+        abs_part = QUIET_THRESHOLD * (v / quiet_volume)  # <= QUIET_THRESHOLD when v <= quiet_volume
         st = stats.get(w.speaker)
-        if st is None:
-            return 0.5
+        if st is None or st[2] <= 0:
+            return abs_part if v <= quiet_volume else 0.5
         med, mean, std = st
-        if std <= 0:
-            return 0.5
-        mid = max(med, quiet_volume)  # where the scale reaches 0.5
+        quiet_at = mean + quiet_z * std
+        zero_at = mean + quiet_z_full * std
         loud_at = mean + loud_z * std
         full_at = mean + loud_z_full * std
-        if w.volume >= loud_at:
-            share = min(1.0, (w.volume - loud_at) / (full_at - loud_at))
+        mid = max(med, quiet_volume)  # where the scale reaches 0.5
+
+        def z_part():  # whisper side by z-score: 0.0 at zero_at, QUIET_THRESHOLD at quiet_at
+            return QUIET_THRESHOLD * _clamp01((v - zero_at) / (quiet_at - zero_at))
+
+        if v <= quiet_volume:  # absolute floor; a z-score below it can only make it smaller
+            return min(abs_part, z_part()) if v <= quiet_at else abs_part
+        if v >= loud_at:
+            share = min(1.0, (v - loud_at) / (full_at - loud_at))
             return LOUD_THRESHOLD + (1.0 - LOUD_THRESHOLD) * share
-        if w.volume >= mid:
-            r = 0.5 + (LOUD_THRESHOLD - 0.5) * (w.volume - mid) / (loud_at - mid)
+        if v >= mid:
+            r = 0.5 + (LOUD_THRESHOLD - 0.5) * (v - mid) / (loud_at - mid)
             # rounding to 4 decimals must not lift a word below loud_z onto the threshold
             return min(r, LOUD_THRESHOLD - 1e-4)
-        r = QUIET_THRESHOLD + (0.5 - QUIET_THRESHOLD) * (w.volume - quiet_volume) / (mid - quiet_volume)
-        # ... nor drop a word above quiet_volume onto QUIET_THRESHOLD
+        if v <= quiet_at:
+            return z_part()
+        lo = max(quiet_at, quiet_volume)
+        r = QUIET_THRESHOLD + (0.5 - QUIET_THRESHOLD) * (v - lo) / (mid - lo)
+        # ... nor drop a word above quiet_z onto QUIET_THRESHOLD
         return max(r, QUIET_THRESHOLD + 1e-4)
 
     return [replace(w, volume=round(rel(w), 4)) for w in words]
